@@ -838,44 +838,67 @@ function displayOrders() {
     tbody.innerHTML = '';
 
     let currentMonthKey = null; // 'YYYY-MM'
-    let currentWeekKey  = null; // ISO date of Monday
+    let currentWeekKey  = null; // ISO date понедельника недели
 
-    // Накопители для итогов недели/месяца (заполняются по мере прохождения)
+    function appendWeekSummary(weekKey) {
+        const monday = new Date(weekKey);
+        const sunday = new Date(monday);
+        sunday.setDate(sunday.getDate() + 6);
+        const weekTotals = calcGroupTotals(sorted, o => {
+            const om = getMondayOf(new Date(o.date)).toISOString().slice(0,10);
+            return om === weekKey;
+        });
+        const weekLabel = `${formatDateDMY(monday.toISOString().slice(0,10))} – ${formatDateDMY(sunday.toISOString().slice(0,10))}`;
+        const weekRow = document.createElement('tr');
+        weekRow.innerHTML = `<td colspan="6" class="bg-gray-200 text-gray-700 text-xs font-medium p-1">
+            Неделя ${weekLabel} — ${weekTotals.qty} шт., ${weekTotals.sum.toFixed(2)} €
+        </td>`;
+        tbody.appendChild(weekRow);
+    }
+
+    function appendMonthSummary(monthKey) {
+        const [y, m] = monthKey.split('-').map(Number);
+        // Месяц объединяет все недели, чей понедельник попадает в этот месяц
+        const monthTotals = calcGroupTotals(sorted, o => {
+            const monday = getMondayOf(new Date(o.date));
+            return `${monday.getFullYear()}-${String(monday.getMonth()+1).padStart(2,'0')}` === monthKey;
+        });
+        const monthLabel = `${MONTH_NAMES_RU[m - 1]} ${y}`;
+        const monthRow = document.createElement('tr');
+        monthRow.innerHTML = `<td colspan="6" class="bg-gray-700 text-white text-xs font-semibold p-1.5">
+            Итого за ${monthLabel} — ${monthTotals.qty} шт., ${monthTotals.sum.toFixed(2)} €
+        </td>`;
+        tbody.appendChild(monthRow);
+    }
+
+    function appendSpacer() {
+        const spacerRow = document.createElement('tr');
+        spacerRow.innerHTML = `<td colspan="6" class="p-1.5 border-b border-gray-300"></td>`;
+        tbody.appendChild(spacerRow);
+    }
+
     sorted.forEach((order, idx) => {
         const orderDate = new Date(order.date);
-        const monthKey = order.date.slice(0, 7);
         const monday = getMondayOf(orderDate);
-        const weekKey = monday.toISOString().slice(0, 10);
+        const weekKey  = monday.toISOString().slice(0, 10);
+        // Месяц группы определяется по месяцу понедельника недели — недели не разбиваются
+        const monthKey = `${monday.getFullYear()}-${String(monday.getMonth()+1).padStart(2,'0')}`;
 
-        // Новый месяц
-        if (monthKey !== currentMonthKey) {
-            const monthTotals = calcGroupTotals(sorted, o => o.date.slice(0,7) === monthKey);
-            const monthLabel = `${MONTH_NAMES_RU[orderDate.getMonth()]} ${orderDate.getFullYear()}`;
-            const monthRow = document.createElement('tr');
-            monthRow.innerHTML = `<td colspan="6" class="bg-gray-700 text-white text-xs font-semibold p-1.5 sticky top-0">
-                ${monthLabel} — ${monthTotals.qty} шт., ${monthTotals.sum.toFixed(2)} €
-            </td>`;
-            tbody.appendChild(monthRow);
-            currentMonthKey = monthKey;
-            currentWeekKey = null; // форсируем вывод заголовка недели после месяца
+        const monthChanged = currentMonthKey !== null && monthKey !== currentMonthKey;
+        const weekChanged  = currentWeekKey  !== null && weekKey  !== currentWeekKey;
+
+        if (monthChanged || weekChanged) {
+            // Закрываем текущую неделю
+            appendWeekSummary(currentWeekKey);
+            // Если поменялся месяц — закрываем и его, со спейсером
+            if (monthChanged) {
+                appendMonthSummary(currentMonthKey);
+            }
+            appendSpacer();
         }
 
-        // Новая неделя
-        if (weekKey !== currentWeekKey) {
-            const sunday = new Date(monday);
-            sunday.setDate(sunday.getDate() + 6);
-            const weekTotals = calcGroupTotals(sorted, o => {
-                const om = getMondayOf(new Date(o.date)).toISOString().slice(0,10);
-                return om === weekKey;
-            });
-            const weekLabel = `${formatDateDMY(monday.toISOString().slice(0,10))} – ${formatDateDMY(sunday.toISOString().slice(0,10))}`;
-            const weekRow = document.createElement('tr');
-            weekRow.innerHTML = `<td colspan="6" class="bg-gray-200 text-gray-700 text-xs font-medium p-1">
-                Неделя ${weekLabel} — ${weekTotals.qty} шт., ${weekTotals.sum.toFixed(2)} €
-            </td>`;
-            tbody.appendChild(weekRow);
-            currentWeekKey = weekKey;
-        }
+        currentMonthKey = monthKey;
+        currentWeekKey  = weekKey;
 
         const realIdx = orders.indexOf(order);
         const total = orderGrandTotal(order).toFixed(2);
@@ -901,6 +924,13 @@ function displayOrders() {
             </td>`;
         tbody.appendChild(row);
     });
+
+    // Закрываем последнюю неделю и месяц
+    if (currentWeekKey !== null) {
+        appendWeekSummary(currentWeekKey);
+        appendMonthSummary(currentMonthKey);
+    }
+
     updateTotals(filteredOrders);
 }
 
