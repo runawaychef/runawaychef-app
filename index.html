@@ -238,8 +238,8 @@
 
                     <table class="w-full table-auto">
                         <thead><tr class="bg-gray-100">
-                            <th class="p-0.5 text-xs w-[12%]">Дата</th>
-                            <th class="p-0.5 text-xs w-[28%]">Клиент</th>
+                            <th class="p-0.5 text-xs w-[17%]">Дата</th>
+                            <th class="p-0.5 text-xs w-[23%]">Клиент</th>
                             <th class="p-0.5 text-xs w-[10%]">Позиций</th>
                             <th class="p-0.5 text-xs w-[15%]">Итого с НДС (€)</th>
                             <th class="p-0.5 text-xs w-[10%] text-center">Статус</th>
@@ -812,12 +812,71 @@ function orderGrandTotal(order) {
     return orderAfterDiscount(order) + orderVatAmount(order);
 }
 
+// Форматирование даты ГГГГ-ММ-ДД -> ДД.MM.ГГГГ
+function formatDateDMY(isoDate) {
+    if (!isoDate) return '';
+    const [y, m, d] = isoDate.split('-');
+    return `${d}.${m}.${y}`;
+}
+
+// Понедельник недели, содержащей дату d
+function getMondayOf(d) {
+    const date = new Date(d);
+    const day = date.getDay(); // 0=Sun..6=Sat
+    const diff = day === 0 ? -6 : 1 - day;
+    date.setDate(date.getDate() + diff);
+    date.setHours(0,0,0,0);
+    return date;
+}
+
+const MONTH_NAMES_RU = ['января','февраля','марта','апреля','мая','июня','июля','августа','сентября','октября','ноября','декабря'];
+
 function displayOrders() {
     const filteredOrders = getFilteredOrdersForList();
     const sorted = [...filteredOrders].sort((a, b) => new Date(b.date) - new Date(a.date));
     const tbody = document.getElementById('orderTableBody');
     tbody.innerHTML = '';
-    sorted.forEach(order => {
+
+    let currentMonthKey = null; // 'YYYY-MM'
+    let currentWeekKey  = null; // ISO date of Monday
+
+    // Накопители для итогов недели/месяца (заполняются по мере прохождения)
+    sorted.forEach((order, idx) => {
+        const orderDate = new Date(order.date);
+        const monthKey = order.date.slice(0, 7);
+        const monday = getMondayOf(orderDate);
+        const weekKey = monday.toISOString().slice(0, 10);
+
+        // Новый месяц
+        if (monthKey !== currentMonthKey) {
+            const monthTotals = calcGroupTotals(sorted, o => o.date.slice(0,7) === monthKey);
+            const monthLabel = `${MONTH_NAMES_RU[orderDate.getMonth()]} ${orderDate.getFullYear()}`;
+            const monthRow = document.createElement('tr');
+            monthRow.innerHTML = `<td colspan="6" class="bg-gray-700 text-white text-xs font-semibold p-1.5 sticky top-0">
+                ${monthLabel} — ${monthTotals.qty} шт., ${monthTotals.sum.toFixed(2)} €
+            </td>`;
+            tbody.appendChild(monthRow);
+            currentMonthKey = monthKey;
+            currentWeekKey = null; // форсируем вывод заголовка недели после месяца
+        }
+
+        // Новая неделя
+        if (weekKey !== currentWeekKey) {
+            const sunday = new Date(monday);
+            sunday.setDate(sunday.getDate() + 6);
+            const weekTotals = calcGroupTotals(sorted, o => {
+                const om = getMondayOf(new Date(o.date)).toISOString().slice(0,10);
+                return om === weekKey;
+            });
+            const weekLabel = `${formatDateDMY(monday.toISOString().slice(0,10))} – ${formatDateDMY(sunday.toISOString().slice(0,10))}`;
+            const weekRow = document.createElement('tr');
+            weekRow.innerHTML = `<td colspan="6" class="bg-gray-200 text-gray-700 text-xs font-medium p-1">
+                Неделя ${weekLabel} — ${weekTotals.qty} шт., ${weekTotals.sum.toFixed(2)} €
+            </td>`;
+            tbody.appendChild(weekRow);
+            currentWeekKey = weekKey;
+        }
+
         const realIdx = orders.indexOf(order);
         const total = orderGrandTotal(order).toFixed(2);
         const itemsCount = order.items ? order.items.length : 0;
@@ -829,7 +888,7 @@ function displayOrders() {
         const row = document.createElement('tr');
         row.className = 'order-row';
         row.innerHTML = `
-            <td class="border p-0.5 text-xs" onclick="openOrderDetail(${order.id})">${order.date}</td>
+            <td class="border p-0.5 text-xs whitespace-nowrap" onclick="openOrderDetail(${order.id})">${formatDateDMY(order.date)}</td>
             <td class="border p-0.5 text-xs" onclick="openOrderDetail(${order.id})">${order.customer}</td>
             <td class="border p-0.5 text-xs text-center" onclick="openOrderDetail(${order.id})">${itemsCount}</td>
             <td class="border p-0.5 text-xs font-medium" onclick="openOrderDetail(${order.id})">${total}</td>
@@ -843,6 +902,18 @@ function displayOrders() {
         tbody.appendChild(row);
     });
     updateTotals(filteredOrders);
+}
+
+// Считает сумму (с НДС) и общее кол-во изделий по подмножеству заказов, отобранных predicate
+function calcGroupTotals(allOrders, predicate) {
+    let sum = 0, qty = 0;
+    allOrders.forEach(o => {
+        if (predicate(o)) {
+            sum += orderGrandTotal(o);
+            qty += (o.items || []).reduce((s, it) => s + Number(it.quantity || 0), 0);
+        }
+    });
+    return { sum, qty };
 }
 
 // ==================== ФИЛЬТРЫ СПИСКА ЗАКАЗОВ ====================
