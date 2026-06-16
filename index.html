@@ -12,7 +12,7 @@
     <link rel="apple-touch-icon" href="icon-180.png">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="RunwayChef">
+    <meta name="apple-mobile-web-app-title" content="RunawayChef">
 
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
@@ -113,10 +113,11 @@
 <div class="container mx-auto p-2 max-w-2xl">
     <div id="appContent" class="app-locked">
         <h1 class="text-2xl font-bold text-center mb-4 text-gray-800">Runway Chef Project</h1>
-        <div class="flex space-x-2 mb-3">
+        <div class="flex flex-wrap gap-1 mb-3">
             <button onclick="showTab('orders')" class="tab btn bg-gray-200 text-gray-800 p-1 rounded-md hover:bg-gray-300 text-sm active">Заказы</button>
             <button onclick="showTab('customers')" class="tab btn bg-gray-200 text-gray-800 p-1 rounded-md hover:bg-gray-300 text-sm">Клиенты</button>
             <button onclick="showTab('products')" class="tab btn bg-gray-200 text-gray-800 p-1 rounded-md hover:bg-gray-300 text-sm">Изделия</button>
+            <button onclick="showTab('history')" class="tab btn bg-gray-200 text-gray-800 p-1 rounded-md hover:bg-gray-300 text-sm">История</button>
             <button onclick="openStatsModal()" class="btn bg-gray-200 text-gray-800 p-1 rounded-md hover:bg-gray-300 text-sm">Статистика</button>
         </div>
 
@@ -172,7 +173,39 @@
             </div>
         </div>
 
-        <!-- ===== ЗАКАЗЫ ===== -->
+        <!-- ===== ИСТОРИЯ ===== -->
+        <div id="history" class="tab-content hidden">
+            <div class="bg-white p-2 rounded-md shadow-md">
+                <h2 class="text-lg font-semibold mb-2 text-gray-800">Журнал действий</h2>
+                <div class="mb-2">
+                    <select id="historyEmployeeFilter" onchange="loadHistory()" class="border p-0.5 rounded-md w-full text-xs">
+                        <option value="">Все сотрудники</option>
+                    </select>
+                </div>
+                <div class="mb-2">
+                    <select id="historyActionFilter" onchange="loadHistory()" class="border p-0.5 rounded-md w-full text-xs">
+                        <option value="">Все действия</option>
+                        <option value="order">Заказы</option>
+                        <option value="item">Позиции заказа</option>
+                        <option value="customer">Клиенты</option>
+                        <option value="product">Изделия</option>
+                        <option value="auth">Вход/выход</option>
+                    </select>
+                </div>
+                <table class="w-full table-auto">
+                    <thead><tr class="bg-gray-100">
+                        <th class="p-0.5 text-xs w-[15%]">Дата</th>
+                        <th class="p-0.5 text-xs w-[10%]">Время</th>
+                        <th class="p-0.5 text-xs w-[20%]">Сотрудник</th>
+                        <th class="p-0.5 text-xs w-[55%]">Действие</th>
+                    </tr></thead>
+                    <tbody id="historyTableBody"></tbody>
+                </table>
+                <div class="text-center mt-2">
+                    <button id="historyLoadMoreBtn" onclick="loadMoreHistory()" class="btn bg-gray-200 text-gray-700 px-3 py-1 rounded-md hover:bg-gray-300 text-xs hidden">Показать ещё</button>
+                </div>
+            </div>
+        </div>
         <div id="orders" class="tab-content">
 
             <!-- СПИСОК ЗАКАЗОВ -->
@@ -523,6 +556,25 @@ let deleteType   = null;
 let currentOrderId = null; // id заказа, открытого в детальном виде
 let currentEmployee = null; // {id, name}
 
+// ==================== ЖУРНАЛ ДЕЙСТВИЙ ====================
+const HISTORY_PAGE_SIZE = 30;
+let historyOffset = 0;
+let historyHasMore = true;
+
+// Записывает действие в журнал (activity_log). Ошибки логирования не должны мешать основной работе.
+async function logActivity(actionType, description) {
+    try {
+        await db.from('activity_log').insert({
+            employee_id: currentEmployee ? currentEmployee.id : null,
+            employee_name: currentEmployee ? currentEmployee.name : '—',
+            action_type: actionType,
+            description: description
+        });
+    } catch (e) {
+        console.error('Activity log error:', e);
+    }
+}
+
 // ==================== ЗАГРУЗКА / ИНДИКАТОР ====================
 function showLoading() { document.getElementById('loadingOverlay').classList.remove('hidden'); }
 function hideLoading() { document.getElementById('loadingOverlay').classList.add('hidden'); }
@@ -557,10 +609,12 @@ async function selectEmployee(emp) {
     badge.textContent = emp.name;
     badge.classList.remove('hidden');
     await loadAllData();
+    logActivity('auth', `Вход: ${emp.name}`);
 }
 
 function logoutEmployee() {
     if (!confirm('Сменить сотрудника?')) return;
+    logActivity('auth', `Выход: ${currentEmployee ? currentEmployee.name : ''}`);
     currentEmployee = null;
     localStorage.removeItem('currentEmployee');
     document.getElementById('loginScreen').classList.remove('hidden');
@@ -647,6 +701,7 @@ function showTab(tabId) {
     if (tabId === 'orders')    { closeOrderDetail(); displayOrders(); }
     if (tabId === 'products')  displayProducts();
     if (tabId === 'customers') displayCustomers();
+    if (tabId === 'history')   { updateHistoryEmployeeFilter(); loadHistory(); }
 }
 
 // ==================== ИЗДЕЛИЯ ====================
@@ -679,6 +734,7 @@ async function addProduct() {
         if (error) throw error;
         products.push({ id: data.id, name: data.name, price: Number(data.price) });
         displayProducts();
+        logActivity('product', `Добавлено изделие «${name}» (${price.toFixed(2)} €)`);
         document.getElementById('productName').value = '';
         document.getElementById('productPrice').value = '';
     } catch (e) { console.error(e); alert('Ошибка сохранения. Проверьте подключение.'); }
@@ -697,6 +753,7 @@ async function saveProductEdit() {
     const price = parseFloat(document.getElementById('editProductPrice').value);
     if (!name || isNaN(price)) { alert('Заполните все поля корректно!'); return; }
     const prod = products[editIndex];
+    const oldName = prod.name, oldPrice = prod.price;
     showLoading();
     try {
         const { error } = await db.from('products').update({ name, price: parseFloat(price.toFixed(2)) }).eq('id', prod.id);
@@ -705,6 +762,7 @@ async function saveProductEdit() {
         // Обновить название изделия в позициях заказов (в кэше)
         orders.forEach(o => o.items.forEach(it => { if (it.product_id === prod.id) it.product = name; }));
         displayProducts(); closeModal();
+        logActivity('product', `Изменено изделие «${oldName}» (${oldPrice.toFixed(2)} €) → «${name}» (${price.toFixed(2)} €)`);
     } catch (e) { console.error(e); alert('Ошибка сохранения. Проверьте подключение.'); }
     finally { hideLoading(); }
 }
@@ -750,6 +808,7 @@ async function addCustomer() {
         if (error) throw error;
         customers.push({ id: data.id, name: data.name, contact: data.contact || '', discount: Number(data.discount || 0), vat_exempt: !!data.vat_exempt });
         displayCustomers();
+        logActivity('customer', `Добавлен клиент «${name}»`);
         document.getElementById('customerName').value    = '';
         document.getElementById('customerContact').value = '';
         document.getElementById('customerDiscount').value = '';
@@ -774,6 +833,7 @@ async function saveCustomerEdit() {
     const vatExempt = document.getElementById('editCustomerVatExempt').checked;
     if (!name || !contact) { alert('Заполните все поля корректно!'); return; }
     const cust = customers[editIndex];
+    const oldName = cust.name;
     showLoading();
     try {
         const { error } = await db.from('customers').update({ name, contact, discount: parseFloat(discount.toFixed(2)), vat_exempt: vatExempt }).eq('id', cust.id);
@@ -782,6 +842,7 @@ async function saveCustomerEdit() {
         // Обновить имя клиента в кэше заказов
         orders.forEach(o => { if (o.customer_id === cust.id) o.customer = name; });
         displayCustomers(); closeModal();
+        logActivity('customer', `Изменён клиент «${oldName}»${oldName !== name ? ` → «${name}»` : ''}`);
     } catch (e) { console.error(e); alert('Ошибка сохранения. Проверьте подключение.'); }
     finally { hideLoading(); }
 }
@@ -1084,6 +1145,7 @@ async function createNewOrder() {
         orders.push(newOrder);
         displayOrders();
         openOrderDetail(newOrder.id);
+        logActivity('order', `Создан заказ №${newOrder.id} для клиента «${cust.name}»`);
         // сбросить форму
         document.getElementById('orderCustomer').value = '';
         document.getElementById('orderDate').value = new Date().toISOString().split('T')[0];
@@ -1132,6 +1194,7 @@ async function copyOrder(i) {
         orders.push(copy);
         displayOrders();
         openOrderDetail(copy.id);
+        logActivity('order', `Скопирован заказ №${o.id} → новый заказ №${copy.id} (клиент «${o.customer}»)`);
     } catch (e) { console.error(e); alert('Ошибка копирования заказа. Проверьте подключение.'); }
     finally { hideLoading(); }
 }
@@ -1205,6 +1268,9 @@ async function saveDetailHeader() {
     const employeeId = employeeIdRaw ? Number(employeeIdRaw) : null;
     if (!cust) { alert('Клиент не найден!'); return; }
 
+    // Запоминаем прежние значения для журнала
+    const old = { customer: order.customer, date: order.date, status: order.status, discount: order.discount, employee: order.employee };
+
     showLoading();
     try {
         const { error } = await db.from('orders').update({
@@ -1221,6 +1287,15 @@ async function saveDetailHeader() {
         order.employee_id = employeeId;
         order.employee    = emp ? emp.name : '';
         renderDetailItems(order);
+
+        // Журнал: фиксируем только реально изменившиеся поля
+        const changes = [];
+        if (old.customer !== order.customer) changes.push(`клиент «${old.customer}» → «${order.customer}»`);
+        if (old.date !== order.date) changes.push(`дата ${formatDateDMY(old.date)} → ${formatDateDMY(order.date)}`);
+        if (old.status !== order.status) changes.push(`статус «${old.status}» → «${order.status}»`);
+        if (old.discount !== order.discount) changes.push(`скидка ${old.discount}% → ${order.discount}%`);
+        if ((old.employee || '') !== (order.employee || '')) changes.push(`исполнитель «${old.employee || '—'}» → «${order.employee || '—'}»`);
+        if (changes.length) logActivity('order', `Изменён заказ №${order.id}: ${changes.join(', ')}`);
     } catch (e) { console.error(e); alert('Ошибка сохранения. Проверьте подключение.'); }
     finally { hideLoading(); }
 }
@@ -1288,6 +1363,7 @@ async function addItemToOrder() {
         if (error) throw error;
         order.items.push({ id: data.id, product_id: prod.id, product: prod.name, quantity: Number(data.quantity), price: Number(data.price) });
         renderDetailItems(order);
+        logActivity('item', `Добавлена позиция в заказ №${order.id}: «${prod.name}» × ${quantity}`);
         // Сбросить поля
         document.getElementById('newItemProduct').value = '';
         document.getElementById('newItemQty').value    = '';
@@ -1340,6 +1416,7 @@ async function saveItemEdit() {
     const prod = products.find(p => p.name === productName);
     if (!prod) { alert('Изделие не найдено!'); return; }
     const item = order.items[editItemIdx];
+    const oldDesc = `«${item.product}» × ${item.quantity}`;
 
     showLoading();
     try {
@@ -1350,6 +1427,7 @@ async function saveItemEdit() {
         order.items[editItemIdx] = { id: item.id, product_id: prod.id, product: prod.name, quantity, price: parseFloat(price.toFixed(2)) };
         renderDetailItems(order);
         closeModal();
+        logActivity('item', `Изменена позиция в заказе №${order.id}: ${oldDesc} → «${prod.name}» × ${quantity}`);
     } catch (e) { console.error(e); alert('Ошибка сохранения. Проверьте подключение.'); }
     finally { hideLoading(); }
 }
@@ -1379,6 +1457,7 @@ async function saveOrderEdit() {
     const cust = customers.find(c => c.name === customerName);
     if (!cust) { alert('Клиент не найден!'); return; }
     const order = orders[editIndex];
+    const old = { customer: order.customer, date: order.date, status: order.status };
 
     showLoading();
     try {
@@ -1391,6 +1470,11 @@ async function saveOrderEdit() {
         order.date        = date;
         order.status      = status;
         displayOrders(); closeModal();
+        const changes = [];
+        if (old.customer !== order.customer) changes.push(`клиент «${old.customer}» → «${order.customer}»`);
+        if (old.date !== order.date) changes.push(`дата ${formatDateDMY(old.date)} → ${formatDateDMY(order.date)}`);
+        if (old.status !== order.status) changes.push(`статус «${old.status}» → «${order.status}»`);
+        if (changes.length) logActivity('order', `Изменён заказ №${order.id}: ${changes.join(', ')}`);
     } catch (e) { console.error(e); alert('Ошибка сохранения. Проверьте подключение.'); }
     finally { hideLoading(); }
 }
@@ -1413,12 +1497,14 @@ async function confirmDelete() {
             if (error) throw error;
             products.splice(deleteId, 1);
             displayProducts();
+            logActivity('product', `Удалено изделие «${prod.name}»`);
         } else if (deleteType === 'customer') {
             const cust = customers[deleteId];
             const { error } = await db.from('customers').delete().eq('id', cust.id);
             if (error) throw error;
             customers.splice(deleteId, 1);
             displayCustomers();
+            logActivity('customer', `Удалён клиент «${cust.name}»`);
         } else if (deleteType === 'order') {
             const order = orders[deleteId];
             // order_items удалятся автоматически (on delete cascade)
@@ -1426,6 +1512,7 @@ async function confirmDelete() {
             if (error) throw error;
             orders.splice(deleteId, 1);
             displayOrders();
+            logActivity('order', `Удалён заказ №${order.id} (клиент «${order.customer}»)`);
         } else if (deleteType === 'item') {
             const order = orders.find(o => o.id === currentOrderId);
             if (order) {
@@ -1434,6 +1521,7 @@ async function confirmDelete() {
                 if (error) throw error;
                 order.items.splice(deleteId, 1);
                 renderDetailItems(order);
+                logActivity('item', `Удалена позиция «${item.product}» × ${item.quantity} из заказа №${order.id}`);
             }
         }
         closeModal();
@@ -1451,7 +1539,85 @@ function closeModal() {
     editIndex = null; editItemIdx = null; deleteId = null; deleteType = null;
 }
 
-// ==================== СТАТИСТИКА ====================
+// ==================== ИСТОРИЯ (ЖУРНАЛ ДЕЙСТВИЙ) ====================
+function updateHistoryEmployeeFilter() {
+    const sel = document.getElementById('historyEmployeeFilter');
+    if (!sel) return;
+    const prev = sel.value;
+    sel.innerHTML = '<option value="">Все сотрудники</option>';
+    employees.forEach(e => {
+        const opt = document.createElement('option');
+        opt.value = e.id; opt.textContent = e.name;
+        if (String(e.id) === prev) opt.selected = true;
+        sel.appendChild(opt);
+    });
+}
+
+const ACTION_TYPE_LABELS = {
+    order: 'Заказ', item: 'Позиция', customer: 'Клиент', product: 'Изделие', auth: 'Вход/выход'
+};
+
+function formatHistoryRow(entry) {
+    const dt = new Date(entry.created_at);
+    const dateStr = dt.toLocaleDateString('ru-RU');
+    const timeStr = dt.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
+    return `<tr class="border-b">
+        <td class="p-0.5 text-xs whitespace-nowrap">${dateStr}</td>
+        <td class="p-0.5 text-xs whitespace-nowrap">${timeStr}</td>
+        <td class="p-0.5 text-xs">${entry.employee_name || '—'}</td>
+        <td class="p-0.5 text-xs">${entry.description || ''}</td>
+    </tr>`;
+}
+
+async function loadHistory() {
+    historyOffset = 0;
+    historyHasMore = true;
+    const tbody = document.getElementById('historyTableBody');
+    tbody.innerHTML = `<tr><td colspan="4" class="text-center text-xs text-gray-400 py-2">Загрузка…</td></tr>`;
+    await fetchHistoryPage(true);
+}
+
+async function loadMoreHistory() {
+    await fetchHistoryPage(false);
+}
+
+async function fetchHistoryPage(replace) {
+    const employeeFilter = document.getElementById('historyEmployeeFilter').value;
+    const actionFilter   = document.getElementById('historyActionFilter').value;
+
+    try {
+        let query = db.from('activity_log')
+            .select('id, created_at, employee_name, action_type, description')
+            .order('created_at', { ascending: false })
+            .range(historyOffset, historyOffset + HISTORY_PAGE_SIZE - 1);
+
+        if (employeeFilter) query = query.eq('employee_id', employeeFilter);
+        if (actionFilter)   query = query.eq('action_type', actionFilter);
+
+        const { data, error } = await query;
+        if (error) throw error;
+
+        const tbody = document.getElementById('historyTableBody');
+        if (replace) tbody.innerHTML = '';
+
+        if (!data || data.length === 0) {
+            if (replace) tbody.innerHTML = `<tr><td colspan="4" class="text-center text-xs text-gray-400 py-2">Нет записей</td></tr>`;
+            historyHasMore = false;
+        } else {
+            tbody.insertAdjacentHTML('beforeend', data.map(formatHistoryRow).join(''));
+            historyOffset += data.length;
+            historyHasMore = data.length === HISTORY_PAGE_SIZE;
+        }
+
+        document.getElementById('historyLoadMoreBtn').classList.toggle('hidden', !historyHasMore);
+    } catch (e) {
+        console.error(e);
+        const tbody = document.getElementById('historyTableBody');
+        if (replace) tbody.innerHTML = `<tr><td colspan="4" class="text-center text-xs text-red-500 py-2">Ошибка загрузки журнала</td></tr>`;
+    }
+}
+
+
 function openStatsModal() {
     document.getElementById('statsModal').style.display = 'flex';
     updateStatsCustomerFilter();
