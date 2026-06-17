@@ -117,7 +117,6 @@
             <button onclick="showTab('orders')" class="tab btn bg-gray-200 text-gray-800 p-1 rounded-md hover:bg-gray-300 text-sm active">Заказы</button>
             <button onclick="showTab('customers')" class="tab btn bg-gray-200 text-gray-800 p-1 rounded-md hover:bg-gray-300 text-sm">Клиенты</button>
             <button onclick="showTab('products')" class="tab btn bg-gray-200 text-gray-800 p-1 rounded-md hover:bg-gray-300 text-sm">Изделия</button>
-            <button onclick="showTab('history')" class="tab btn bg-gray-200 text-gray-800 p-1 rounded-md hover:bg-gray-300 text-sm">История</button>
             <button onclick="openStatsModal()" class="btn bg-gray-200 text-gray-800 p-1 rounded-md hover:bg-gray-300 text-sm">Статистика</button>
         </div>
 
@@ -176,7 +175,13 @@
         <!-- ===== ИСТОРИЯ ===== -->
         <div id="history" class="tab-content hidden">
             <div class="bg-white p-2 rounded-md shadow-md">
-                <h2 class="text-lg font-semibold mb-2 text-gray-800">Журнал действий</h2>
+                <div class="flex items-center justify-between mb-2">
+                    <h2 class="text-lg font-semibold text-gray-800">Журнал действий</h2>
+                    <button onclick="closeHistoryScreen()" class="btn text-xs bg-gray-200 text-gray-700 px-2 py-1 rounded-md hover:bg-gray-300 flex items-center gap-1">
+                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+                        Назад
+                    </button>
+                </div>
                 <div class="mb-2">
                     <select id="historyEmployeeFilter" onchange="loadHistory()" class="border p-0.5 rounded-md w-full text-xs">
                         <option value="">Все сотрудники</option>
@@ -192,6 +197,7 @@
                         <option value="auth">Вход/выход</option>
                     </select>
                 </div>
+                <p class="text-xs text-gray-400 mb-2">Записи о заказах можно открыть нажатием (кроме удалённых)</p>
                 <table class="w-full table-auto">
                     <thead><tr class="bg-gray-100">
                         <th class="p-0.5 text-xs w-[15%]">Дата</th>
@@ -457,6 +463,7 @@
                 <div class="flex gap-1 mb-3 flex-wrap">
                     <button onclick="downloadBackup()" class="btn bg-green-600 text-white px-2 py-1 rounded-md hover:bg-green-700 text-xs">⬇ Скачать резервную копию</button>
                     <button onclick="loadAllData()" class="btn bg-gray-500 text-white px-2 py-1 rounded-md hover:bg-gray-600 text-xs">↻ Обновить данные</button>
+                    <button onclick="openHistoryScreen()" class="btn bg-gray-500 text-white px-2 py-1 rounded-md hover:bg-gray-600 text-xs">📋 Журнал действий</button>
                 </div>
 
                 <!-- Фильтры -->
@@ -562,13 +569,14 @@ let historyOffset = 0;
 let historyHasMore = true;
 
 // Записывает действие в журнал (activity_log). Ошибки логирования не должны мешать основной работе.
-async function logActivity(actionType, description) {
+async function logActivity(actionType, description, orderId = null) {
     try {
         await db.from('activity_log').insert({
             employee_id: currentEmployee ? currentEmployee.id : null,
             employee_name: currentEmployee ? currentEmployee.name : '—',
             action_type: actionType,
-            description: description
+            description: description,
+            order_id: orderId
         });
     } catch (e) {
         console.error('Activity log error:', e);
@@ -697,11 +705,23 @@ function showTab(tabId) {
     document.querySelectorAll('.tab-content').forEach(t => t.classList.add('hidden'));
     document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
     document.getElementById(tabId).classList.remove('hidden');
-    document.querySelector(`button[onclick="showTab('${tabId}')"]`).classList.add('active');
+    const tabBtn = document.querySelector(`button[onclick="showTab('${tabId}')"]`);
+    if (tabBtn) tabBtn.classList.add('active');
     if (tabId === 'orders')    { closeOrderDetail(); displayOrders(); }
     if (tabId === 'products')  displayProducts();
     if (tabId === 'customers') displayCustomers();
     if (tabId === 'history')   { updateHistoryEmployeeFilter(); loadHistory(); }
+}
+
+// Открыть экран истории из окна статистики
+function openHistoryScreen() {
+    closeModal(); // закрыть модальное окно статистики
+    showTab('history');
+}
+
+// Вернуться из истории к заказам (т.к. История больше не основная вкладка)
+function closeHistoryScreen() {
+    showTab('orders');
 }
 
 // ==================== ИЗДЕЛИЯ ====================
@@ -1145,7 +1165,7 @@ async function createNewOrder() {
         orders.push(newOrder);
         displayOrders();
         openOrderDetail(newOrder.id);
-        logActivity('order', `Создан заказ №${newOrder.id} для клиента «${cust.name}»`);
+        logActivity('order', `Создан заказ №${newOrder.id} для клиента «${cust.name}»`, newOrder.id);
         // сбросить форму
         document.getElementById('orderCustomer').value = '';
         document.getElementById('orderDate').value = new Date().toISOString().split('T')[0];
@@ -1194,7 +1214,7 @@ async function copyOrder(i) {
         orders.push(copy);
         displayOrders();
         openOrderDetail(copy.id);
-        logActivity('order', `Скопирован заказ №${o.id} → новый заказ №${copy.id} (клиент «${o.customer}»)`);
+        logActivity('order', `Скопирован заказ №${o.id} → новый заказ №${copy.id} (клиент «${o.customer}»)`, copy.id);
     } catch (e) { console.error(e); alert('Ошибка копирования заказа. Проверьте подключение.'); }
     finally { hideLoading(); }
 }
@@ -1295,7 +1315,7 @@ async function saveDetailHeader() {
         if (old.status !== order.status) changes.push(`статус «${old.status}» → «${order.status}»`);
         if (old.discount !== order.discount) changes.push(`скидка ${old.discount}% → ${order.discount}%`);
         if ((old.employee || '') !== (order.employee || '')) changes.push(`исполнитель «${old.employee || '—'}» → «${order.employee || '—'}»`);
-        if (changes.length) logActivity('order', `Изменён заказ №${order.id}: ${changes.join(', ')}`);
+        if (changes.length) logActivity('order', `Изменён заказ №${order.id}: ${changes.join(', ')}`, order.id);
     } catch (e) { console.error(e); alert('Ошибка сохранения. Проверьте подключение.'); }
     finally { hideLoading(); }
 }
@@ -1363,7 +1383,7 @@ async function addItemToOrder() {
         if (error) throw error;
         order.items.push({ id: data.id, product_id: prod.id, product: prod.name, quantity: Number(data.quantity), price: Number(data.price) });
         renderDetailItems(order);
-        logActivity('item', `Добавлена позиция в заказ №${order.id}: «${prod.name}» × ${quantity}`);
+        logActivity('item', `Добавлена позиция в заказ №${order.id}: «${prod.name}» × ${quantity}`, order.id);
         // Сбросить поля
         document.getElementById('newItemProduct').value = '';
         document.getElementById('newItemQty').value    = '';
@@ -1427,7 +1447,7 @@ async function saveItemEdit() {
         order.items[editItemIdx] = { id: item.id, product_id: prod.id, product: prod.name, quantity, price: parseFloat(price.toFixed(2)) };
         renderDetailItems(order);
         closeModal();
-        logActivity('item', `Изменена позиция в заказе №${order.id}: ${oldDesc} → «${prod.name}» × ${quantity}`);
+        logActivity('item', `Изменена позиция в заказе №${order.id}: ${oldDesc} → «${prod.name}» × ${quantity}`, order.id);
     } catch (e) { console.error(e); alert('Ошибка сохранения. Проверьте подключение.'); }
     finally { hideLoading(); }
 }
@@ -1474,7 +1494,7 @@ async function saveOrderEdit() {
         if (old.customer !== order.customer) changes.push(`клиент «${old.customer}» → «${order.customer}»`);
         if (old.date !== order.date) changes.push(`дата ${formatDateDMY(old.date)} → ${formatDateDMY(order.date)}`);
         if (old.status !== order.status) changes.push(`статус «${old.status}» → «${order.status}»`);
-        if (changes.length) logActivity('order', `Изменён заказ №${order.id}: ${changes.join(', ')}`);
+        if (changes.length) logActivity('order', `Изменён заказ №${order.id}: ${changes.join(', ')}`, order.id);
     } catch (e) { console.error(e); alert('Ошибка сохранения. Проверьте подключение.'); }
     finally { hideLoading(); }
 }
@@ -1521,7 +1541,7 @@ async function confirmDelete() {
                 if (error) throw error;
                 order.items.splice(deleteId, 1);
                 renderDetailItems(order);
-                logActivity('item', `Удалена позиция «${item.product}» × ${item.quantity} из заказа №${order.id}`);
+                logActivity('item', `Удалена позиция «${item.product}» × ${item.quantity} из заказа №${order.id}`, order.id);
             }
         }
         closeModal();
@@ -1561,12 +1581,24 @@ function formatHistoryRow(entry) {
     const dt = new Date(entry.created_at);
     const dateStr = dt.toLocaleDateString('ru-RU');
     const timeStr = dt.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
-    return `<tr class="border-b">
+
+    // Кликабельно только если есть order_id и такой заказ всё ещё существует
+    const orderExists = entry.order_id && orders.some(o => o.id === entry.order_id);
+    const rowClass = orderExists ? 'border-b order-row' : 'border-b';
+    const clickAttr = orderExists ? ` onclick="openOrderFromHistory(${entry.order_id})"` : '';
+
+    return `<tr class="${rowClass}"${clickAttr}>
         <td class="p-0.5 text-xs whitespace-nowrap">${dateStr}</td>
         <td class="p-0.5 text-xs whitespace-nowrap">${timeStr}</td>
         <td class="p-0.5 text-xs">${entry.employee_name || '—'}</td>
-        <td class="p-0.5 text-xs">${entry.description || ''}</td>
+        <td class="p-0.5 text-xs">${entry.description || ''}${orderExists ? ' <span class="text-indigo-500">→</span>' : ''}</td>
     </tr>`;
+}
+
+// Открыть заказ прямо из записи журнала
+function openOrderFromHistory(orderId) {
+    showTab('orders');
+    openOrderDetail(orderId);
 }
 
 async function loadHistory() {
@@ -1587,7 +1619,7 @@ async function fetchHistoryPage(replace) {
 
     try {
         let query = db.from('activity_log')
-            .select('id, created_at, employee_name, action_type, description')
+            .select('id, created_at, employee_name, action_type, description, order_id')
             .order('created_at', { ascending: false })
             .range(historyOffset, historyOffset + HISTORY_PAGE_SIZE - 1);
 
