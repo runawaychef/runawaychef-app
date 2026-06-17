@@ -548,13 +548,11 @@
 
 <script src="dates.js"></script>
 <script src="money.js"></script>
+<script src="supabaseClient.js"></script>
 <script>
-// ==================== SUPABASE ====================
-const SUPABASE_URL = 'https://eyzusdlyghahdcvrglhe.supabase.co';
-const SUPABASE_KEY = 'sb_publishable_wKZLhyoTOKqovf1_YptOJw_wXkSUAFv';
-const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+// SUPABASE_URL, SUPABASE_KEY, db перенесены в supabaseClient.js
 
-// VAT_RATE перенесён в js/utils/money.js
+// VAT_RATE перенесён в money.js
 
 // ==================== ДАННЫЕ (кэш в памяти) ====================
 let products  = [];   // [{id, name, price}]
@@ -876,8 +874,8 @@ async function saveCustomerEdit() {
 
 // ==================== ЗАКАЗЫ — СПИСОК ====================
 // orderTotal, orderDiscountAmount, orderAfterDiscount, orderVatAmount, orderGrandTotal
-// перенесены в js/utils/money.js
-// formatDateDMY, getMondayOf, MONTH_NAMES_RU перенесены в js/utils/dates.js
+// перенесены в money.js
+// formatDateDMY, getMondayOf, MONTH_NAMES_RU перенесены в dates.js
 
 function displayOrders() {
     const filteredOrders = getFilteredOrdersForList();
