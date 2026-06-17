@@ -45,6 +45,10 @@
         #orderDetail.active { display: block; }
         #ordersList.hidden-list { display: none; }
 
+        /* Детальный вид изделия */
+        #productDetail { display: none; }
+        #productDetail.active { display: block; }
+
         /* Строка новой позиции */
         .new-item-row td { padding: 3px 2px; vertical-align: middle; }
         .new-item-row select, .new-item-row input {
@@ -117,28 +121,125 @@
             <button onclick="showTab('orders')" class="tab btn bg-gray-200 text-gray-800 p-1 rounded-md hover:bg-gray-300 text-sm active">Заказы</button>
             <button onclick="showTab('customers')" class="tab btn bg-gray-200 text-gray-800 p-1 rounded-md hover:bg-gray-300 text-sm">Клиенты</button>
             <button onclick="showTab('products')" class="tab btn bg-gray-200 text-gray-800 p-1 rounded-md hover:bg-gray-300 text-sm">Изделия</button>
+            <button onclick="showTab('ingredients')" class="tab btn bg-gray-200 text-gray-800 p-1 rounded-md hover:bg-gray-300 text-sm">Ингредиенты</button>
             <button onclick="openStatsModal()" class="btn bg-gray-200 text-gray-800 p-1 rounded-md hover:bg-gray-300 text-sm">Статистика</button>
         </div>
 
         <!-- ===== ИЗДЕЛИЯ ===== -->
         <div id="products" class="tab-content hidden">
+            <div id="productsList">
+                <div class="bg-white p-2 rounded-md shadow-md mb-4">
+                    <h2 class="text-lg font-semibold mb-2 text-gray-800">Добавить изделие</h2>
+                    <div class="grid grid-cols-1 gap-0.5">
+                        <input id="productName" type="text" placeholder="Название изделия" class="border p-0.5 rounded-md focus:outline-none focus:ring-1 focus:ring-gray-300 text-xs">
+                        <input id="productPrice" type="number" step="0.01" placeholder="Продажная цена (€)" class="border p-0.5 rounded-md focus:outline-none focus:ring-1 focus:ring-gray-300 text-xs">
+                        <button onclick="addProduct()" class="btn bg-gray-500 text-white p-0.5 rounded-md hover:bg-gray-600 text-xs">Добавить изделие</button>
+                    </div>
+                </div>
+                <div class="bg-white p-2 rounded-md shadow-md">
+                    <h2 class="text-lg font-semibold mb-2 text-gray-800">Список изделий</h2>
+                    <p class="text-xs text-gray-400 mb-2">Нажмите на строку изделия, чтобы открыть рецептуру</p>
+                    <table class="w-full table-auto">
+                        <thead><tr class="bg-gray-100">
+                            <th class="p-0.5 text-xs w-[55%]">Название</th>
+                            <th class="p-0.5 text-xs w-[20%]">Цена (€)</th>
+                            <th class="p-0.5 text-xs w-[25%]">Действия</th>
+                        </tr></thead>
+                        <tbody id="productTableBody"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- ДЕТАЛЬНЫЙ ВИД ИЗДЕЛИЯ / РЕЦЕПТУРА -->
+            <div id="productDetail">
+                <div class="bg-white p-2 rounded-md shadow-md mb-3">
+                    <div class="flex items-center justify-between mb-2">
+                        <button onclick="closeProductDetail()" class="btn text-xs bg-gray-200 text-gray-700 px-2 py-1 rounded-md hover:bg-gray-300 flex items-center gap-1">
+                            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+                            Назад к изделиям
+                        </button>
+                    </div>
+                    <div class="grid grid-cols-2 gap-1 mb-2">
+                        <div>
+                            <label class="text-xs text-gray-500">Название</label>
+                            <input id="pdName" type="text" onblur="savePdHeader()" class="border p-0.5 rounded-md text-xs w-full">
+                        </div>
+                        <div>
+                            <label class="text-xs text-gray-500">Продажная цена (€)</label>
+                            <input id="pdPrice" type="number" step="0.01" onchange="savePdHeader()" class="border p-0.5 rounded-md text-xs w-full">
+                        </div>
+                        <div>
+                            <label class="text-xs text-gray-500">Размер партии (шт)</label>
+                            <input id="pdBatchSize" type="number" step="1" min="1" onchange="savePdHeader()" class="border p-0.5 rounded-md text-xs w-full">
+                        </div>
+                        <div>
+                            <label class="text-xs text-gray-500">Прочие расходы на партию (€)</label>
+                            <input id="pdOtherCosts" type="number" step="0.01" min="0" onchange="savePdHeader()" class="border p-0.5 rounded-md text-xs w-full">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-white p-2 rounded-md shadow-md">
+                    <h2 class="text-base font-semibold text-gray-800 mb-2">Рецептура (на партию)</h2>
+                    <table class="w-full table-auto mb-2">
+                        <thead><tr class="bg-gray-100">
+                            <th class="p-0.5 text-xs w-[35%]">Ингредиент</th>
+                            <th class="p-0.5 text-xs w-[25%]">Кол-во</th>
+                            <th class="p-0.5 text-xs w-[20%]">Стоимость</th>
+                            <th class="p-0.5 text-xs w-[20%]">Действия</th>
+                        </tr></thead>
+                        <tbody id="recipeItemsBody"></tbody>
+                        <tbody>
+                            <tr class="new-item-row bg-blue-50">
+                                <td><select id="newRecipeIngredient" class="text-xs">
+                                    <option value="">— ингредиент —</option>
+                                </select></td>
+                                <td><input id="newRecipeQty" type="number" step="0.01" placeholder="0" class="text-xs"></td>
+                                <td class="text-xs text-gray-400 text-center">—</td>
+                                <td class="text-center">
+                                    <button onclick="addIngredientToRecipe()" class="btn bg-gray-500 text-white px-2 py-0.5 rounded text-xs hover:bg-gray-600">+ Добавить</button>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                    <div class="text-right text-xs text-gray-600 space-y-0.5 border-t pt-1">
+                        <div>Себестоимость партии: <span id="pdBatchCost" class="font-medium text-gray-800">0.00 €</span></div>
+                        <div>Себестоимость 1 шт: <span id="pdUnitCost" class="font-semibold text-gray-900">0.00 €</span></div>
+                        <div>Прибыль с 1 шт: <span id="pdProfit" class="font-semibold text-green-700">0.00 €</span> (<span id="pdProfitPct">0.0</span>%)</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ===== ИНГРЕДИЕНТЫ ===== -->
+        <div id="ingredients" class="tab-content hidden">
             <div class="bg-white p-2 rounded-md shadow-md mb-4">
-                <h2 class="text-lg font-semibold mb-2 text-gray-800">Добавить изделие</h2>
+                <h2 class="text-lg font-semibold mb-2 text-gray-800">Добавить ингредиент</h2>
                 <div class="grid grid-cols-1 gap-0.5">
-                    <input id="productName" type="text" placeholder="Название изделия" class="border p-0.5 rounded-md focus:outline-none focus:ring-1 focus:ring-gray-300 text-xs">
-                    <input id="productPrice" type="number" step="0.01" placeholder="Продажная цена (€)" class="border p-0.5 rounded-md focus:outline-none focus:ring-1 focus:ring-gray-300 text-xs">
-                    <button onclick="addProduct()" class="btn bg-gray-500 text-white p-0.5 rounded-md hover:bg-gray-600 text-xs">Добавить изделие</button>
+                    <input id="ingredientName" type="text" placeholder="Название ингредиента" class="border p-0.5 rounded-md focus:outline-none focus:ring-1 focus:ring-gray-300 text-xs">
+                    <input id="ingredientPackagePrice" type="number" step="0.01" placeholder="Цена за упаковку (€)" class="border p-0.5 rounded-md focus:outline-none focus:ring-1 focus:ring-gray-300 text-xs">
+                    <input id="ingredientPackageSize" type="number" step="0.01" placeholder="Размер упаковки" class="border p-0.5 rounded-md focus:outline-none focus:ring-1 focus:ring-gray-300 text-xs">
+                    <select id="ingredientUnit" class="border p-0.5 rounded-md focus:outline-none focus:ring-1 focus:ring-gray-300 text-xs">
+                        <option value="g">граммы (г)</option>
+                        <option value="kg">килограммы (кг)</option>
+                        <option value="ml">миллилитры (мл)</option>
+                        <option value="l">литры (л)</option>
+                        <option value="pcs">штуки (шт)</option>
+                    </select>
+                    <button onclick="addIngredient()" class="btn bg-gray-500 text-white p-0.5 rounded-md hover:bg-gray-600 text-xs">Добавить ингредиент</button>
                 </div>
             </div>
             <div class="bg-white p-2 rounded-md shadow-md">
-                <h2 class="text-lg font-semibold mb-2 text-gray-800">Список изделий</h2>
+                <h2 class="text-lg font-semibold mb-2 text-gray-800">Список ингредиентов</h2>
                 <table class="w-full table-auto">
                     <thead><tr class="bg-gray-100">
-                        <th class="p-0.5 text-xs w-[60%]">Название</th>
-                        <th class="p-0.5 text-xs w-[20%]">Цена (€)</th>
-                        <th class="p-0.5 text-xs w-[20%]">Действия</th>
+                        <th class="p-0.5 text-xs w-[30%]">Название</th>
+                        <th class="p-0.5 text-xs w-[18%]">Цена за упак.</th>
+                        <th class="p-0.5 text-xs w-[18%]">Размер упак.</th>
+                        <th class="p-0.5 text-xs w-[18%]">Цена за ед.</th>
+                        <th class="p-0.5 text-xs w-[16%]">Действия</th>
                     </tr></thead>
-                    <tbody id="productTableBody"></tbody>
+                    <tbody id="ingredientTableBody"></tbody>
                 </table>
             </div>
         </div>
@@ -396,6 +497,40 @@
             </div>
         </div>
 
+        <!-- Редактировать ингредиент -->
+        <div id="editIngredientModal" class="modal">
+            <div class="modal-content">
+                <h2 class="text-base font-semibold mb-2 text-gray-800">Редактировать ингредиент</h2>
+                <input id="editIngredientName" type="text" placeholder="Название ингредиента" class="border p-0.5 rounded-md mb-1 w-full text-xs">
+                <input id="editIngredientPackagePrice" type="number" step="0.01" placeholder="Цена за упаковку (€)" class="border p-0.5 rounded-md mb-1 w-full text-xs">
+                <input id="editIngredientPackageSize" type="number" step="0.01" placeholder="Размер упаковки" class="border p-0.5 rounded-md mb-1 w-full text-xs">
+                <select id="editIngredientUnit" class="border p-0.5 rounded-md mb-2 w-full text-xs">
+                    <option value="g">граммы (г)</option>
+                    <option value="kg">килограммы (кг)</option>
+                    <option value="ml">миллилитры (мл)</option>
+                    <option value="l">литры (л)</option>
+                    <option value="pcs">штуки (шт)</option>
+                </select>
+                <button onclick="saveIngredientEdit()" class="btn bg-gray-500 text-white p-0.5 rounded-md hover:bg-gray-600 mr-1 text-xs">Сохранить</button>
+                <button onclick="closeModal()" class="btn bg-gray-400 text-white p-0.5 rounded-md hover:bg-gray-500 text-xs">Отмена</button>
+            </div>
+        </div>
+
+        <!-- Редактировать позицию рецепта -->
+        <div id="editRecipeItemModal" class="modal">
+            <div class="modal-content">
+                <h2 class="text-base font-semibold mb-2 text-gray-800">Редактировать ингредиент рецепта</h2>
+                <label class="text-xs text-gray-600">Ингредиент</label>
+                <select id="editRecipeIngredient" class="border p-0.5 rounded-md mb-1 w-full text-xs">
+                    <option value="">Выберите ингредиент</option>
+                </select>
+                <label class="text-xs text-gray-600">Количество</label>
+                <input id="editRecipeQty" type="number" step="0.01" min="0" class="border p-0.5 rounded-md mb-2 w-full text-xs">
+                <button onclick="saveRecipeItemEdit()" class="btn bg-gray-500 text-white p-0.5 rounded-md hover:bg-gray-600 mr-1 text-xs">Сохранить</button>
+                <button onclick="closeModal()" class="btn bg-gray-400 text-white p-0.5 rounded-md hover:bg-gray-500 text-xs">Отмена</button>
+            </div>
+        </div>
+
         <!-- Редактировать клиента -->
         <div id="editCustomerModal" class="modal">
             <div class="modal-content">
@@ -550,6 +685,7 @@
 <script src="money.js?v=2"></script>
 <script src="supabaseClient.js?v=2"></script>
 <script src="employees.js?v=2"></script>
+<script src="ingredients.js"></script>
 <script src="products.js?v=2"></script>
 <script src="customers.js?v=2"></script>
 <script src="orders.js?v=2"></script>
@@ -563,13 +699,22 @@
 // VAT_RATE перенесён в money.js
 
 // ==================== ДАННЫЕ (кэш в памяти) ====================
-let products  = [];   // [{id, name, price}]
+let products  = [];   // [{id, name, price, batch_size, other_costs, ingredients:[{id, ingredient_id, quantity}]}]
 let customers = [];   // [{id, name, contact, discount}]
 let orders    = [];   // [{id, customer, customer_id, date, status, discount, items:[{id, product, product_id, quantity, price}]}]
 // employees, currentEmployee, logActivity, initLogin, selectEmployee, logoutEmployee
 // перенесены в employees.js
 
 // HISTORY_PAGE_SIZE, historyOffset, historyHasMore перенесены в history.js
+
+// Общее состояние для модальных окон редактирования/удаления,
+// используется во всех модулях (orders.js, products.js, customers.js, ingredients.js, modals.js)
+let editIndex      = null; // индекс редактируемой записи (продукт/клиент/ингредиент/заказ)
+let editItemIdx    = null; // индекс редактируемой позиции заказа
+let deleteId       = null; // id/индекс записи для удаления
+let deleteType     = null; // тип записи для удаления ('product','customer','order','item','ingredient','recipeItem')
+let currentOrderId   = null; // id заказа, открытого в детальном виде (orders.js)
+let currentProductId = null; // id изделия, открытого в детальном виде (products.js)
 
 
 // ==================== ЗАГРУЗКА / ИНДИКАТОР ====================
@@ -580,20 +725,36 @@ function hideLoading() { document.getElementById('loadingOverlay').classList.add
 async function loadAllData() {
     showLoading();
     try {
-        const [pRes, cRes, oRes, oiRes, eRes] = await Promise.all([
-            db.from('products').select('id, name, price').order('name'),
+        const [pRes, cRes, oRes, oiRes, eRes, ingRes, piRes] = await Promise.all([
+            db.from('products').select('id, name, price, batch_size, other_costs').order('name'),
             db.from('customers').select('id, name, contact, discount, vat_exempt').order('name'),
             db.from('orders').select('id, customer_id, order_date, status, discount, vat_exempt, employee_id, notes'),
             db.from('order_items').select('id, order_id, product_id, quantity, price'),
-            db.from('employees').select('id, name').order('name')
+            db.from('employees').select('id, name').order('name'),
+            db.from('ingredients').select('id, name, package_price, package_size, unit').order('name'),
+            db.from('product_ingredients').select('id, product_id, ingredient_id, quantity')
         ]);
         if (pRes.error) throw pRes.error;
         if (cRes.error) throw cRes.error;
         if (oRes.error) throw oRes.error;
         if (oiRes.error) throw oiRes.error;
         if (eRes.error) throw eRes.error;
+        if (ingRes.error) throw ingRes.error;
+        if (piRes.error) throw piRes.error;
 
-        products  = (pRes.data || []).map(p => ({ id: p.id, name: p.name, price: Number(p.price) }));
+        ingredients = (ingRes.data || []).map(i => ({ id: i.id, name: i.name, package_price: Number(i.package_price), package_size: Number(i.package_size), unit: i.unit }));
+
+        const recipeByProduct = {};
+        (piRes.data || []).forEach(ri => {
+            if (!recipeByProduct[ri.product_id]) recipeByProduct[ri.product_id] = [];
+            recipeByProduct[ri.product_id].push({ id: ri.id, ingredient_id: ri.ingredient_id, quantity: Number(ri.quantity) });
+        });
+
+        products  = (pRes.data || []).map(p => ({
+            id: p.id, name: p.name, price: Number(p.price),
+            batch_size: Number(p.batch_size || 1), other_costs: Number(p.other_costs || 0),
+            ingredients: recipeByProduct[p.id] || []
+        }));
         customers = (cRes.data || []).map(c => ({ id: c.id, name: c.name, contact: c.contact || '', discount: Number(c.discount || 0), vat_exempt: !!c.vat_exempt }));
         employees = (eRes.data || []).map(e => ({ id: e.id, name: e.name }));
 
@@ -637,6 +798,7 @@ async function loadAllData() {
 
         displayProducts();
         displayCustomers();
+        displayIngredients();
         updateOrderEmployeeFilter();
         displayOrders();
     } catch (e) {
@@ -655,9 +817,19 @@ function showTab(tabId) {
     const tabBtn = document.querySelector(`button[onclick="showTab('${tabId}')"]`);
     if (tabBtn) tabBtn.classList.add('active');
     if (tabId === 'orders')    { closeOrderDetail(); displayOrders(); }
-    if (tabId === 'products')  displayProducts();
+    if (tabId === 'products')  { closeProductDetailSilent(); displayProducts(); }
     if (tabId === 'customers') displayCustomers();
+    if (tabId === 'ingredients') displayIngredients();
     if (tabId === 'history')   { updateHistoryEmployeeFilter(); loadHistory(); }
+}
+
+// Сброс детального вида изделия без повторной перерисовки списка (избегаем двойного displayProducts)
+function closeProductDetailSilent() {
+    currentProductId = null;
+    const list = document.getElementById('productsList');
+    const detail = document.getElementById('productDetail');
+    if (list) list.classList.remove('hidden');
+    if (detail) detail.classList.remove('active');
 }
 
 // Открыть экран истории из окна статистики
