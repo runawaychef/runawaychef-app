@@ -549,6 +549,7 @@
 <script src="dates.js"></script>
 <script src="money.js"></script>
 <script src="supabaseClient.js"></script>
+<script src="employees.js"></script>
 <script>
 // SUPABASE_URL, SUPABASE_KEY, db перенесены в supabaseClient.js
 
@@ -558,81 +559,17 @@
 let products  = [];   // [{id, name, price}]
 let customers = [];   // [{id, name, contact, discount}]
 let orders    = [];   // [{id, customer, customer_id, date, status, discount, items:[{id, product, product_id, quantity, price}]}]
-let employees = [];   // [{id, name}]
+// employees, currentEmployee, logActivity, initLogin, selectEmployee, logoutEmployee
+// перенесены в employees.js
 
-let editIndex    = null; // для продуктов/клиентов/заказов
-let editItemIdx  = null; // индекс позиции внутри заказа
-let deleteId     = null;
-let deleteType   = null;
-let currentOrderId = null; // id заказа, открытого в детальном виде
-let currentEmployee = null; // {id, name}
-
-// ==================== ЖУРНАЛ ДЕЙСТВИЙ ====================
+// ==================== ЖУРНАЛ ДЕЙСТВИЙ (состояние) ====================
 const HISTORY_PAGE_SIZE = 30;
 let historyOffset = 0;
 let historyHasMore = true;
 
-// Записывает действие в журнал (activity_log). Ошибки логирования не должны мешать основной работе.
-async function logActivity(actionType, description, orderId = null) {
-    try {
-        await db.from('activity_log').insert({
-            employee_id: currentEmployee ? currentEmployee.id : null,
-            employee_name: currentEmployee ? currentEmployee.name : '—',
-            action_type: actionType,
-            description: description,
-            order_id: orderId
-        });
-    } catch (e) {
-        console.error('Activity log error:', e);
-    }
-}
-
 // ==================== ЗАГРУЗКА / ИНДИКАТОР ====================
 function showLoading() { document.getElementById('loadingOverlay').classList.remove('hidden'); }
 function hideLoading() { document.getElementById('loadingOverlay').classList.add('hidden'); }
-
-// ==================== ВХОД СОТРУДНИКА ====================
-async function initLogin() {
-    try {
-        const { data, error } = await db.from('employees').select('id, name').order('name');
-        if (error) throw error;
-        employees = data || [];
-        const list = document.getElementById('employeeList');
-        list.innerHTML = '';
-        employees.forEach(emp => {
-            const btn = document.createElement('button');
-            btn.className = 'btn bg-gray-500 text-white p-2 rounded-md hover:bg-gray-600 text-sm';
-            btn.textContent = emp.name;
-            btn.onclick = () => selectEmployee(emp);
-            list.appendChild(btn);
-        });
-    } catch (e) {
-        console.error(e);
-        document.getElementById('loginError').classList.remove('hidden');
-    }
-}
-
-async function selectEmployee(emp) {
-    currentEmployee = emp;
-    localStorage.setItem('currentEmployee', JSON.stringify(emp));
-    document.getElementById('loginScreen').classList.add('hidden');
-    document.getElementById('appContent').classList.remove('app-locked');
-    const badge = document.getElementById('currentEmployeeBadge');
-    badge.textContent = emp.name;
-    badge.classList.remove('hidden');
-    await loadAllData();
-    logActivity('auth', `Вход: ${emp.name}`);
-}
-
-function logoutEmployee() {
-    if (!confirm('Сменить сотрудника?')) return;
-    logActivity('auth', `Выход: ${currentEmployee ? currentEmployee.name : ''}`);
-    currentEmployee = null;
-    localStorage.removeItem('currentEmployee');
-    document.getElementById('loginScreen').classList.remove('hidden');
-    document.getElementById('appContent').classList.add('app-locked');
-    document.getElementById('currentEmployeeBadge').classList.add('hidden');
-}
 
 // ==================== ЗАГРУЗКА ВСЕХ ДАННЫХ ====================
 async function loadAllData() {
