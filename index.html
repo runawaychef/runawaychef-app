@@ -546,13 +546,15 @@
     </div><!-- appContent -->
 </div><!-- container -->
 
+<script src="js/utils/dates.js"></script>
+<script src="js/utils/money.js"></script>
 <script>
 // ==================== SUPABASE ====================
 const SUPABASE_URL = 'https://eyzusdlyghahdcvrglhe.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_wKZLhyoTOKqovf1_YptOJw_wXkSUAFv';
 const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-const VAT_RATE = 0.21; // НДС 21% (Литва)
+// VAT_RATE перенесён в js/utils/money.js
 
 // ==================== ДАННЫЕ (кэш в памяти) ====================
 let products  = [];   // [{id, name, price}]
@@ -873,49 +875,9 @@ async function saveCustomerEdit() {
 }
 
 // ==================== ЗАКАЗЫ — СПИСОК ====================
-function orderTotal(order) {
-    // Сумма позиций без скидки и НДС
-    if (!order.items || !order.items.length) return 0;
-    return order.items.reduce((s, it) => s + (it.quantity * it.price || 0), 0);
-}
-
-function orderDiscountAmount(order) {
-    const subtotal = orderTotal(order);
-    const pct = order.discount || 0;
-    return subtotal * (pct / 100);
-}
-
-function orderAfterDiscount(order) {
-    return orderTotal(order) - orderDiscountAmount(order);
-}
-
-function orderVatAmount(order) {
-    if (order.vat_exempt) return 0;
-    return orderAfterDiscount(order) * VAT_RATE;
-}
-
-function orderGrandTotal(order) {
-    return orderAfterDiscount(order) + orderVatAmount(order);
-}
-
-// Форматирование даты ГГГГ-ММ-ДД -> ДД.MM.ГГГГ
-function formatDateDMY(isoDate) {
-    if (!isoDate) return '';
-    const [y, m, d] = isoDate.split('-');
-    return `${d}.${m}.${y}`;
-}
-
-// Понедельник недели, содержащей дату d
-function getMondayOf(d) {
-    const date = new Date(d);
-    const day = date.getDay(); // 0=Sun..6=Sat
-    const diff = day === 0 ? -6 : 1 - day;
-    date.setDate(date.getDate() + diff);
-    date.setHours(0,0,0,0);
-    return date;
-}
-
-const MONTH_NAMES_RU = ['января','февраля','марта','апреля','мая','июня','июля','августа','сентября','октября','ноября','декабря'];
+// orderTotal, orderDiscountAmount, orderAfterDiscount, orderVatAmount, orderGrandTotal
+// перенесены в js/utils/money.js
+// formatDateDMY, getMondayOf, MONTH_NAMES_RU перенесены в js/utils/dates.js
 
 function displayOrders() {
     const filteredOrders = getFilteredOrdersForList();
