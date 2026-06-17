@@ -639,7 +639,7 @@ async function loadAllData() {
         displayOrders();
     } catch (e) {
         console.error(e);
-        alert('Ошибка загрузки данных: ' + (e && e.message ? e.message : JSON.stringify(e)));
+        alert('Ошибка загрузки данных. Проверьте подключение к интернету.');
     } finally {
         hideLoading();
     }
