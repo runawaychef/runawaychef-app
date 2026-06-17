@@ -51,6 +51,23 @@ async function confirmDelete() {
                 renderDetailItems(order);
                 logActivity('item', `Удалена позиция «${item.product}» × ${item.quantity} из заказа №${order.id}`, order.id);
             }
+        } else if (deleteType === 'ingredient') {
+            const ing = ingredients[deleteId];
+            const { error } = await db.from('ingredients').delete().eq('id', ing.id);
+            if (error) throw error;
+            ingredients.splice(deleteId, 1);
+            displayIngredients();
+            logActivity('ingredient', `Удалён ингредиент «${ing.name}»`);
+        } else if (deleteType === 'recipeItem') {
+            const prod = products.find(p => p.id === currentProductId);
+            if (prod) {
+                const ri = prod.ingredients[deleteId];
+                const { error } = await db.from('product_ingredients').delete().eq('id', ri.id);
+                if (error) throw error;
+                prod.ingredients.splice(deleteId, 1);
+                renderProductRecipe(prod);
+                logActivity('product', `Удалён ингредиент из рецепта «${prod.name}»`);
+            }
         }
         closeModal();
     } catch (e) {

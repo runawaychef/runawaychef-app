@@ -1,0 +1,95 @@
+// ==================== ИНГРЕДИЕНТЫ ====================
+// Справочник ингредиентов: название, цена за упаковку, размер упаковки, единица измерения.
+// Цена за единицу считается автоматически.
+// Обычный скрипт (без модулей) — функции доступны глобально, как раньше.
+// Зависит от: db (supabaseClient.js), showLoading/hideLoading,
+// logActivity (employees.js), svgEdit/svgDelete (helpers.js),
+// openDeleteModal, closeModal (modals.js).
+
+let ingredients = []; // [{id, name, package_price, package_size, unit}]
+
+const UNIT_LABELS = { g: 'г', kg: 'кг', ml: 'мл', l: 'л', pcs: 'шт' };
+
+function ingredientUnitPrice(ing) {
+    if (!ing.package_size) return 0;
+    return ing.package_price / ing.package_size;
+}
+
+function displayIngredients() {
+    ingredients.sort((a, b) => a.name.localeCompare(b.name));
+    const tbody = document.getElementById('ingredientTableBody');
+    if (!tbody) return;
+    tbody.innerHTML = '';
+    ingredients.forEach((ing, i) => {
+        const unitPrice = ingredientUnitPrice(ing);
+        const unitLabel = UNIT_LABELS[ing.unit] || ing.unit;
+        const row = document.createElement('tr');
+        row.innerHTML = `
+            <td class="border p-0.5 text-xs">${ing.name}</td>
+            <td class="border p-0.5 text-xs text-center">${ing.package_price.toFixed(2)} €</td>
+            <td class="border p-0.5 text-xs text-center">${ing.package_size} ${unitLabel}</td>
+            <td class="border p-0.5 text-xs text-center">${unitPrice.toFixed(4)} €/${unitLabel}</td>
+            <td class="border p-0.5 text-center">
+                ${svgEdit(`openEditIngredientModal(${i})`)}
+                ${svgDelete(`openDeleteModal(${i},'ingredient','ингредиент «${ing.name}»')`)}
+            </td>`;
+        tbody.appendChild(row);
+    });
+}
+
+async function addIngredient() {
+    const name = document.getElementById('ingredientName').value.trim();
+    const packagePrice = parseFloat(document.getElementById('ingredientPackagePrice').value);
+    const packageSize  = parseFloat(document.getElementById('ingredientPackageSize').value);
+    const unit = document.getElementById('ingredientUnit').value;
+    if (!name || isNaN(packagePrice) || isNaN(packageSize) || packageSize <= 0) {
+        alert('Заполните все поля корректно!'); return;
+    }
+    showLoading();
+    try {
+        const { data, error } = await db.from('ingredients').insert({
+            name, package_price: parseFloat(packagePrice.toFixed(2)), package_size: packageSize, unit
+        }).select().single();
+        if (error) throw error;
+        ingredients.push({ id: data.id, name: data.name, package_price: Number(data.package_price), package_size: Number(data.package_size), unit: data.unit });
+        displayIngredients();
+        logActivity('ingredient', `Добавлен ингредиент «${name}»`);
+        document.getElementById('ingredientName').value = '';
+        document.getElementById('ingredientPackagePrice').value = '';
+        document.getElementById('ingredientPackageSize').value = '';
+    } catch (e) { console.error(e); alert('Ошибка сохранения. Проверьте подключение.'); }
+    finally { hideLoading(); }
+}
+
+function openEditIngredientModal(i) {
+    editIndex = i;
+    const ing = ingredients[i];
+    document.getElementById('editIngredientName').value = ing.name;
+    document.getElementById('editIngredientPackagePrice').value = ing.package_price.toFixed(2);
+    document.getElementById('editIngredientPackageSize').value = ing.package_size;
+    document.getElementById('editIngredientUnit').value = ing.unit;
+    document.getElementById('editIngredientModal').style.display = 'flex';
+}
+
+async function saveIngredientEdit() {
+    const name = document.getElementById('editIngredientName').value.trim();
+    const packagePrice = parseFloat(document.getElementById('editIngredientPackagePrice').value);
+    const packageSize  = parseFloat(document.getElementById('editIngredientPackageSize').value);
+    const unit = document.getElementById('editIngredientUnit').value;
+    if (!name || isNaN(packagePrice) || isNaN(packageSize) || packageSize <= 0) {
+        alert('Заполните все поля корректно!'); return;
+    }
+    const ing = ingredients[editIndex];
+    showLoading();
+    try {
+        const { error } = await db.from('ingredients').update({
+            name, package_price: parseFloat(packagePrice.toFixed(2)), package_size: packageSize, unit
+        }).eq('id', ing.id);
+        if (error) throw error;
+        ing.name = name; ing.package_price = parseFloat(packagePrice.toFixed(2));
+        ing.package_size = packageSize; ing.unit = unit;
+        displayIngredients(); closeModal();
+        logActivity('ingredient', `Изменён ингредиент «${name}»`);
+    } catch (e) { console.error(e); alert('Ошибка сохранения. Проверьте подключение.'); }
+    finally { hideLoading(); }
+}
