@@ -337,6 +337,10 @@
                                 <input id="detailVatExempt" type="checkbox" onchange="saveDetailHeader()"> Без НДС для этого заказа
                             </label>
                         </div>
+                        <div class="col-span-2">
+                            <label class="text-xs text-gray-500">Комментарий к заказу</label>
+                            <textarea id="detailNotes" onblur="saveDetailHeader()" rows="2" placeholder="Например: особые пожелания, время доставки..." class="border p-1 rounded-md text-xs w-full resize-none"></textarea>
+                        </div>
                     </div>
                 </div>
 
@@ -637,7 +641,7 @@ async function loadAllData() {
         const [pRes, cRes, oRes, oiRes, eRes] = await Promise.all([
             db.from('products').select('id, name, price').order('name'),
             db.from('customers').select('id, name, contact, discount, vat_exempt').order('name'),
-            db.from('orders').select('id, customer_id, order_date, status, discount, vat_exempt, employee_id'),
+            db.from('orders').select('id, customer_id, order_date, status, discount, vat_exempt, employee_id, notes'),
             db.from('order_items').select('id, order_id, product_id, quantity, price'),
             db.from('employees').select('id, name').order('name')
         ]);
@@ -684,6 +688,7 @@ async function loadAllData() {
                 vat_exempt: !!o.vat_exempt,
                 employee_id: o.employee_id || null,
                 employee: emp ? emp.name : '',
+                notes: o.notes || '',
                 items: itemsByOrder[o.id] || []
             };
         });
@@ -1160,6 +1165,7 @@ async function createNewOrder() {
             date: data.order_date, status: data.status, discount: Number(data.discount || 0),
             vat_exempt: !!data.vat_exempt,
             employee_id: data.employee_id || null, employee: emp ? emp.name : '',
+            notes: '',
             items: []
         };
         orders.push(newOrder);
@@ -1237,6 +1243,7 @@ function openOrderDetail(orderId) {
     document.getElementById('detailStatus').value   = order.status;
     document.getElementById('detailDiscount').value = (order.discount || 0);
     document.getElementById('detailVatExempt').checked = !!order.vat_exempt;
+    document.getElementById('detailNotes').value = order.notes || '';
     fillDetailEmployeeSelect(order.employee_id);
 
     renderDetailItems(order);
@@ -1284,17 +1291,18 @@ async function saveDetailHeader() {
     const status   = document.getElementById('detailStatus').value;
     const discount = parseFloat(document.getElementById('detailDiscount').value) || 0;
     const vatExempt = document.getElementById('detailVatExempt').checked;
+    const notes = document.getElementById('detailNotes').value;
     const employeeIdRaw = document.getElementById('detailEmployee').value;
     const employeeId = employeeIdRaw ? Number(employeeIdRaw) : null;
     if (!cust) { alert('Клиент не найден!'); return; }
 
     // Запоминаем прежние значения для журнала
-    const old = { customer: order.customer, date: order.date, status: order.status, discount: order.discount, employee: order.employee };
+    const old = { customer: order.customer, date: order.date, status: order.status, discount: order.discount, employee: order.employee, notes: order.notes || '' };
 
     showLoading();
     try {
         const { error } = await db.from('orders').update({
-            customer_id: cust.id, order_date: date, status, discount, vat_exempt: vatExempt, employee_id: employeeId
+            customer_id: cust.id, order_date: date, status, discount, vat_exempt: vatExempt, employee_id: employeeId, notes
         }).eq('id', order.id);
         if (error) throw error;
         const emp = employees.find(e => e.id === employeeId);
@@ -1306,6 +1314,7 @@ async function saveDetailHeader() {
         order.vat_exempt  = vatExempt;
         order.employee_id = employeeId;
         order.employee    = emp ? emp.name : '';
+        order.notes       = notes;
         renderDetailItems(order);
 
         // Журнал: фиксируем только реально изменившиеся поля
@@ -1315,6 +1324,7 @@ async function saveDetailHeader() {
         if (old.status !== order.status) changes.push(`статус «${old.status}» → «${order.status}»`);
         if (old.discount !== order.discount) changes.push(`скидка ${old.discount}% → ${order.discount}%`);
         if ((old.employee || '') !== (order.employee || '')) changes.push(`исполнитель «${old.employee || '—'}» → «${order.employee || '—'}»`);
+        if (old.notes !== order.notes) changes.push(`комментарий изменён`);
         if (changes.length) logActivity('order', `Изменён заказ №${order.id}: ${changes.join(', ')}`, order.id);
     } catch (e) { console.error(e); alert('Ошибка сохранения. Проверьте подключение.'); }
     finally { hideLoading(); }
