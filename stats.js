@@ -200,18 +200,20 @@ function drawCustomerTable(filtered) {
     const grandVat   = Object.values(vats).reduce((s,v) => s+v, 0);
     const grandQty   = Object.values(qtys).reduce((s,v) => s+v, 0);
     if (!sorted.length) {
-        document.getElementById('statsCustomerTable').innerHTML = '<p class="text-xs text-gray-400">Нет данных</p>';
+        document.getElementById('statsCustomerTableScroll').innerHTML = '<p class="text-xs text-gray-400">Нет данных</p>';
+        document.getElementById('statsCustomerTableTotal').innerHTML = '';
         return;
     }
-    let html = '<table class="w-full text-xs mb-1"><thead><tr class="bg-gray-100"><th class="p-0.5 text-left">Клиент</th><th class="p-0.5 text-right">Кол-во</th><th class="p-0.5 text-right">Сумма (€)</th><th class="p-0.5 text-right">НДС (€)</th><th class="p-0.5 text-right">Доля</th></tr></thead><tbody>';
+    let html = '<table class="w-full text-xs"><thead><tr class="bg-gray-100"><th class="p-0.5 text-left">Клиент</th><th class="p-0.5 text-right">Кол-во</th><th class="p-0.5 text-right">Сумма (€)</th><th class="p-0.5 text-right">НДС (€)</th><th class="p-0.5 text-right">Доля</th></tr></thead><tbody>';
     sorted.forEach(([name, val], i) => {
         const pct = grandTotal > 0 ? (val/grandTotal*100).toFixed(1) : '0.0';
         const color = `hsl(${i * 360 / sorted.length}, 60%, 50%)`;
         html += `<tr class="border-b"><td class="p-0.5 flex items-center gap-1"><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${color};flex-shrink:0"></span>${name}</td><td class="p-0.5 text-right">${qtys[name] || 0}</td><td class="p-0.5 text-right font-medium">${val.toFixed(2)}</td><td class="p-0.5 text-right text-blue-700">${(vats[name]||0).toFixed(2)}</td><td class="p-0.5 text-right text-gray-500">${pct}%</td></tr>`;
     });
-    html += `<tr class="bg-gray-50 font-semibold"><td class="p-0.5">Итого</td><td class="p-0.5 text-right">${grandQty}</td><td class="p-0.5 text-right">${grandTotal.toFixed(2)}</td><td class="p-0.5 text-right text-blue-700">${grandVat.toFixed(2)}</td><td class="p-0.5"></td></tr>`;
     html += '</tbody></table>';
-    document.getElementById('statsCustomerTable').innerHTML = html;
+    document.getElementById('statsCustomerTableScroll').innerHTML = html;
+    document.getElementById('statsCustomerTableTotal').innerHTML =
+        `<table class="w-full text-xs"><tr class="bg-gray-50 font-semibold"><td class="p-0.5" style="width:40%">Итого</td><td class="p-0.5 text-right" style="width:15%">${grandQty}</td><td class="p-0.5 text-right" style="width:20%">${grandTotal.toFixed(2)}</td><td class="p-0.5 text-right text-blue-700" style="width:15%">${grandVat.toFixed(2)}</td><td class="p-0.5" style="width:10%"></td></tr></table>`;
 }
 
 // --- Топ изделий ---
@@ -288,9 +290,13 @@ function drawMonthlyChart(filtered) {
     const canvas = document.getElementById('monthlyCanvas');
     const W = canvas.offsetWidth || 360;
     const H = 140;
-    canvas.width  = W;
-    canvas.height = H;
+    const dpr = window.devicePixelRatio || 1;
+    canvas.width  = W * dpr;
+    canvas.height = H * dpr;
+    canvas.style.width  = W + 'px';
+    canvas.style.height = H + 'px';
     const ctx = canvas.getContext('2d');
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     ctx.clearRect(0, 0, W, H);
 
     // Группируем по ГГГГ-ММ — выручка (столбики) и прибыль (линия)
@@ -372,8 +378,13 @@ function drawMonthlyChart(filtered) {
 function drawPieChart(filtered) {
     const canvas = document.getElementById('chartCanvas');
     const SIZE = 200;
-    canvas.width = SIZE; canvas.height = SIZE;
+    const dpr = window.devicePixelRatio || 1;
+    canvas.width  = SIZE * dpr;
+    canvas.height = SIZE * dpr;
+    canvas.style.width  = SIZE + 'px';
+    canvas.style.height = SIZE + 'px';
     const ctx = canvas.getContext('2d');
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     ctx.clearRect(0, 0, SIZE, SIZE);
 
     const totals = {};
