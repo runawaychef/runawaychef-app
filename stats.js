@@ -185,6 +185,18 @@ function updateTotals(filteredOrders) {
 }
 
 // --- Таблица по клиентам ---
+let lastCustomerTableData = null; // кэш для повторного использования при открытии полного списка
+
+function buildCustomerRowsHtml(sorted, totals, vats, qtys, grandTotal) {
+    let html = '';
+    sorted.forEach(([name, val], i) => {
+        const pct = grandTotal > 0 ? (val/grandTotal*100).toFixed(1) : '0.0';
+        const color = `hsl(${i * 360 / sorted.length}, 60%, 50%)`;
+        html += `<tr class="border-b"><td class="p-0.5 flex items-center gap-1"><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${color};flex-shrink:0"></span>${name}</td><td class="p-0.5 text-right">${qtys[name] || 0}</td><td class="p-0.5 text-right font-medium">${val.toFixed(2)}</td><td class="p-0.5 text-right text-blue-700">${(vats[name]||0).toFixed(2)}</td><td class="p-0.5 text-right text-gray-500">${pct}%</td></tr>`;
+    });
+    return html;
+}
+
 function drawCustomerTable(filtered) {
     const totals = {};
     const vats    = {};
@@ -199,21 +211,41 @@ function drawCustomerTable(filtered) {
     const grandTotal = sorted.reduce((s,[,v]) => s+v, 0);
     const grandVat   = Object.values(vats).reduce((s,v) => s+v, 0);
     const grandQty   = Object.values(qtys).reduce((s,v) => s+v, 0);
+
+    // Сохраняем для возможного открытия полного списка
+    lastCustomerTableData = { sorted, totals, vats, qtys, grandTotal, grandVat, grandQty };
+
+    const container = document.getElementById('statsCustomerTableScroll');
+    const totalContainer = document.getElementById('statsCustomerTableTotal');
+    const moreBtn = document.getElementById('statsCustomerShowAllBtn');
+
     if (!sorted.length) {
-        document.getElementById('statsCustomerTableScroll').innerHTML = '<p class="text-xs text-gray-400">Нет данных</p>';
-        document.getElementById('statsCustomerTableTotal').innerHTML = '';
+        container.innerHTML = '<p class="text-xs text-gray-400">Нет данных</p>';
+        totalContainer.innerHTML = '';
+        if (moreBtn) moreBtn.classList.add('hidden');
         return;
     }
+
+    const top10 = sorted.slice(0, 10);
     let html = '<table class="w-full text-xs"><thead><tr class="bg-gray-100"><th class="p-0.5 text-left">Клиент</th><th class="p-0.5 text-right">Кол-во</th><th class="p-0.5 text-right">Сумма (€)</th><th class="p-0.5 text-right">НДС (€)</th><th class="p-0.5 text-right">Доля</th></tr></thead><tbody>';
-    sorted.forEach(([name, val], i) => {
-        const pct = grandTotal > 0 ? (val/grandTotal*100).toFixed(1) : '0.0';
-        const color = `hsl(${i * 360 / sorted.length}, 60%, 50%)`;
-        html += `<tr class="border-b"><td class="p-0.5 flex items-center gap-1"><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${color};flex-shrink:0"></span>${name}</td><td class="p-0.5 text-right">${qtys[name] || 0}</td><td class="p-0.5 text-right font-medium">${val.toFixed(2)}</td><td class="p-0.5 text-right text-blue-700">${(vats[name]||0).toFixed(2)}</td><td class="p-0.5 text-right text-gray-500">${pct}%</td></tr>`;
-    });
+    html += buildCustomerRowsHtml(top10, totals, vats, qtys, grandTotal);
     html += '</tbody></table>';
-    document.getElementById('statsCustomerTableScroll').innerHTML = html;
-    document.getElementById('statsCustomerTableTotal').innerHTML =
+    container.innerHTML = html;
+    totalContainer.innerHTML =
         `<table class="w-full text-xs"><tr class="bg-gray-50 font-semibold"><td class="p-0.5" style="width:40%">Итого</td><td class="p-0.5 text-right" style="width:15%">${grandQty}</td><td class="p-0.5 text-right" style="width:20%">${grandTotal.toFixed(2)}</td><td class="p-0.5 text-right text-blue-700" style="width:15%">${grandVat.toFixed(2)}</td><td class="p-0.5" style="width:10%"></td></tr></table>`;
+
+    if (moreBtn) moreBtn.classList.toggle('hidden', sorted.length <= 10);
+}
+
+function openAllCustomersModal() {
+    if (!lastCustomerTableData) return;
+    const { sorted, totals, vats, qtys, grandTotal, grandVat, grandQty } = lastCustomerTableData;
+    let html = '<table class="w-full text-xs"><thead><tr class="bg-gray-100"><th class="p-0.5 text-left">Клиент</th><th class="p-0.5 text-right">Кол-во</th><th class="p-0.5 text-right">Сумма (€)</th><th class="p-0.5 text-right">НДС (€)</th><th class="p-0.5 text-right">Доля</th></tr></thead><tbody>';
+    html += buildCustomerRowsHtml(sorted, totals, vats, qtys, grandTotal);
+    html += `<tr class="bg-gray-50 font-semibold"><td class="p-0.5">Итого</td><td class="p-0.5 text-right">${grandQty}</td><td class="p-0.5 text-right">${grandTotal.toFixed(2)}</td><td class="p-0.5 text-right text-blue-700">${grandVat.toFixed(2)}</td><td class="p-0.5"></td></tr>`;
+    html += '</tbody></table>';
+    document.getElementById('allCustomersTable').innerHTML = html;
+    document.getElementById('allCustomersModal').style.display = 'flex';
 }
 
 // --- Топ изделий ---
