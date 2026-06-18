@@ -132,17 +132,23 @@
                     <h2 class="text-lg font-semibold mb-2 text-gray-800">Добавить изделие</h2>
                     <div class="grid grid-cols-1 gap-0.5">
                         <input id="productName" type="text" placeholder="Название изделия" class="border p-0.5 rounded-md focus:outline-none focus:ring-1 focus:ring-gray-300 text-xs">
-                        <input id="productPrice" type="number" step="0.01" placeholder="Продажная цена (€)" class="border p-0.5 rounded-md focus:outline-none focus:ring-1 focus:ring-gray-300 text-xs">
+                        <select id="productUnit" class="border p-0.5 rounded-md focus:outline-none focus:ring-1 focus:ring-gray-300 text-xs">
+                            <option value="pcs">Продаётся за штуку (шт)</option>
+                            <option value="kg">Продаётся на вес (кг)</option>
+                        </select>
+                        <input id="productPrice" type="number" step="0.01" placeholder="Продажная цена (€) за шт/кг" class="border p-0.5 rounded-md focus:outline-none focus:ring-1 focus:ring-gray-300 text-xs">
                         <button onclick="addProduct()" class="btn bg-gray-500 text-white p-0.5 rounded-md hover:bg-gray-600 text-xs">Добавить изделие</button>
                     </div>
                 </div>
                 <div class="bg-white p-2 rounded-md shadow-md">
                     <h2 class="text-lg font-semibold mb-2 text-gray-800">Список изделий</h2>
                     <p class="text-xs text-gray-400 mb-2">Нажмите на строку изделия, чтобы открыть рецептуру</p>
+                    <p id="productsUnitWarning" class="text-xs text-red-600 bg-red-50 border border-red-200 rounded-md p-1.5 mb-2 hidden">⚠ У некоторых изделий не выбрана единица измерения (шт/кг). Откройте их и укажите единицу.</p>
                     <table class="w-full table-auto">
                         <thead><tr class="bg-gray-100">
-                            <th class="p-0.5 text-xs w-[55%]">Название</th>
-                            <th class="p-0.5 text-xs w-[20%]">Цена (€)</th>
+                            <th class="p-0.5 text-xs w-[45%]">Название</th>
+                            <th class="p-0.5 text-xs w-[15%]">Ед.</th>
+                            <th class="p-0.5 text-xs w-[15%]">Цена (€)</th>
                             <th class="p-0.5 text-xs w-[25%]">Действия</th>
                         </tr></thead>
                         <tbody id="productTableBody"></tbody>
@@ -159,20 +165,31 @@
                             Назад к изделиям
                         </button>
                     </div>
+                    <div id="pdUnitWarning" class="hidden bg-red-50 border border-red-200 text-red-700 text-xs rounded-md p-1.5 mb-2">
+                        ⚠ Для этого изделия не выбрана единица измерения. Пожалуйста, выберите «шт» или «кг».
+                    </div>
                     <div class="grid grid-cols-2 gap-1 mb-2">
                         <div>
                             <label class="text-xs text-gray-500">Название</label>
                             <input id="pdName" type="text" onblur="savePdHeader()" class="border p-0.5 rounded-md text-xs w-full">
                         </div>
                         <div>
-                            <label class="text-xs text-gray-500">Продажная цена (€)</label>
+                            <label class="text-xs text-gray-500">Единица продажи</label>
+                            <select id="pdUnit" onchange="savePdHeader()" class="border p-0.5 rounded-md text-xs w-full">
+                                <option value="">— выберите —</option>
+                                <option value="pcs">за штуку (шт)</option>
+                                <option value="kg">на вес (кг)</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="text-xs text-gray-500">Продажная цена (€) <span id="pdPriceUnitHint" class="text-gray-400"></span></label>
                             <input id="pdPrice" type="number" step="0.01" onchange="savePdHeader()" class="border p-0.5 rounded-md text-xs w-full">
                         </div>
                         <div>
-                            <label class="text-xs text-gray-500">Размер партии (шт)</label>
-                            <input id="pdBatchSize" type="number" step="1" min="1" onchange="savePdHeader()" class="border p-0.5 rounded-md text-xs w-full">
+                            <label class="text-xs text-gray-500">Размер партии</label>
+                            <input id="pdBatchSize" type="number" step="0.01" min="0.01" onchange="savePdHeader()" class="border p-0.5 rounded-md text-xs w-full">
                         </div>
-                        <div>
+                        <div class="col-span-2">
                             <label class="text-xs text-gray-500">Прочие расходы на партию (€)</label>
                             <input id="pdOtherCosts" type="number" step="0.01" min="0" onchange="savePdHeader()" class="border p-0.5 rounded-md text-xs w-full">
                         </div>
@@ -464,7 +481,7 @@
                                 <td><select id="newItemProduct" onchange="autoFillNewItemPrice()" class="text-xs">
                                     <option value="">— изделие —</option>
                                 </select></td>
-                                <td><input id="newItemQty" type="number" min="1" placeholder="1" class="text-xs"></td>
+                                <td><input id="newItemQty" type="number" step="0.01" min="0.01" placeholder="1" class="text-xs"></td>
                                 <td><input id="newItemPrice" type="number" step="0.01" placeholder="0.00" class="text-xs"></td>
                                 <td class="text-xs text-gray-400 text-center">—</td>
                                 <td class="text-center">
@@ -555,7 +572,7 @@
                     <option value="">Выберите изделие</option>
                 </select>
                 <label class="text-xs text-gray-600">Количество</label>
-                <input id="editItemQty" type="number" min="1" class="border p-0.5 rounded-md mb-1 w-full text-xs">
+                <input id="editItemQty" type="number" step="0.01" min="0.01" class="border p-0.5 rounded-md mb-1 w-full text-xs">
                 <label class="text-xs text-gray-600">Цена (€)</label>
                 <input id="editItemPrice" type="number" step="0.01" class="border p-0.5 rounded-md mb-2 w-full text-xs">
                 <button onclick="saveItemEdit()" class="btn bg-gray-500 text-white p-0.5 rounded-md hover:bg-gray-600 mr-1 text-xs">Сохранить</button>
@@ -726,7 +743,7 @@ async function loadAllData() {
     showLoading();
     try {
         const [pRes, cRes, oRes, oiRes, eRes, ingRes, piRes] = await Promise.all([
-            db.from('products').select('id, name, price, batch_size, other_costs').order('name'),
+            db.from('products').select('id, name, price, batch_size, other_costs, unit').order('name'),
             db.from('customers').select('id, name, contact, discount, vat_exempt').order('name'),
             db.from('orders').select('id, customer_id, order_date, status, discount, vat_exempt, employee_id, notes'),
             db.from('order_items').select('id, order_id, product_id, quantity, price'),
@@ -753,6 +770,7 @@ async function loadAllData() {
         products  = (pRes.data || []).map(p => ({
             id: p.id, name: p.name, price: Number(p.price),
             batch_size: Number(p.batch_size || 1), other_costs: Number(p.other_costs || 0),
+            unit: p.unit || '',
             ingredients: recipeByProduct[p.id] || []
         }));
         customers = (cRes.data || []).map(c => ({ id: c.id, name: c.name, contact: c.contact || '', discount: Number(c.discount || 0), vat_exempt: !!c.vat_exempt }));
