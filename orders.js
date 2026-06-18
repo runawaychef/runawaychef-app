@@ -475,6 +475,22 @@ function renderDetailItems(order) {
 
     // Скрыть строку скидки если скидки нет
     document.getElementById('detailDiscountRow').style.display = discPct > 0 ? '' : 'none';
+
+    // Себестоимость и прибыль (от суммы после скидки, без НДС)
+    const cost   = orderCost(order);
+    const profit = orderProfit(order);
+    const afterDiscount = orderAfterDiscount(order);
+    const profitPct = afterDiscount > 0 ? (profit / afterDiscount * 100) : 0;
+
+    const costEl = document.getElementById('detailCost');
+    const profitEl = document.getElementById('detailProfit');
+    const profitPctEl = document.getElementById('detailProfitPct');
+    if (costEl) costEl.textContent = cost.toFixed(2) + ' €';
+    if (profitEl) {
+        profitEl.textContent = profit.toFixed(2) + ' €';
+        profitEl.className = profit >= 0 ? 'font-semibold text-green-700' : 'font-semibold text-red-600';
+    }
+    if (profitPctEl) profitPctEl.textContent = profitPct.toFixed(1);
 }
 
 async function addItemToOrder() {
