@@ -35,6 +35,11 @@ function orderGrandTotal(order) {
 // Себестоимость партии изделия: сумма (расход ингредиента × цена за единицу) + прочие расходы
 function productBatchCost(prod) {
     const ingredientsCost = (prod.ingredients || []).reduce((sum, ri) => {
+        if (ri.semi_finished_id) {
+            const sf = (typeof semiFinished !== 'undefined') ? semiFinished.find(s => s.id === ri.semi_finished_id) : null;
+            if (!sf) return sum;
+            return sum + semiFinishedUnitCost(sf) * ri.quantity;
+        }
         const ing = ingredients.find(i => i.id === ri.ingredient_id);
         if (!ing) return sum;
         return sum + ingredientUnitPrice(ing) * ri.quantity;

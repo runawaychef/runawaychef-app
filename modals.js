@@ -68,6 +68,23 @@ async function confirmDelete() {
                 renderProductRecipe(prod);
                 logActivity('product', `Удалён ингредиент из рецепта «${prod.name}»`);
             }
+        } else if (deleteType === 'semiFinished') {
+            const sf = semiFinished[deleteId];
+            const { error } = await db.from('semi_finished').delete().eq('id', sf.id);
+            if (error) throw error;
+            semiFinished.splice(deleteId, 1);
+            displaySemiFinished();
+            logActivity('semiFinished', `Удалён полуфабрикат «${sf.name}»`);
+        } else if (deleteType === 'sfRecipeItem') {
+            const sf = semiFinished.find(s => s.id === currentSemiFinishedId);
+            if (sf) {
+                const ri = sf.ingredients[deleteId];
+                const { error } = await db.from('semi_finished_ingredients').delete().eq('id', ri.id);
+                if (error) throw error;
+                sf.ingredients.splice(deleteId, 1);
+                renderSemiFinishedRecipe(sf);
+                logActivity('semiFinished', `Удалён ингредиент из рецепта полуфабриката «${sf.name}»`);
+            }
         }
         closeModal();
     } catch (e) {

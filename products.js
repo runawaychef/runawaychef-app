@@ -157,12 +157,27 @@ async function savePdHeader() {
 function fillNewRecipeIngredientSelect() {
     const sel = document.getElementById('newRecipeIngredient');
     if (!sel) return;
-    sel.innerHTML = '<option value="">— ингредиент —</option>';
-    ingredients.sort((a,b)=>a.name.localeCompare(b.name)).forEach(ing => {
-        const opt = document.createElement('option');
-        opt.value = ing.id; opt.textContent = ing.name;
-        sel.appendChild(opt);
-    });
+    sel.innerHTML = '<option value="">— ингредиент / полуфабрикат —</option>';
+    if (ingredients.length) {
+        const grpIng = document.createElement('optgroup');
+        grpIng.label = 'Ингредиенты';
+        ingredients.sort((a,b)=>a.name.localeCompare(b.name)).forEach(ing => {
+            const opt = document.createElement('option');
+            opt.value = 'ing-' + ing.id; opt.textContent = ing.name;
+            grpIng.appendChild(opt);
+        });
+        sel.appendChild(grpIng);
+    }
+    if (typeof semiFinished !== 'undefined' && semiFinished.length) {
+        const grpSf = document.createElement('optgroup');
+        grpSf.label = 'Полуфабрикаты';
+        semiFinished.sort((a,b)=>a.name.localeCompare(b.name)).forEach(sf => {
+            const opt = document.createElement('option');
+            opt.value = 'sf-' + sf.id; opt.textContent = sf.name;
+            grpSf.appendChild(opt);
+        });
+        sel.appendChild(grpSf);
+    }
 }
 
 function renderProductRecipe(prod) {
@@ -175,14 +190,24 @@ function renderProductRecipe(prod) {
         tbody.appendChild(row);
     } else {
         list.forEach((ri, i) => {
-            const ing = ingredients.find(x => x.id === ri.ingredient_id);
-            const unitPrice = ing ? ingredientUnitPrice(ing) : 0;
+            let displayName, unitLabel, unitPrice;
+            if (ri.semi_finished_id) {
+                const sf = (typeof semiFinished !== 'undefined') ? semiFinished.find(s => s.id === ri.semi_finished_id) : null;
+                displayName = sf ? sf.name + ' (п/ф)' : '(удалён п/ф)';
+                unitLabel = sf ? (SF_UNIT_LABELS[sf.unit] || sf.unit) : '';
+                unitPrice = sf ? semiFinishedUnitCost(sf) : 0;
+            } else {
+                const ing = ingredients.find(x => x.id === ri.ingredient_id);
+                displayName = ing ? ing.name : '(удалён)';
+                unitLabel = ing ? (UNIT_LABELS[ing.unit] || ing.unit) : '';
+                unitPrice = ing ? ingredientUnitPrice(ing) : 0;
+            }
             const lineCost = unitPrice * ri.quantity;
             const row = document.createElement('tr');
             row.className = 'border-b';
             row.innerHTML = `
-                <td class="p-0.5 text-xs">${ing ? ing.name : '(удалён)'}</td>
-                <td class="p-0.5 text-xs text-center">${ri.quantity} ${ing ? ing.unit : ''}</td>
+                <td class="p-0.5 text-xs">${displayName}</td>
+                <td class="p-0.5 text-xs text-center">${ri.quantity} ${unitLabel}</td>
                 <td class="p-0.5 text-xs text-center font-medium">${lineCost.toFixed(2)} €</td>
                 <td class="p-0.5 text-center">
                     ${svgEdit(`openEditRecipeItemModal(${i})`)}
@@ -203,31 +228,36 @@ function renderProductRecipe(prod) {
     document.getElementById('pdProfitPct').textContent = profitPct.toFixed(1) + '%';
 }
 
-function autoFillNewRecipeQtyHint() {
-    // Заглушка на случай будущих автоподсказок — пока не требуется
-}
-
 async function addIngredientToRecipe() {
     const prod = products.find(p => p.id === currentProductId);
     if (!prod) return;
-    const ingredientIdRaw = document.getElementById('newRecipeIngredient').value;
+    const selectedRaw = document.getElementById('newRecipeIngredient').value;
     const quantity = parseFloat(document.getElementById('newRecipeQty').value);
-    if (!ingredientIdRaw || isNaN(quantity) || quantity <= 0) {
-        alert('Выберите ингредиент и укажите количество!'); return;
+    if (!selectedRaw || isNaN(quantity) || quantity <= 0) {
+        alert('Выберите ингредиент/полуфабрикат и укажите количество!'); return;
     }
-    const ingredientId = Number(ingredientIdRaw);
+    const [type, idStr] = selectedRaw.split('-');
+    const selectedId = Number(idStr);
+    const insertRow = type === 'sf'
+        ? { product_id: prod.id, semi_finished_id: selectedId, ingredient_id: null, quantity }
+        : { product_id: prod.id, ingredient_id: selectedId, semi_finished_id: null, quantity };
 
     showLoading();
     try {
-        const { data, error } = await db.from('product_ingredients').insert({
-            product_id: prod.id, ingredient_id: ingredientId, quantity
-        }).select().single();
+        const { data, error } = await db.from('product_ingredients').insert(insertRow).select().single();
         if (error) throw error;
         if (!prod.ingredients) prod.ingredients = [];
-        prod.ingredients.push({ id: data.id, ingredient_id: ingredientId, quantity: Number(data.quantity) });
+        prod.ingredients.push({ id: data.id, ingredient_id: data.ingredient_id, semi_finished_id: data.semi_finished_id, quantity: Number(data.quantity) });
         renderProductRecipe(prod);
-        const ing = ingredients.find(i => i.id === ingredientId);
-        logActivity('product', `В рецепт «${prod.name}» добавлен ингредиент «${ing ? ing.name : ''}» (${quantity})`);
+        let itemName = '';
+        if (type === 'sf') {
+            const sf = semiFinished.find(s => s.id === selectedId);
+            itemName = sf ? sf.name + ' (п/ф)' : '';
+        } else {
+            const ing = ingredients.find(i => i.id === selectedId);
+            itemName = ing ? ing.name : '';
+        }
+        logActivity('product', `В рецепт «${prod.name}» добавлен «${itemName}» (${quantity})`);
         document.getElementById('newRecipeIngredient').value = '';
         document.getElementById('newRecipeQty').value = '';
     } catch (e) { console.error(e); alert('Ошибка сохранения. Проверьте подключение.'); }
@@ -239,15 +269,32 @@ function openEditRecipeItemModal(i) {
     if (!prod) return;
     editRecipeItemIdx = i;
     const ri = prod.ingredients[i];
+    const currentValue = ri.semi_finished_id ? ('sf-' + ri.semi_finished_id) : ('ing-' + ri.ingredient_id);
 
     const sel = document.getElementById('editRecipeIngredient');
-    sel.innerHTML = '<option value="">Выберите ингредиент</option>';
-    ingredients.sort((a,b)=>a.name.localeCompare(b.name)).forEach(ing => {
-        const opt = document.createElement('option');
-        opt.value = ing.id; opt.textContent = ing.name;
-        if (ing.id === ri.ingredient_id) opt.selected = true;
-        sel.appendChild(opt);
-    });
+    sel.innerHTML = '<option value="">Выберите ингредиент / полуфабрикат</option>';
+    if (ingredients.length) {
+        const grpIng = document.createElement('optgroup');
+        grpIng.label = 'Ингредиенты';
+        ingredients.sort((a,b)=>a.name.localeCompare(b.name)).forEach(ing => {
+            const opt = document.createElement('option');
+            opt.value = 'ing-' + ing.id; opt.textContent = ing.name;
+            if (opt.value === currentValue) opt.selected = true;
+            grpIng.appendChild(opt);
+        });
+        sel.appendChild(grpIng);
+    }
+    if (typeof semiFinished !== 'undefined' && semiFinished.length) {
+        const grpSf = document.createElement('optgroup');
+        grpSf.label = 'Полуфабрикаты';
+        semiFinished.sort((a,b)=>a.name.localeCompare(b.name)).forEach(sf => {
+            const opt = document.createElement('option');
+            opt.value = 'sf-' + sf.id; opt.textContent = sf.name;
+            if (opt.value === currentValue) opt.selected = true;
+            grpSf.appendChild(opt);
+        });
+        sel.appendChild(grpSf);
+    }
     document.getElementById('editRecipeQty').value = ri.quantity;
     document.getElementById('editRecipeItemModal').style.display = 'flex';
 }
@@ -255,21 +302,28 @@ function openEditRecipeItemModal(i) {
 async function saveRecipeItemEdit() {
     const prod = products.find(p => p.id === currentProductId);
     if (!prod || editRecipeItemIdx === null) return;
-    const ingredientIdRaw = document.getElementById('editRecipeIngredient').value;
+    const selectedRaw = document.getElementById('editRecipeIngredient').value;
     const quantity = parseFloat(document.getElementById('editRecipeQty').value);
-    if (!ingredientIdRaw || isNaN(quantity) || quantity <= 0) {
+    if (!selectedRaw || isNaN(quantity) || quantity <= 0) {
         alert('Заполните все поля корректно!'); return;
     }
-    const ingredientId = Number(ingredientIdRaw);
+    const [type, idStr] = selectedRaw.split('-');
+    const selectedId = Number(idStr);
     const ri = prod.ingredients[editRecipeItemIdx];
+    const updateRow = type === 'sf'
+        ? { ingredient_id: null, semi_finished_id: selectedId, quantity }
+        : { ingredient_id: selectedId, semi_finished_id: null, quantity };
 
     showLoading();
     try {
-        const { error } = await db.from('product_ingredients').update({
-            ingredient_id: ingredientId, quantity
-        }).eq('id', ri.id);
+        const { error } = await db.from('product_ingredients').update(updateRow).eq('id', ri.id);
         if (error) throw error;
-        prod.ingredients[editRecipeItemIdx] = { id: ri.id, ingredient_id: ingredientId, quantity };
+        prod.ingredients[editRecipeItemIdx] = {
+            id: ri.id,
+            ingredient_id: type === 'sf' ? null : selectedId,
+            semi_finished_id: type === 'sf' ? selectedId : null,
+            quantity
+        };
         renderProductRecipe(prod);
         closeModal();
         logActivity('product', `Изменён ингредиент в рецепте «${prod.name}»`);
@@ -281,6 +335,13 @@ function deleteRecipeItem(i) {
     const prod = products.find(p => p.id === currentProductId);
     if (!prod) return;
     const ri = prod.ingredients[i];
-    const ing = ingredients.find(x => x.id === ri.ingredient_id);
-    openDeleteModal(i, 'recipeItem', `ингредиент «${ing ? ing.name : ''}» из рецепта`);
+    let itemName = '';
+    if (ri.semi_finished_id) {
+        const sf = semiFinished.find(x => x.id === ri.semi_finished_id);
+        itemName = sf ? sf.name + ' (п/ф)' : '';
+    } else {
+        const ing = ingredients.find(x => x.id === ri.ingredient_id);
+        itemName = ing ? ing.name : '';
+    }
+    openDeleteModal(i, 'recipeItem', `«${itemName}» из рецепта`);
 }
