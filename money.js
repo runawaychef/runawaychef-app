@@ -59,6 +59,12 @@ function productProfit(prod) {
     return (prod.price || 0) - productUnitCost(prod);
 }
 
+// Рентабельность изделия в % (прибыль / продажная цена)
+function productProfitPct(prod) {
+    if (!prod.price) return 0;
+    return productProfit(prod) / prod.price * 100;
+}
+
 // Себестоимость одной позиции заказа (кол-во × себестоимость единицы изделия)
 // product ищется по имени, как и в остальной логике заказов
 function orderItemCost(item) {

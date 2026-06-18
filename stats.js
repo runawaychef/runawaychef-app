@@ -154,6 +154,8 @@ function applyFilter() {
     drawMonthlyChart(filtered);
     drawCustomerTable(filtered);
     drawProductTable(filtered);
+    drawProfitabilitySummary(filtered);
+    drawProductProfitabilityTable();
 }
 
 function updateDisplay(filteredOrders = orders) {
@@ -242,7 +244,46 @@ function drawProductTable(filtered) {
     document.getElementById('statsProductTable').innerHTML = html;
 }
 
-// --- Столбчатый график по месяцам ---
+// --- Общая рентабельность за период ---
+function drawProfitabilitySummary(filtered) {
+    const totalCost   = filtered.reduce((s, o) => s + orderCost(o), 0);
+    const totalProfit = filtered.reduce((s, o) => s + orderProfit(o), 0);
+    const totalBase   = filtered.reduce((s, o) => s + orderAfterDiscount(o), 0);
+    const profitPct   = totalBase > 0 ? (totalProfit / totalBase * 100) : 0;
+
+    const costEl = document.getElementById('statsTotalCost');
+    const profitEl = document.getElementById('statsTotalProfit');
+    const profitPctEl = document.getElementById('statsProfitPct');
+    if (costEl) costEl.textContent = totalCost.toFixed(2) + ' €';
+    if (profitEl) {
+        profitEl.textContent = totalProfit.toFixed(2) + ' €';
+        profitEl.className = totalProfit >= 0 ? 'text-sm font-bold text-green-700' : 'text-sm font-bold text-red-600';
+    }
+    if (profitPctEl) profitPctEl.textContent = profitPct.toFixed(1) + '%';
+}
+
+// --- Топ-10 изделий по рентабельности (% прибыли) ---
+function drawProductProfitabilityTable() {
+    const container = document.getElementById('statsProductProfitability');
+    if (!container) return;
+    const withRecipe = products.filter(p => (p.ingredients || []).length > 0);
+    if (!withRecipe.length) {
+        container.innerHTML = '<p class="text-xs text-gray-400">Нет изделий с заполненной рецептурой</p>';
+        return;
+    }
+    const sorted = [...withRecipe].sort((a, b) => productProfitPct(b) - productProfitPct(a)).slice(0, 10);
+    let html = '<table class="w-full text-xs"><thead><tr class="bg-gray-100"><th class="p-0.5 text-left">Изделие</th><th class="p-0.5 text-right">Себест.</th><th class="p-0.5 text-right">Цена</th><th class="p-0.5 text-right">Рент.</th></tr></thead><tbody>';
+    sorted.forEach(p => {
+        const cost = productUnitCost(p);
+        const pct  = productProfitPct(p);
+        const pctClass = pct >= 0 ? 'text-green-700' : 'text-red-600';
+        html += `<tr class="border-b"><td class="p-0.5">${p.name}</td><td class="p-0.5 text-right">${cost.toFixed(2)} €</td><td class="p-0.5 text-right">${p.price.toFixed(2)} €</td><td class="p-0.5 text-right font-semibold ${pctClass}">${pct.toFixed(1)}%</td></tr>`;
+    });
+    html += '</tbody></table>';
+    container.innerHTML = html;
+}
+
+// --- Столбчатый график по месяцам (выручка + линия прибыли) ---
 function drawMonthlyChart(filtered) {
     const canvas = document.getElementById('monthlyCanvas');
     const W = canvas.offsetWidth || 360;
@@ -252,20 +293,24 @@ function drawMonthlyChart(filtered) {
     const ctx = canvas.getContext('2d');
     ctx.clearRect(0, 0, W, H);
 
-    // Группируем по ГГГГ-ММ
-    const monthly = {};
+    // Группируем по ГГГГ-ММ — выручка (столбики) и прибыль (линия)
+    const monthlyRevenue = {};
+    const monthlyProfit  = {};
     filtered.forEach(o => {
         const key = o.date ? o.date.slice(0,7) : 'unknown';
-        monthly[key] = (monthly[key] || 0) + orderGrandTotal(o);
+        monthlyRevenue[key] = (monthlyRevenue[key] || 0) + orderGrandTotal(o);
+        monthlyProfit[key]  = (monthlyProfit[key]  || 0) + orderProfit(o);
     });
-    const keys = Object.keys(monthly).sort();
+    const keys = Object.keys(monthlyRevenue).sort();
     if (!keys.length) {
         ctx.fillStyle = '#9ca3af'; ctx.font = '11px sans-serif';
         ctx.fillText('Нет данных', W/2 - 30, H/2);
         return;
     }
-    const vals  = keys.map(k => monthly[k]);
-    const maxV  = Math.max(...vals);
+    const revenueVals = keys.map(k => monthlyRevenue[k]);
+    const profitVals  = keys.map(k => monthlyProfit[k] || 0);
+    // Общий максимум по обеим сериям, чтобы прибыль не выходила за пределы графика
+    const maxV  = Math.max(...revenueVals, ...profitVals, 0.01);
     const pad   = { top: 10, bottom: 30, left: 42, right: 8 };
     const bW    = Math.max(4, Math.floor((W - pad.left - pad.right) / keys.length) - 4);
     const chartH = H - pad.top - pad.bottom;
@@ -279,19 +324,48 @@ function drawMonthlyChart(filtered) {
         ctx.fillText((maxV * f).toFixed(0), pad.left - 3, y + 3);
     });
 
-    // Столбики
+    // Столбики выручки
+    const points = [];
     keys.forEach((key, i) => {
         const x   = pad.left + i * ((W - pad.left - pad.right) / keys.length) + 2;
-        const h   = maxV > 0 ? (vals[i] / maxV) * chartH : 0;
+        const h   = maxV > 0 ? (revenueVals[i] / maxV) * chartH : 0;
         const y   = pad.top + chartH - h;
         ctx.fillStyle = `hsl(${210 + i*15}, 55%, 55%)`;
         ctx.fillRect(x, y, bW, h);
+        points.push({ x: x + bW / 2, y: pad.top + chartH - (maxV > 0 ? (profitVals[i] / maxV) * chartH : 0) });
         // Подпись месяца
         ctx.fillStyle = '#6b7280'; ctx.font = '8px sans-serif'; ctx.textAlign = 'center';
         const label = key.slice(5); // MM
         const months = ['янв','фев','мар','апр','май','июн','июл','авг','сен','окт','ноя','дек'];
         ctx.fillText(months[parseInt(label)-1] || label, x + bW/2, H - 4);
     });
+
+    // Линия прибыли поверх столбиков
+    if (points.length) {
+        ctx.beginPath();
+        ctx.strokeStyle = '#16a34a';
+        ctx.lineWidth = 2;
+        points.forEach((p, i) => { if (i === 0) ctx.moveTo(p.x, p.y); else ctx.lineTo(p.x, p.y); });
+        ctx.stroke();
+        // Точки на линии
+        points.forEach(p => {
+            ctx.beginPath();
+            ctx.arc(p.x, p.y, 2.5, 0, 2 * Math.PI);
+            ctx.fillStyle = '#16a34a';
+            ctx.fill();
+        });
+    }
+
+    // Легенда графика
+    ctx.font = '9px sans-serif'; ctx.textAlign = 'left';
+    ctx.fillStyle = `hsl(210, 55%, 55%)`;
+    ctx.fillRect(pad.left, 2, 8, 8);
+    ctx.fillStyle = '#374151';
+    ctx.fillText('Выручка', pad.left + 11, 9);
+    ctx.strokeStyle = '#16a34a'; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(pad.left + 65, 6); ctx.lineTo(pad.left + 80, 6); ctx.stroke();
+    ctx.fillStyle = '#374151';
+    ctx.fillText('Прибыль', pad.left + 84, 9);
 }
 
 // --- Круговая диаграмма (без легенды на canvas) ---
