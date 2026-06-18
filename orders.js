@@ -442,11 +442,13 @@ function renderDetailItems(order) {
     } else {
         order.items.forEach((item, i) => {
             const total = (item.quantity * item.price).toFixed(2);
+            const prod = products.find(p => p.id === item.product_id);
+            const unitLabel = prod && prod.unit ? (UNIT_PRODUCT_LABELS[prod.unit] || '') : '';
             const row = document.createElement('tr');
             row.className = 'border-b';
             row.innerHTML = `
                 <td class="p-0.5 text-xs">${item.product}</td>
-                <td class="p-0.5 text-xs text-center">${item.quantity}</td>
+                <td class="p-0.5 text-xs text-center">${item.quantity}${unitLabel ? ' ' + unitLabel : ''}</td>
                 <td class="p-0.5 text-xs text-center">${item.price.toFixed(2)}</td>
                 <td class="p-0.5 text-xs text-center font-medium">${total}</td>
                 <td class="p-0.5 text-center">
@@ -479,7 +481,7 @@ async function addItemToOrder() {
     const order = orders.find(o => o.id === currentOrderId);
     if (!order) return;
     const productName = document.getElementById('newItemProduct').value;
-    const quantity = parseInt(document.getElementById('newItemQty').value);
+    const quantity = parseFloat(document.getElementById('newItemQty').value);
     const price    = parseFloat(document.getElementById('newItemPrice').value);
     if (!productName || isNaN(quantity) || quantity <= 0 || isNaN(price)) {
         alert('Заполните изделие, количество и цену!'); return;
@@ -507,7 +509,13 @@ async function addItemToOrder() {
 function autoFillNewItemPrice() {
     const name = document.getElementById('newItemProduct').value;
     const p = products.find(pr => pr.name === name);
-    if (p) document.getElementById('newItemPrice').value = p.price.toFixed(2);
+    if (p) {
+        document.getElementById('newItemPrice').value = p.price.toFixed(2);
+        const qtyField = document.getElementById('newItemQty');
+        if (p.unit === 'kg') qtyField.placeholder = 'кг, напр. 1.4';
+        else if (p.unit === 'pcs') qtyField.placeholder = 'шт';
+        else qtyField.placeholder = '1';
+    }
 }
 
 function openEditItemModal(itemIdx) {
@@ -540,7 +548,7 @@ async function saveItemEdit() {
     const order = orders.find(o => o.id === currentOrderId);
     if (!order || editItemIdx === null) return;
     const productName = document.getElementById('editItemProduct').value;
-    const quantity = parseInt(document.getElementById('editItemQty').value);
+    const quantity = parseFloat(document.getElementById('editItemQty').value);
     const price    = parseFloat(document.getElementById('editItemPrice').value);
     if (!productName || isNaN(quantity) || quantity <= 0 || isNaN(price)) {
         alert('Заполните все поля корректно!'); return;

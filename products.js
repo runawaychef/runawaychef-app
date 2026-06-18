@@ -5,15 +5,22 @@
 // showLoading/hideLoading, logActivity (employees.js),
 // svgEdit/svgDelete/svgCopy, updateProductSelects, openDeleteModal, closeModal (главный скрипт).
 
+const UNIT_PRODUCT_LABELS = { pcs: 'шт', kg: 'кг' };
+
 function displayProducts() {
     products.sort((a, b) => a.name.localeCompare(b.name));
     const tbody = document.getElementById('productTableBody');
     tbody.innerHTML = '';
+    let missingUnitCount = 0;
     products.forEach((p, i) => {
+        const hasUnit = !!p.unit;
+        if (!hasUnit) missingUnitCount++;
+        const unitLabel = hasUnit ? UNIT_PRODUCT_LABELS[p.unit] : '⚠';
         const row = document.createElement('tr');
-        row.className = 'order-row';
+        row.className = 'order-row' + (hasUnit ? '' : ' bg-red-50');
         row.innerHTML = `
             <td class="border p-0.5 text-xs" onclick="openProductDetail(${p.id})">${p.name}</td>
+            <td class="border p-0.5 text-xs text-center ${hasUnit ? '' : 'text-red-600 font-semibold'}" onclick="openProductDetail(${p.id})">${unitLabel}</td>
             <td class="border p-0.5 text-xs" onclick="openProductDetail(${p.id})">${p.price.toFixed(2)}</td>
             <td class="border p-0.5 text-center">
                 ${svgEdit(`openEditProductModal(${i})`)}
@@ -23,20 +30,23 @@ function displayProducts() {
             </td>`;
         tbody.appendChild(row);
     });
+    const warningEl = document.getElementById('productsUnitWarning');
+    if (warningEl) warningEl.classList.toggle('hidden', missingUnitCount === 0);
     updateProductSelects();
 }
 
 async function addProduct() {
     const name  = document.getElementById('productName').value.trim();
+    const unit  = document.getElementById('productUnit').value;
     const price = parseFloat(document.getElementById('productPrice').value);
     if (!name || isNaN(price)) { alert('Заполните все поля корректно!'); return; }
     showLoading();
     try {
-        const { data, error } = await db.from('products').insert({ name, price: parseFloat(price.toFixed(2)) }).select().single();
+        const { data, error } = await db.from('products').insert({ name, price: parseFloat(price.toFixed(2)), unit }).select().single();
         if (error) throw error;
-        products.push({ id: data.id, name: data.name, price: Number(data.price), batch_size: Number(data.batch_size || 1), other_costs: Number(data.other_costs || 0), ingredients: [] });
+        products.push({ id: data.id, name: data.name, price: Number(data.price), batch_size: Number(data.batch_size || 1), other_costs: Number(data.other_costs || 0), unit: data.unit || '', ingredients: [] });
         displayProducts();
-        logActivity('product', `Добавлено изделие «${name}» (${price.toFixed(2)} €)`);
+        logActivity('product', `Добавлено изделие «${name}» (${price.toFixed(2)} € за ${UNIT_PRODUCT_LABELS[unit] || unit})`);
         document.getElementById('productName').value = '';
         document.getElementById('productPrice').value = '';
     } catch (e) { console.error(e); alert('Ошибка сохранения. Проверьте подключение.'); }
@@ -71,6 +81,7 @@ async function saveProductEdit() {
 
 function copyProduct(i) {
     document.getElementById('productName').value  = products[i].name;
+    document.getElementById('productUnit').value  = products[i].unit || 'pcs';
     document.getElementById('productPrice').value = products[i].price.toFixed(2);
     document.getElementById('productName').focus();
 }
@@ -91,12 +102,21 @@ function openProductDetail(productId) {
     document.getElementById('productDetail').classList.add('active');
 
     document.getElementById('pdName').value = prod.name;
+    document.getElementById('pdUnit').value = prod.unit || '';
     document.getElementById('pdPrice').value = prod.price.toFixed(2);
     document.getElementById('pdBatchSize').value = prod.batch_size || 1;
     document.getElementById('pdOtherCosts').value = (prod.other_costs || 0).toFixed(2);
 
+    updatePdUnitUI(prod.unit);
     renderProductRecipe(prod);
     fillNewRecipeIngredientSelect();
+}
+
+function updatePdUnitUI(unit) {
+    const warning = document.getElementById('pdUnitWarning');
+    const hint = document.getElementById('pdPriceUnitHint');
+    if (warning) warning.classList.toggle('hidden', !!unit);
+    if (hint) hint.textContent = unit ? `(за ${UNIT_PRODUCT_LABELS[unit]})` : '';
 }
 
 function closeProductDetail() {
@@ -110,6 +130,7 @@ async function savePdHeader() {
     const prod = products.find(p => p.id === currentProductId);
     if (!prod) return;
     const name = document.getElementById('pdName').value.trim();
+    const unit = document.getElementById('pdUnit').value;
     const price = parseFloat(document.getElementById('pdPrice').value);
     const batchSize = parseFloat(document.getElementById('pdBatchSize').value) || 1;
     const otherCosts = parseFloat(document.getElementById('pdOtherCosts').value) || 0;
@@ -118,14 +139,17 @@ async function savePdHeader() {
     showLoading();
     try {
         const { error } = await db.from('products').update({
-            name, price: parseFloat(price.toFixed(2)), batch_size: batchSize, other_costs: parseFloat(otherCosts.toFixed(2))
+            name, price: parseFloat(price.toFixed(2)), batch_size: batchSize, other_costs: parseFloat(otherCosts.toFixed(2)), unit
         }).eq('id', prod.id);
         if (error) throw error;
+        const unitChanged = prod.unit !== unit;
         prod.name = name; prod.price = parseFloat(price.toFixed(2));
         prod.batch_size = batchSize; prod.other_costs = parseFloat(otherCosts.toFixed(2));
+        prod.unit = unit;
         orders.forEach(o => o.items.forEach(it => { if (it.product_id === prod.id) it.product = name; }));
+        updatePdUnitUI(unit);
         renderProductRecipe(prod);
-        logActivity('product', `Изменено изделие «${prod.name}»`);
+        logActivity('product', `Изменено изделие «${prod.name}»${unitChanged ? ` (единица: ${UNIT_PRODUCT_LABELS[unit] || '—'})` : ''}`);
     } catch (e) { console.error(e); alert('Ошибка сохранения. Проверьте подключение.'); }
     finally { hideLoading(); }
 }
