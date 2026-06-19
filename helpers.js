@@ -4,19 +4,43 @@
 // Обычный скрипт (без модулей) — функции доступны глобально, как раньше.
 // Зависит от: products/customers (главный скрипт).
 
+// Экранирование пользовательских строк перед вставкой через innerHTML
+// (защита от XSS, если в имя клиента/товара/заметку попадут HTML-теги).
+function escapeHtml(str) {
+    if (str === null || str === undefined) return '';
+    return String(str)
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;')
+        .replaceAll('"', '&quot;')
+        .replaceAll("'", '&#039;');
+}
+
 function updateProductSelects() {
     // Для строки добавления позиции в детальном виде
     fillNewItemProductSelect();
+    fillEditItemProductList();
 }
 
 function fillNewItemProductSelect() {
-    const sel = document.getElementById('newItemProduct');
-    if (!sel) return;
-    sel.innerHTML = '<option value="">— изделие —</option>';
+    const list = document.getElementById('newItemProductList');
+    if (!list) return;
+    list.innerHTML = '';
     products.sort((a,b)=>a.name.localeCompare(b.name)).forEach(p => {
         const opt = document.createElement('option');
-        opt.value = p.name; opt.textContent = p.name;
-        sel.appendChild(opt);
+        opt.value = p.name;
+        list.appendChild(opt);
+    });
+}
+
+function fillEditItemProductList() {
+    const list = document.getElementById('editItemProductList');
+    if (!list) return;
+    list.innerHTML = '';
+    products.sort((a,b)=>a.name.localeCompare(b.name)).forEach(p => {
+        const opt = document.createElement('option');
+        opt.value = p.name;
+        list.appendChild(opt);
     });
 }
 

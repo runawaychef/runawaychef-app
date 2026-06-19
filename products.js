@@ -19,7 +19,7 @@ function displayProducts() {
         const row = document.createElement('tr');
         row.className = 'order-row' + (hasUnit ? '' : ' bg-red-50');
         row.innerHTML = `
-            <td class="border p-0.5 text-xs" onclick="openProductDetail(${p.id})">${p.name}</td>
+            <td class="border p-0.5 text-xs" onclick="openProductDetail(${p.id})">${escapeHtml(p.name)}</td>
             <td class="border p-0.5 text-xs text-center ${hasUnit ? '' : 'text-red-600 font-semibold'}" onclick="openProductDetail(${p.id})">${unitLabel}</td>
             <td class="border p-0.5 text-xs" onclick="openProductDetail(${p.id})">${p.price.toFixed(2)}</td>
             <td class="border p-0.5 text-center">
@@ -155,29 +155,38 @@ async function savePdHeader() {
 }
 
 function fillNewRecipeIngredientSelect() {
-    const sel = document.getElementById('newRecipeIngredient');
-    if (!sel) return;
-    sel.innerHTML = '<option value="">— ингредиент / полуфабрикат —</option>';
-    if (ingredients.length) {
-        const grpIng = document.createElement('optgroup');
-        grpIng.label = 'Ингредиенты';
-        ingredients.sort((a,b)=>a.name.localeCompare(b.name)).forEach(ing => {
-            const opt = document.createElement('option');
-            opt.value = 'ing-' + ing.id; opt.textContent = ing.name;
-            grpIng.appendChild(opt);
-        });
-        sel.appendChild(grpIng);
-    }
-    if (typeof semiFinished !== 'undefined' && semiFinished.length) {
-        const grpSf = document.createElement('optgroup');
-        grpSf.label = 'Полуфабрикаты';
+    const list = document.getElementById('newRecipeIngredientList');
+    if (!list) return;
+    list.innerHTML = '';
+    ingredients.sort((a,b)=>a.name.localeCompare(b.name)).forEach(ing => {
+        const opt = document.createElement('option');
+        opt.value = ing.name;
+        list.appendChild(opt);
+    });
+    if (typeof semiFinished !== 'undefined') {
         semiFinished.sort((a,b)=>a.name.localeCompare(b.name)).forEach(sf => {
             const opt = document.createElement('option');
-            opt.value = 'sf-' + sf.id; opt.textContent = sf.name;
-            grpSf.appendChild(opt);
+            opt.value = sf.name + ' (п/ф)';
+            list.appendChild(opt);
         });
-        sel.appendChild(grpSf);
     }
+}
+
+// Находит ингредиент/полуфабрикат по тексту, введённому в поле поиска.
+// Возвращает { type: 'ing'|'sf', id } или null, если совпадения нет.
+function resolveRecipeIngredientInput(text) {
+    const raw = text.trim();
+    if (!raw) return null;
+    if (raw.endsWith(' (п/ф)')) {
+        const name = raw.slice(0, -' (п/ф)'.length);
+        const sf = (typeof semiFinished !== 'undefined') ? semiFinished.find(s => s.name === name) : null;
+        return sf ? { type: 'sf', id: sf.id } : null;
+    }
+    const ing = ingredients.find(i => i.name === raw);
+    if (ing) return { type: 'ing', id: ing.id };
+    // На случай если ввели название п/ф без суффикса
+    const sf = (typeof semiFinished !== 'undefined') ? semiFinished.find(s => s.name === raw) : null;
+    return sf ? { type: 'sf', id: sf.id } : null;
 }
 
 function renderProductRecipe(prod) {
@@ -206,7 +215,7 @@ function renderProductRecipe(prod) {
             const row = document.createElement('tr');
             row.className = 'border-b';
             row.innerHTML = `
-                <td class="p-0.5 text-xs">${displayName}</td>
+                <td class="p-0.5 text-xs">${escapeHtml(displayName)}</td>
                 <td class="p-0.5 text-xs text-center">${ri.quantity} ${unitLabel}</td>
                 <td class="p-0.5 text-xs text-center font-medium">${lineCost.toFixed(2)} €</td>
                 <td class="p-0.5 text-center">
@@ -231,13 +240,13 @@ function renderProductRecipe(prod) {
 async function addIngredientToRecipe() {
     const prod = products.find(p => p.id === currentProductId);
     if (!prod) return;
-    const selectedRaw = document.getElementById('newRecipeIngredient').value;
+    const inputEl = document.getElementById('newRecipeIngredient');
     const quantity = parseFloat(document.getElementById('newRecipeQty').value);
-    if (!selectedRaw || isNaN(quantity) || quantity <= 0) {
-        alert('Выберите ингредиент/полуфабрикат и укажите количество!'); return;
+    const resolved = resolveRecipeIngredientInput(inputEl.value);
+    if (!resolved || isNaN(quantity) || quantity <= 0) {
+        alert('Выберите ингредиент/полуфабрикат из списка и укажите количество!'); return;
     }
-    const [type, idStr] = selectedRaw.split('-');
-    const selectedId = Number(idStr);
+    const type = resolved.type, selectedId = resolved.id;
     const insertRow = type === 'sf'
         ? { product_id: prod.id, semi_finished_id: selectedId, ingredient_id: null, quantity }
         : { product_id: prod.id, ingredient_id: selectedId, semi_finished_id: null, quantity };
@@ -258,7 +267,7 @@ async function addIngredientToRecipe() {
             itemName = ing ? ing.name : '';
         }
         logActivity('product', `В рецепт «${prod.name}» добавлен «${itemName}» (${quantity})`);
-        document.getElementById('newRecipeIngredient').value = '';
+        inputEl.value = '';
         document.getElementById('newRecipeQty').value = '';
     } catch (e) { console.error(e); alert('Ошибка сохранения. Проверьте подключение.'); }
     finally { hideLoading(); }

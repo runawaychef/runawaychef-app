@@ -145,13 +145,13 @@ async function saveSfdHeader() {
 }
 
 function fillNewSfRecipeIngredientSelect() {
-    const sel = document.getElementById('newSfRecipeIngredient');
-    if (!sel) return;
-    sel.innerHTML = '<option value="">— ингредиент —</option>';
+    const list = document.getElementById('newSfRecipeIngredientList');
+    if (!list) return;
+    list.innerHTML = '';
     ingredients.sort((a,b)=>a.name.localeCompare(b.name)).forEach(ing => {
         const opt = document.createElement('option');
-        opt.value = ing.id; opt.textContent = ing.name;
-        sel.appendChild(opt);
+        opt.value = ing.name;
+        list.appendChild(opt);
     });
 }
 
@@ -171,7 +171,7 @@ function renderSemiFinishedRecipe(sf) {
             const row = document.createElement('tr');
             row.className = 'border-b';
             row.innerHTML = `
-                <td class="p-0.5 text-xs">${ing ? ing.name : '(удалён)'}</td>
+                <td class="p-0.5 text-xs">${escapeHtml(ing ? ing.name : '(удалён)')}</td>
                 <td class="p-0.5 text-xs text-center">${ri.quantity} ${ing ? UNIT_LABELS[ing.unit] : ''}</td>
                 <td class="p-0.5 text-xs text-center font-medium">${lineCost.toFixed(2)} €</td>
                 <td class="p-0.5 text-center">
@@ -193,12 +193,13 @@ function renderSemiFinishedRecipe(sf) {
 async function addIngredientToSfRecipe() {
     const sf = semiFinished.find(s => s.id === currentSemiFinishedId);
     if (!sf) return;
-    const ingredientIdRaw = document.getElementById('newSfRecipeIngredient').value;
+    const inputEl = document.getElementById('newSfRecipeIngredient');
     const quantity = parseFloat(document.getElementById('newSfRecipeQty').value);
-    if (!ingredientIdRaw || isNaN(quantity) || quantity <= 0) {
-        alert('Выберите ингредиент и укажите количество!'); return;
+    const ing = ingredients.find(i => i.name === inputEl.value.trim());
+    if (!ing || isNaN(quantity) || quantity <= 0) {
+        alert('Выберите ингредиент из списка и укажите количество!'); return;
     }
-    const ingredientId = Number(ingredientIdRaw);
+    const ingredientId = ing.id;
 
     showLoading();
     try {
@@ -209,9 +210,8 @@ async function addIngredientToSfRecipe() {
         if (!sf.ingredients) sf.ingredients = [];
         sf.ingredients.push({ id: data.id, ingredient_id: ingredientId, quantity: Number(data.quantity) });
         renderSemiFinishedRecipe(sf);
-        const ing = ingredients.find(i => i.id === ingredientId);
-        logActivity('semiFinished', `В рецепт «${sf.name}» добавлен ингредиент «${ing ? ing.name : ''}» (${quantity})`);
-        document.getElementById('newSfRecipeIngredient').value = '';
+        logActivity('semiFinished', `В рецепт «${sf.name}» добавлен ингредиент «${ing.name}» (${quantity})`);
+        inputEl.value = '';
         document.getElementById('newSfRecipeQty').value = '';
     } catch (e) { console.error(e); alert('Ошибка сохранения. Проверьте подключение.'); }
     finally { hideLoading(); }

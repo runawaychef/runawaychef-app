@@ -90,7 +90,7 @@ function displayOrders() {
         row.className = 'order-row';
         row.innerHTML = `
             <td class="border p-0.5 text-xs whitespace-nowrap" onclick="openOrderDetail(${order.id})">${formatDateDMY(order.date)}</td>
-            <td class="border p-0.5 text-xs" onclick="openOrderDetail(${order.id})">${order.customer}</td>
+            <td class="border p-0.5 text-xs" onclick="openOrderDetail(${order.id})">${escapeHtml(order.customer)}</td>
             <td class="border p-0.5 text-xs text-center" onclick="openOrderDetail(${order.id})">${itemsCount}</td>
             <td class="border p-0.5 text-xs font-medium" onclick="openOrderDetail(${order.id})">${total}</td>
             <td class="border p-0.5 text-center" onclick="openOrderDetail(${order.id})"><span class="${flagClass}"></span></td>
@@ -447,7 +447,7 @@ function renderDetailItems(order) {
             const row = document.createElement('tr');
             row.className = 'border-b';
             row.innerHTML = `
-                <td class="p-0.5 text-xs">${item.product}</td>
+                <td class="p-0.5 text-xs">${escapeHtml(item.product)}</td>
                 <td class="p-0.5 text-xs text-center">${item.quantity}${unitLabel ? ' ' + unitLabel : ''}</td>
                 <td class="p-0.5 text-xs text-center">${item.price.toFixed(2)}</td>
                 <td class="p-0.5 text-xs text-center font-medium">${total}</td>
@@ -540,15 +540,10 @@ function openEditItemModal(itemIdx) {
     editItemIdx = itemIdx;
     const item = order.items[itemIdx];
 
-    // Заполнить select изделий
+    // Заполнить datalist изделий и подставить текущее значение
     const sel = document.getElementById('editItemProduct');
-    sel.innerHTML = '<option value="">Выберите изделие</option>';
-    products.sort((a,b)=>a.name.localeCompare(b.name)).forEach(p => {
-        const opt = document.createElement('option');
-        opt.value = p.name; opt.textContent = p.name;
-        if (p.name === item.product) opt.selected = true;
-        sel.appendChild(opt);
-    });
+    fillEditItemProductList();
+    sel.value = item.product;
     document.getElementById('editItemQty').value   = item.quantity;
     document.getElementById('editItemPrice').value = item.price.toFixed(2);
     document.getElementById('editItemModal').style.display = 'flex';

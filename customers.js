@@ -13,8 +13,8 @@ function displayCustomers() {
     customers.forEach((c, i) => {
         const row = document.createElement('tr');
         row.innerHTML = `
-            <td class="border p-0.5 text-xs">${c.name}</td>
-            <td class="border p-0.5 text-xs">${c.contact}</td>
+            <td class="border p-0.5 text-xs">${escapeHtml(c.name)}</td>
+            <td class="border p-0.5 text-xs">${escapeHtml(c.contact)}</td>
             <td class="border p-0.5 text-xs">${c.discount.toFixed(2)}</td>
             <td class="border p-0.5 text-xs text-center">${c.vat_exempt ? '✓' : ''}</td>
             <td class="border p-0.5 text-center">
