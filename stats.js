@@ -310,7 +310,7 @@ function drawProductProfitabilityTable() {
         const cost = productUnitCost(p);
         const pct  = productProfitPct(p);
         const pctClass = pct >= 0 ? 'text-green-700' : 'text-red-600';
-        html += `<tr class="border-b"><td class="p-0.5">${p.name}</td><td class="p-0.5 text-right">${cost.toFixed(2)} €</td><td class="p-0.5 text-right">${p.price.toFixed(2)} €</td><td class="p-0.5 text-right font-semibold ${pctClass}">${pct.toFixed(1)}%</td></tr>`;
+        html += `<tr class="border-b"><td class="p-0.5">${escapeHtml(p.name)}</td><td class="p-0.5 text-right whitespace-nowrap">${cost.toFixed(2)} €</td><td class="p-0.5 text-right whitespace-nowrap">${p.price.toFixed(2)} €</td><td class="p-0.5 text-right font-semibold whitespace-nowrap ${pctClass}">${pct.toFixed(1)}%</td></tr>`;
     });
     html += '</tbody></table>';
     container.innerHTML = html;
