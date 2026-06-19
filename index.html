@@ -97,14 +97,14 @@
         }
         @keyframes spin { to { transform: rotate(360deg); } }
 
-        /* Бейдж текущего сотрудника */
-        #currentEmployeeBadge {
+        /* Кнопка настроек (шестерёнка) в правом верхнем углу */
+        #settingsBtn {
             position: fixed; top: 6px; right: 6px;
-            background: white; border: 1px solid #e5e7eb; border-radius: 6px;
-            padding: 3px 8px; font-size: 11px; color: #4b5563; z-index: 50;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.08);
-            cursor: pointer;
+            background: white; border: 1px solid #e5e7eb; border-radius: 50%;
+            width: 34px; height: 34px; display: flex; align-items: center; justify-content: center;
+            z-index: 50; box-shadow: 0 1px 3px rgba(0,0,0,0.08); cursor: pointer;
         }
+        #settingsBtn.hidden { display: none; }
         .search-input-wrap { position: relative; }
         .search-dropdown { position: absolute; top: 100%; left: 0; right: 0; z-index: 200; background: white; border: 1px solid #d1d5db; border-top: none; max-height: 180px; overflow-y: auto; box-shadow: 0 4px 8px rgba(0,0,0,0.15); }
         .search-dropdown.hidden { display: none; }
@@ -149,8 +149,10 @@
     <div class="spinner"></div>
 </div>
 
-<!-- Бейдж текущего сотрудника -->
-<div id="currentEmployeeBadge" class="hidden" onclick="logoutEmployee()" title="Нажмите, чтобы сменить сотрудника"></div>
+<!-- Шестерёнка: служебные функции (доступна во всех разделах) -->
+<button id="settingsBtn" class="hidden" onclick="openSettingsModal()" title="Настройки">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#4b5563" stroke-width="1.6"><path stroke-linecap="round" stroke-linejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><circle cx="12" cy="12" r="3"/></svg>
+</button>
 
 <div class="container mx-auto p-2 max-w-2xl">
     <div id="appContent" class="app-locked">
@@ -814,6 +816,27 @@
             </div>
         </div>
 
+        <!-- Настройки (шестерёнка) — служебные функции, доступны из любого раздела -->
+        <div id="settingsModal" class="modal">
+            <div class="modal-content" style="max-width:320px;">
+                <h2 class="text-base font-semibold mb-1 text-gray-800">Настройки</h2>
+                <p class="text-xs text-gray-500 mb-3">Текущий сотрудник: <b id="settingsCurrentEmployee" class="text-gray-800"></b></p>
+
+                <div class="flex flex-col gap-1 mb-3">
+                    <button onclick="downloadBackup()" class="btn bg-green-600 text-white px-2 py-1.5 rounded-md hover:bg-green-700 text-xs text-left">⬇ Скачать резервную копию</button>
+                    <button onclick="openHistoryScreen()" class="btn bg-gray-500 text-white px-2 py-1.5 rounded-md hover:bg-gray-600 text-xs text-left">📋 Журнал действий</button>
+                    <button onclick="loadAllData()" class="btn bg-gray-500 text-white px-2 py-1.5 rounded-md hover:bg-gray-600 text-xs text-left">↻ Обновить данные</button>
+                </div>
+
+                <div class="flex flex-col gap-1 mb-3 border-t pt-2">
+                    <button onclick="logoutEmployee()" class="btn bg-gray-200 text-gray-800 px-2 py-1.5 rounded-md hover:bg-gray-300 text-xs text-left">👤 Сменить сотрудника</button>
+                    <button onclick="signOutAccount()" class="btn bg-gray-200 text-gray-800 px-2 py-1.5 rounded-md hover:bg-gray-300 text-xs text-left">🔒 Сменить аккаунт (выйти из приложения)</button>
+                </div>
+
+                <button onclick="closeModal()" class="btn bg-gray-400 text-white p-1 rounded-md hover:bg-gray-500 w-full text-xs">Закрыть</button>
+            </div>
+        </div>
+
         <!-- Быстрое создание нового ингредиента прямо из карточки рецепта -->
         <div id="quickAddIngredientModal" class="modal">
             <div class="modal-content">
@@ -847,13 +870,6 @@
         <div id="stats" class="tab-content hidden">
             <div class="bg-white rounded-md shadow-md p-2 mb-3">
                 <h2 class="text-base font-semibold mb-2 text-gray-800">Статистика</h2>
-
-                <!-- Кнопки -->
-                <div class="flex gap-1 mb-3 flex-wrap">
-                    <button onclick="downloadBackup()" class="btn bg-green-600 text-white px-2 py-1 rounded-md hover:bg-green-700 text-xs">⬇ Скачать резервную копию</button>
-                    <button onclick="loadAllData()" class="btn bg-gray-500 text-white px-2 py-1 rounded-md hover:bg-gray-600 text-xs">↻ Обновить данные</button>
-                    <button onclick="openHistoryScreen()" class="btn bg-gray-500 text-white px-2 py-1 rounded-md hover:bg-gray-600 text-xs">📋 Журнал действий</button>
-                </div>
 
                 <!-- Фильтры -->
                 <div class="relative mb-1">
