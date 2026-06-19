@@ -325,7 +325,7 @@ async function copyOrder(i) {
 // Зависит от: db, orders/customers/products/employees, currentOrderId/currentEmployee,
 // orderTotal/orderDiscountAmount/orderVatAmount/orderGrandTotal (money.js),
 // formatDateDMY (dates.js), showLoading/hideLoading, logActivity (employees.js),
-// svgEdit/svgDelete, fillDetailCustomerSelect, fillNewItemProductSelect,
+// svgEdit/svgDelete, fillDetailCustomerSelect, updateProductSelects,
 // updateCustomerSelectInModal, openDeleteModal, closeModal, editIndex/editItemIdx (главный скрипт).
 
 function openOrderDetail(orderId) {
@@ -349,7 +349,7 @@ function openOrderDetail(orderId) {
     fillDetailEmployeeSelect(order.employee_id);
 
     renderDetailItems(order);
-    fillNewItemProductSelect();
+    updateProductSelects();
 }
 
 function fillDetailEmployeeSelect(selectedId) {
@@ -540,9 +540,9 @@ function openEditItemModal(itemIdx) {
     editItemIdx = itemIdx;
     const item = order.items[itemIdx];
 
-    // Заполнить datalist изделий и подставить текущее значение
+    // Подставить текущее значение в поле поиска изделия
     const sel = document.getElementById('editItemProduct');
-    fillEditItemProductList();
+    updateProductSelects();
     sel.value = item.product;
     document.getElementById('editItemQty').value   = item.quantity;
     document.getElementById('editItemPrice').value = item.price.toFixed(2);

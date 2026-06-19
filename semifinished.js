@@ -145,14 +145,8 @@ async function saveSfdHeader() {
 }
 
 function fillNewSfRecipeIngredientSelect() {
-    const list = document.getElementById('newSfRecipeIngredientList');
-    if (!list) return;
-    list.innerHTML = '';
-    ingredients.sort((a,b)=>a.name.localeCompare(b.name)).forEach(ing => {
-        const opt = document.createElement('option');
-        opt.value = ing.name;
-        list.appendChild(opt);
-    });
+    setupSearchDropdown('newSfRecipeIngredient', 'newSfRecipeIngredientDropdown',
+        () => ingredients.slice().sort((a,b)=>a.name.localeCompare(b.name)).map(i => i.name));
 }
 
 function renderSemiFinishedRecipe(sf) {

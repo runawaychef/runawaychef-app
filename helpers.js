@@ -16,32 +16,55 @@ function escapeHtml(str) {
         .replaceAll("'", '&#039;');
 }
 
+// ==================== ПОИСКОВЫЙ ВЫПАДАЮЩИЙ СПИСОК ====================
+// Заменяет нативный <select>/<datalist> своим вертикальным списком
+// (на iOS Safari datalist либо не работает, либо рисуется горизонтальной лентой).
+// inputId      — id текстового поля ввода
+// dropdownId   — id пустого <div class="search-dropdown hidden"> рядом с полем
+// getItems()   — функция, возвращающая актуальный массив строк (названий) на момент открытия
+// onPick(name) — необязательный колбэк, вызывается после выбора варианта из списка
+function setupSearchDropdown(inputId, dropdownId, getItems, onPick) {
+    const input = document.getElementById(inputId);
+    const dropdown = document.getElementById(dropdownId);
+    if (!input || !dropdown) return;
+    if (input.dataset.searchInit === '1') return; // уже инициализировано — не дублируем обработчики
+    input.dataset.searchInit = '1';
+
+    function render(filterText) {
+        const items = getItems() || [];
+        const q = (filterText || '').trim().toLowerCase();
+        const filtered = q ? items.filter(name => name.toLowerCase().includes(q)) : items;
+        dropdown.innerHTML = '';
+        if (!filtered.length) { dropdown.classList.add('hidden'); return; }
+        filtered.forEach(name => {
+            const row = document.createElement('div');
+            row.className = 'search-dropdown-item';
+            row.textContent = name;
+            // mousedown (а не click) — срабатывает раньше blur, иначе список успевает скрыться
+            row.addEventListener('mousedown', (e) => {
+                e.preventDefault();
+                input.value = name;
+                dropdown.classList.add('hidden');
+                if (onPick) onPick(name);
+            });
+            dropdown.appendChild(row);
+        });
+        dropdown.classList.remove('hidden');
+    }
+
+    input.addEventListener('focus', () => render(''));      // по клику — полный список, как раньше
+    input.addEventListener('input', () => render(input.value)); // по вводу — фильтрация
+    input.addEventListener('blur', () => setTimeout(() => dropdown.classList.add('hidden'), 150));
+}
+
 function updateProductSelects() {
-    // Для строки добавления позиции в детальном виде
-    fillNewItemProductSelect();
-    fillEditItemProductList();
-}
-
-function fillNewItemProductSelect() {
-    const list = document.getElementById('newItemProductList');
-    if (!list) return;
-    list.innerHTML = '';
-    products.sort((a,b)=>a.name.localeCompare(b.name)).forEach(p => {
-        const opt = document.createElement('option');
-        opt.value = p.name;
-        list.appendChild(opt);
-    });
-}
-
-function fillEditItemProductList() {
-    const list = document.getElementById('editItemProductList');
-    if (!list) return;
-    list.innerHTML = '';
-    products.sort((a,b)=>a.name.localeCompare(b.name)).forEach(p => {
-        const opt = document.createElement('option');
-        opt.value = p.name;
-        list.appendChild(opt);
-    });
+    // Для строки добавления / редактирования позиции в детальном виде заказа
+    setupSearchDropdown('newItemProduct', 'newItemProductDropdown',
+        () => products.slice().sort((a,b)=>a.name.localeCompare(b.name)).map(p => p.name),
+        () => autoFillNewItemPrice());
+    setupSearchDropdown('editItemProduct', 'editItemProductDropdown',
+        () => products.slice().sort((a,b)=>a.name.localeCompare(b.name)).map(p => p.name),
+        () => autoFillEditItemPrice());
 }
 
 function updateCustomerSelects() {

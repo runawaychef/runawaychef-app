@@ -155,21 +155,13 @@ async function savePdHeader() {
 }
 
 function fillNewRecipeIngredientSelect() {
-    const list = document.getElementById('newRecipeIngredientList');
-    if (!list) return;
-    list.innerHTML = '';
-    ingredients.sort((a,b)=>a.name.localeCompare(b.name)).forEach(ing => {
-        const opt = document.createElement('option');
-        opt.value = ing.name;
-        list.appendChild(opt);
+    setupSearchDropdown('newRecipeIngredient', 'newRecipeIngredientDropdown', () => {
+        const names = ingredients.slice().sort((a,b)=>a.name.localeCompare(b.name)).map(i => i.name);
+        const sfNames = (typeof semiFinished !== 'undefined')
+            ? semiFinished.slice().sort((a,b)=>a.name.localeCompare(b.name)).map(s => s.name + ' (п/ф)')
+            : [];
+        return names.concat(sfNames);
     });
-    if (typeof semiFinished !== 'undefined') {
-        semiFinished.sort((a,b)=>a.name.localeCompare(b.name)).forEach(sf => {
-            const opt = document.createElement('option');
-            opt.value = sf.name + ' (п/ф)';
-            list.appendChild(opt);
-        });
-    }
 }
 
 // Находит ингредиент/полуфабрикат по тексту, введённому в поле поиска.
