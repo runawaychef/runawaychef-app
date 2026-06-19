@@ -160,7 +160,7 @@
             <button onclick="showTab('customers')" class="tab btn bg-gray-200 text-gray-800 p-1 rounded-md hover:bg-gray-300 text-sm">Клиенты</button>
             <button onclick="showTab('products')" class="tab btn bg-gray-200 text-gray-800 p-1 rounded-md hover:bg-gray-300 text-sm">Изделия</button>
             <button onclick="showTab('ingredients')" class="tab btn bg-gray-200 text-gray-800 p-1 rounded-md hover:bg-gray-300 text-sm">Ингредиенты</button>
-            <button onclick="openStatsModal()" class="btn bg-gray-200 text-gray-800 p-1 rounded-md hover:bg-gray-300 text-sm">Статистика</button>
+            <button onclick="showTab('stats')" class="tab btn bg-gray-200 text-gray-800 p-1 rounded-md hover:bg-gray-300 text-sm">Статистика</button>
         </div>
 
         <!-- ===== ИЗДЕЛИЯ ===== -->
@@ -844,8 +844,8 @@
         </div>
 
         <!-- Статистика -->
-        <div id="statsModal" class="modal">
-            <div class="modal-content" style="max-width:420px;">
+        <div id="stats" class="tab-content hidden">
+            <div class="bg-white rounded-md shadow-md p-2 mb-3">
                 <h2 class="text-base font-semibold mb-2 text-gray-800">Статистика</h2>
 
                 <!-- Кнопки -->
@@ -888,6 +888,7 @@
                         </div>
                     </div>
                 </div>
+            </div>
 
                 <!-- Общие цифры -->
                 <div class="bg-white rounded-md shadow-md p-2 mb-5">
@@ -946,9 +947,6 @@
                 </div>
 
                 <p class="text-xs text-gray-400 mb-3">Данные синхронизированы с облаком (Supabase)</p>
-
-                <button onclick="closeModal()" class="btn bg-gray-400 text-white p-1 rounded-md hover:bg-gray-500 w-full text-xs">Закрыть</button>
-            </div>
         </div>
 
         <!-- Полный список клиентов (открывается из статистики) -->
@@ -1123,6 +1121,7 @@ function showTab(tabId) {
     if (tabId === 'ingredients') displayIngredients();
     if (tabId === 'semiFinished') { closeSemiFinishedDetailSilent(); displaySemiFinished(); }
     if (tabId === 'history')   { updateHistoryEmployeeFilter(); loadHistory(); }
+    if (tabId === 'stats')     { updateStatsCustomerFilter(); toggleDateRange(); applyFilter(); updateInfoCounts(); }
 }
 
 // Сброс детального вида полуфабриката без повторной перерисовки списка
