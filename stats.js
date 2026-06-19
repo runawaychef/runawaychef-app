@@ -468,7 +468,7 @@ function drawChart() { applyFilter(); }
 // Свайп влево/вправо двигает окно на неделю; тап по точке — подсказка
 // с датой/днём недели/суммой. Выходные (Сб/Вс) подсвечены фоном.
 
-const DAILY_CHART_WINDOW_DAYS = 42; // 6 недель
+const DAILY_CHART_WINDOW_DAYS = 21; // 3 недели
 const WEEKDAY_NAMES_SHORT = ['Вс','Пн','Вт','Ср','Чт','Пт','Сб'];
 const WEEKDAY_NAMES_FULL  = ['Воскресенье','Понедельник','Вторник','Среда','Четверг','Пятница','Суббота'];
 
@@ -492,39 +492,38 @@ function initDailyRevenueChart() {
 
     const canvas = document.getElementById('dailyRevenueCanvas');
     if (!canvas) return;
-    let startX = null, startY = null, moved = false;
+    let dragStartX = null, dragStartY = null, dragStartWindowEnd = null;
 
     canvas.addEventListener('pointerdown', (e) => {
-        startX = e.clientX; startY = e.clientY; moved = false;
+        dragStartX = e.clientX;
+        dragStartY = e.clientY;
+        dragStartWindowEnd = new Date(_dailyChartWindowEnd);
+        canvas.setPointerCapture(e.pointerId);
     });
     canvas.addEventListener('pointermove', (e) => {
-        if (startX === null) return;
-        if (Math.abs(e.clientX - startX) > 8 || Math.abs(e.clientY - startY) > 8) moved = true;
+        if (dragStartX === null) return;
+        const dx = e.clientX - dragStartX;
+        const dayWidthPx = canvas._dayStepX || 16;
+        const deltaDays = Math.round(-dx / dayWidthPx); // тащим влево -> более поздние даты
+        if (!deltaDays) return;
+        const today = new Date(); today.setHours(0,0,0,0);
+        let candidate = new Date(dragStartWindowEnd);
+        candidate.setDate(candidate.getDate() + deltaDays);
+        if (candidate > today) candidate = today;
+        if (candidate.getTime() !== _dailyChartWindowEnd.getTime()) {
+            _dailyChartWindowEnd = candidate;
+            document.getElementById('dailyChartTooltip').classList.add('hidden');
+            drawDailyRevenueChart();
+        }
     });
     canvas.addEventListener('pointerup', (e) => {
-        if (startX === null) return;
-        const dx = e.clientX - startX;
-        const SWIPE_THRESHOLD = 40;
-        if (Math.abs(dx) > SWIPE_THRESHOLD) {
-            shiftDailyChartWindow(dx < 0 ? 7 : -7);
-        } else if (!moved) {
-            showDailyChartTooltip(e);
-        }
-        startX = null; startY = null;
+        if (dragStartX === null) return;
+        const totalDx = Math.abs(e.clientX - dragStartX);
+        const totalDy = Math.abs(e.clientY - dragStartY);
+        if (totalDx < 10 && totalDy < 10) showDailyChartTooltip(e); // это был тап, а не перетаскивание
+        dragStartX = null; dragStartY = null;
     });
-    canvas.addEventListener('pointerleave', () => {
-        document.getElementById('dailyChartTooltip').classList.add('hidden');
-    });
-}
-
-function shiftDailyChartWindow(days) {
-    const today = new Date(); today.setHours(0,0,0,0);
-    const next = new Date(_dailyChartWindowEnd);
-    next.setDate(next.getDate() + days);
-    if (next > today) return; // не уходим в будущее дальше сегодняшнего дня
-    _dailyChartWindowEnd = next;
-    document.getElementById('dailyChartTooltip').classList.add('hidden');
-    drawDailyRevenueChart();
+    canvas.addEventListener('pointercancel', () => { dragStartX = null; dragStartY = null; });
 }
 
 function drawDailyRevenueChart() {
@@ -556,10 +555,11 @@ function drawDailyRevenueChart() {
     const values = days.map(d => revenueByDate[isoDate(d)] || 0);
     const maxV = Math.max(...values, 0.01);
 
-    const pad = { top: 10, bottom: 16, left: 38, right: 8 };
+    const pad = { top: 10, bottom: 24, left: 38, right: 8 };
     const chartW = W - pad.left - pad.right;
     const chartH = H - pad.top - pad.bottom;
     const stepX = chartW / (days.length - 1);
+    canvas._dayStepX = stepX;
 
     // Подпись диапазона дат над графиком
     const rangeLabel = `${formatDateDMY(isoDate(days[0]))} – ${formatDateDMY(isoDate(days[days.length-1]))}`;
@@ -585,12 +585,20 @@ function drawDailyRevenueChart() {
         ctx.fillText((maxV * f).toFixed(0), pad.left - 4, y + 3);
     });
 
-    // Подписи недель (дата понедельника каждой недели окна)
+    // Буква дня недели под КАЖДОЙ точкой (Пн/Вт/.../Вс), выходные выделены цветом
     days.forEach((d, i) => {
-        if (d.getDay() === 1) { // понедельник
+        const x = pad.left + i * stepX;
+        const dow = d.getDay();
+        ctx.font = '7px sans-serif'; ctx.textAlign = 'center';
+        ctx.fillStyle = (dow === 0 || dow === 6) ? '#6366f1' : '#9ca3af';
+        ctx.fillText(WEEKDAY_NAMES_SHORT[dow], x, H - 3);
+    });
+    // Дата — только по понедельникам (опорные точки для ориентира по неделям)
+    days.forEach((d, i) => {
+        if (d.getDay() === 1) {
             const x = pad.left + i * stepX;
-            ctx.fillStyle = '#9ca3af'; ctx.font = '8px sans-serif'; ctx.textAlign = 'center';
-            ctx.fillText(`${d.getDate()}.${String(d.getMonth()+1).padStart(2,'0')}`, x, H - 3);
+            ctx.fillStyle = '#6b7280'; ctx.font = '7px sans-serif'; ctx.textAlign = 'center';
+            ctx.fillText(`${d.getDate()}.${String(d.getMonth()+1).padStart(2,'0')}`, x, H - 12);
         }
     });
 
