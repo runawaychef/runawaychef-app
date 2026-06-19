@@ -46,19 +46,24 @@ async function selectEmployee(emp) {
     localStorage.setItem('currentEmployee', JSON.stringify(emp));
     document.getElementById('loginScreen').classList.add('hidden');
     document.getElementById('appContent').classList.remove('app-locked');
-    const badge = document.getElementById('currentEmployeeBadge');
-    badge.textContent = emp.name;
-    badge.classList.remove('hidden');
+    document.getElementById('settingsBtn').classList.remove('hidden');
     await loadAllData();
     logActivity('auth', `Вход: ${emp.name}`);
 }
 
 async function logoutEmployee() {
     if (!(await showConfirm('Сменить сотрудника?'))) return;
+    closeModal(); // если вызвано из панели настроек — закрыть её
     logActivity('auth', `Выход: ${currentEmployee ? currentEmployee.name : ''}`);
     currentEmployee = null;
     localStorage.removeItem('currentEmployee');
     document.getElementById('loginScreen').classList.remove('hidden');
     document.getElementById('appContent').classList.add('app-locked');
-    document.getElementById('currentEmployeeBadge').classList.add('hidden');
+    document.getElementById('settingsBtn').classList.add('hidden');
+}
+
+// Панель настроек (шестерёнка) — служебные функции, доступна из любого раздела
+function openSettingsModal() {
+    document.getElementById('settingsCurrentEmployee').textContent = currentEmployee ? currentEmployee.name : '—';
+    document.getElementById('settingsModal').style.display = 'flex';
 }

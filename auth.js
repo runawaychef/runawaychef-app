@@ -35,6 +35,7 @@ function showAuthScreen() {
     document.getElementById('authScreen').classList.remove('hidden');
     document.getElementById('loginScreen').classList.add('hidden');
     document.getElementById('appContent').classList.add('app-locked');
+    document.getElementById('settingsBtn').classList.add('hidden');
 }
 
 async function showAuthedApp() {
@@ -79,9 +80,10 @@ async function handleAuthSubmit(e) {
 // Полный выход из аккаунта (не путать со сменой сотрудника на экране выбора).
 async function signOutAccount() {
     if (!(await showConfirm('Выйти из приложения полностью? Потребуется снова ввести email и пароль.'))) return;
+    closeModal(); // если вызвано из панели настроек — закрыть её
     try { await db.auth.signOut(); } catch (e) { console.error(e); }
     localStorage.removeItem('currentEmployee');
     currentEmployee = null;
-    document.getElementById('currentEmployeeBadge').classList.add('hidden');
+    document.getElementById('settingsBtn').classList.add('hidden');
     showAuthScreen();
 }
