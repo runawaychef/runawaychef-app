@@ -109,17 +109,13 @@ function updateCustomerSelectInModal(selId, selected) {
     });
 }
 
-// SVG-иконки (глянцевые кружки с градиентом, 18x18, впишутся в прежние размеры w-4 h-4)
-let _svgIconUid = 0;
+// SVG-иконки (вариант E3: серые контурные, подсвечиваются своим цветом при наведении/нажатии — см. .action-icon в index.html)
 function svgEdit(onclick) {
-    const uid = 'gradEdit' + (_svgIconUid++);
-    return `<svg class="inline mr-0.5 cursor-pointer" width="18" height="18" viewBox="0 0 22 22" title="Редактировать" onclick="${onclick}"><defs><linearGradient id="${uid}" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#60a5fa"/><stop offset="100%" stop-color="#2563eb"/></linearGradient></defs><circle cx="11" cy="11" r="11" fill="url(#${uid})"/><path fill="none" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" d="M8 14l.7-2.6 4.3-4.3 1.9 1.9-4.3 4.3z"/></svg>`;
+    return `<svg class="action-icon icon-edit inline mr-1 cursor-pointer" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke-width="1.6" title="Редактировать" onclick="${onclick}"><path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125"/></svg>`;
 }
 function svgDelete(onclick) {
-    const uid = 'gradDelete' + (_svgIconUid++);
-    return `<svg class="inline mr-0.5 cursor-pointer" width="18" height="18" viewBox="0 0 22 22" title="Удалить" onclick="${onclick}"><defs><linearGradient id="${uid}" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#f87171"/><stop offset="100%" stop-color="#dc2626"/></linearGradient></defs><circle cx="11" cy="11" r="11" fill="url(#${uid})"/><path fill="none" stroke="white" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" d="M7 8h8M9.3 8V6.8a1 1 0 011-1h1.4a1 1 0 011 1V8M8 8l.5 6.3a1 1 0 001 .9h3a1 1 0 001-.9L14 8"/></svg>`;
+    return `<svg class="action-icon icon-delete inline mr-1 cursor-pointer" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke-width="1.6" title="Удалить" onclick="${onclick}"><path stroke-linecap="round" stroke-linejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0"/></svg>`;
 }
 function svgCopy(onclick) {
-    const uid = 'gradCopy' + (_svgIconUid++);
-    return `<svg class="inline mr-0.5 cursor-pointer" width="18" height="18" viewBox="0 0 22 22" title="Копировать" onclick="${onclick}"><defs><linearGradient id="${uid}" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#4ade80"/><stop offset="100%" stop-color="#16a34a"/></linearGradient></defs><circle cx="11" cy="11" r="11" fill="url(#${uid})"/><path fill="none" stroke="white" stroke-width="1.4" d="M8.5 8.5h5v5h-5z"/><path fill="none" stroke="white" stroke-width="1.4" stroke-linecap="round" d="M7 7H6.8a1 1 0 00-1 1v5"/></svg>`;
+    return `<svg class="action-icon icon-copy inline mr-1 cursor-pointer" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke-width="1.6" title="Копировать" onclick="${onclick}"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 17.25v3.375c0 .621-.504 1.125-1.125 1.125h-9.75a1.125 1.125 0 01-1.125-1.125V7.875c0-.621.504-1.125 1.125-1.125H6.75a9.06 9.06 0 011.5.124M15.75 17.25h3.375c.621 0 1.125-.504 1.125-1.125V11.25c0-4.46-3.243-8.161-7.5-8.876a9.06 9.06 0 00-1.5-.124H9.375c-.621 0-1.125.504-1.125 1.125v3.5m7.5 10.375H9.375a1.125 1.125 0 01-1.125-1.125v-9.25"/></svg>`;
 }
