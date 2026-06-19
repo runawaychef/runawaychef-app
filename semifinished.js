@@ -112,6 +112,7 @@ function openSemiFinishedDetail(sfId) {
 
     renderSemiFinishedRecipe(sf);
     fillNewSfRecipeIngredientSelect();
+    setupCopySfRecipeControl(sf);
 }
 
 function closeSemiFinishedDetail() {
@@ -261,6 +262,49 @@ function deleteSfRecipeItem(i) {
     const ri = sf.ingredients[i];
     const ing = ingredients.find(x => x.id === ri.ingredient_id);
     openDeleteModal(i, 'sfRecipeItem', `ингредиент «${ing ? ing.name : ''}» из рецепта полуфабриката`);
+}
+
+// ==================== КОПИРОВАНИЕ РЕЦЕПТА ИЗ ДРУГОГО ПОЛУФАБРИКАТА ====================
+function setupCopySfRecipeControl(sf) {
+    setupSearchDropdown('copySfRecipeFromInput', 'copySfRecipeFromDropdown',
+        () => semiFinished
+            .filter(s => s.id !== sf.id && (s.ingredients || []).length)
+            .sort((a,b) => a.name.localeCompare(b.name))
+            .map(s => s.name),
+        (name) => {
+            document.getElementById('copySfRecipeFromInput').value = '';
+            copySfRecipeFromByName(name);
+        });
+}
+
+async function copySfRecipeFromByName(sourceName) {
+    const sf = semiFinished.find(s => s.id === currentSemiFinishedId);
+    const src = semiFinished.find(s => s.name === sourceName);
+    if (!sf || !src) return;
+    const srcItems = src.ingredients || [];
+    if (!srcItems.length) { alert('У выбранного полуфабриката нет рецепта.'); return; }
+
+    const existingIds = new Set((sf.ingredients || []).map(i => i.ingredient_id));
+    const toCopy = srcItems.filter(ri => !existingIds.has(ri.ingredient_id));
+    const skipped = srcItems.length - toCopy.length;
+
+    if (!toCopy.length) { alert(`Все ингредиенты из рецепта «${sourceName}» уже есть в этом рецепте.`); return; }
+
+    let msg = `Скопировать ${toCopy.length} ${toCopy.length === 1 ? 'позицию' : 'позиций'} из рецепта «${sourceName}» в «${sf.name}»?`;
+    if (skipped) msg += `\n(${skipped} уже есть в текущем рецепте — будут пропущены)`;
+    if (!confirm(msg)) return;
+
+    showLoading();
+    try {
+        const rows = toCopy.map(ri => ({ semi_finished_id: sf.id, ingredient_id: ri.ingredient_id, quantity: ri.quantity }));
+        const { data, error } = await db.from('semi_finished_ingredients').insert(rows).select();
+        if (error) throw error;
+        if (!sf.ingredients) sf.ingredients = [];
+        data.forEach(d => sf.ingredients.push({ id: d.id, ingredient_id: d.ingredient_id, quantity: Number(d.quantity) }));
+        renderSemiFinishedRecipe(sf);
+        logActivity('semiFinished', `В рецепт «${sf.name}» скопировано ${toCopy.length} поз. из рецепта «${sourceName}»`);
+    } catch (e) { console.error(e); alert('Ошибка сохранения. Проверьте подключение.'); }
+    finally { hideLoading(); }
 }
 
 // Заполнение выпадающего списка полуфабрикатов (для использования в рецептах изделий)
