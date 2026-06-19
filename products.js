@@ -109,6 +109,7 @@ function openProductDetail(productId) {
     updatePdUnitUI(prod.unit);
     renderProductRecipe(prod);
     fillNewRecipeIngredientSelect();
+    setupCopyRecipeControl(prod);
 }
 
 function updatePdUnitUI(unit) {
@@ -344,4 +345,55 @@ function deleteRecipeItem(i) {
         itemName = ing ? ing.name : '';
     }
     openDeleteModal(i, 'recipeItem', `«${itemName}» из рецепта`);
+}
+
+// ==================== КОПИРОВАНИЕ РЕЦЕПТА ИЗ ДРУГОГО ИЗДЕЛИЯ ====================
+// Позволяет быстро перенести список ингредиентов/полуфабрикатов из похожего
+// изделия, не вводя их заново. Позиции, которые уже есть в текущем рецепте
+// (тот же ингредиент/п-ф), пропускаются, чтобы не задваивать строки.
+// Перед записью в базу — подтверждение (аналог кнопки "Сохранить"), т.к. это
+// массовое действие, в отличие от добавления одной позиции.
+function setupCopyRecipeControl(prod) {
+    setupSearchDropdown('copyRecipeFromInput', 'copyRecipeFromDropdown',
+        () => products
+            .filter(p => p.id !== currentProductId && (p.ingredients || []).length)
+            .sort((a,b) => a.name.localeCompare(b.name))
+            .map(p => p.name),
+        (name) => {
+            document.getElementById('copyRecipeFromInput').value = '';
+            copyRecipeFromProductByName(name);
+        });
+}
+
+async function copyRecipeFromProductByName(sourceName) {
+    const prod = products.find(p => p.id === currentProductId);
+    const src = products.find(p => p.name === sourceName);
+    if (!prod || !src) return;
+    const srcItems = src.ingredients || [];
+    if (!srcItems.length) { alert('У выбранного изделия нет рецепта.'); return; }
+
+    const existingIngIds = new Set((prod.ingredients || []).filter(i => i.ingredient_id).map(i => i.ingredient_id));
+    const existingSfIds  = new Set((prod.ingredients || []).filter(i => i.semi_finished_id).map(i => i.semi_finished_id));
+    const toCopy = srcItems.filter(ri => ri.semi_finished_id ? !existingSfIds.has(ri.semi_finished_id) : !existingIngIds.has(ri.ingredient_id));
+    const skipped = srcItems.length - toCopy.length;
+
+    if (!toCopy.length) { alert(`Все позиции из рецепта «${sourceName}» уже есть в этом рецепте.`); return; }
+
+    let msg = `Скопировать ${toCopy.length} ${toCopy.length === 1 ? 'позицию' : 'позиций'} из рецепта «${sourceName}» в «${prod.name}»?`;
+    if (skipped) msg += `\n(${skipped} уже есть в текущем рецепте — будут пропущены)`;
+    if (!confirm(msg)) return;
+
+    showLoading();
+    try {
+        const rows = toCopy.map(ri => ri.semi_finished_id
+            ? { product_id: prod.id, semi_finished_id: ri.semi_finished_id, ingredient_id: null, quantity: ri.quantity }
+            : { product_id: prod.id, ingredient_id: ri.ingredient_id, semi_finished_id: null, quantity: ri.quantity });
+        const { data, error } = await db.from('product_ingredients').insert(rows).select();
+        if (error) throw error;
+        if (!prod.ingredients) prod.ingredients = [];
+        data.forEach(d => prod.ingredients.push({ id: d.id, ingredient_id: d.ingredient_id, semi_finished_id: d.semi_finished_id, quantity: Number(d.quantity) }));
+        renderProductRecipe(prod);
+        logActivity('product', `В рецепт «${prod.name}» скопировано ${toCopy.length} поз. из рецепта «${sourceName}»`);
+    } catch (e) { console.error(e); alert('Ошибка сохранения. Проверьте подключение.'); }
+    finally { hideLoading(); }
 }

@@ -268,7 +268,7 @@ function deleteSfRecipeItem(i) {
 function setupCopySfRecipeControl(sf) {
     setupSearchDropdown('copySfRecipeFromInput', 'copySfRecipeFromDropdown',
         () => semiFinished
-            .filter(s => s.id !== sf.id && (s.ingredients || []).length)
+            .filter(s => s.id !== currentSemiFinishedId && (s.ingredients || []).length)
             .sort((a,b) => a.name.localeCompare(b.name))
             .map(s => s.name),
         (name) => {
