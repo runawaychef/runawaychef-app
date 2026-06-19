@@ -461,3 +461,173 @@ function drawPieChart(filtered) {
 
 // Оставляем drawChart как алиас для совместимости
 function drawChart() { applyFilter(); }
+
+// ==================== ВЫРУЧКА ПО ДНЯМ (свайп) ====================
+// Линейный график на N дней (окно ~6 недель), не зависит от общих фильтров
+// статистики наверху — у него своя независимая навигация по календарю.
+// Свайп влево/вправо двигает окно на неделю; тап по точке — подсказка
+// с датой/днём недели/суммой. Выходные (Сб/Вс) подсвечены фоном.
+
+const DAILY_CHART_WINDOW_DAYS = 42; // 6 недель
+const WEEKDAY_NAMES_SHORT = ['Вс','Пн','Вт','Ср','Чт','Пт','Сб'];
+const WEEKDAY_NAMES_FULL  = ['Воскресенье','Понедельник','Вторник','Среда','Четверг','Пятница','Суббота'];
+
+let _dailyChartWindowEnd = null; // Date — последний (самый поздний) день видимого окна
+let _dailyChartInitialized = false;
+
+function isoDate(d) {
+    const y = d.getFullYear(), m = String(d.getMonth()+1).padStart(2,'0'), day = String(d.getDate()).padStart(2,'0');
+    return `${y}-${m}-${day}`;
+}
+
+function initDailyRevenueChart() {
+    if (!_dailyChartWindowEnd) {
+        _dailyChartWindowEnd = new Date();
+        _dailyChartWindowEnd.setHours(0,0,0,0);
+    }
+    drawDailyRevenueChart();
+
+    if (_dailyChartInitialized) return; // обработчики свайпа/тапа вешаем один раз
+    _dailyChartInitialized = true;
+
+    const canvas = document.getElementById('dailyRevenueCanvas');
+    if (!canvas) return;
+    let startX = null, startY = null, moved = false;
+
+    canvas.addEventListener('pointerdown', (e) => {
+        startX = e.clientX; startY = e.clientY; moved = false;
+    });
+    canvas.addEventListener('pointermove', (e) => {
+        if (startX === null) return;
+        if (Math.abs(e.clientX - startX) > 8 || Math.abs(e.clientY - startY) > 8) moved = true;
+    });
+    canvas.addEventListener('pointerup', (e) => {
+        if (startX === null) return;
+        const dx = e.clientX - startX;
+        const SWIPE_THRESHOLD = 40;
+        if (Math.abs(dx) > SWIPE_THRESHOLD) {
+            shiftDailyChartWindow(dx < 0 ? 7 : -7);
+        } else if (!moved) {
+            showDailyChartTooltip(e);
+        }
+        startX = null; startY = null;
+    });
+    canvas.addEventListener('pointerleave', () => {
+        document.getElementById('dailyChartTooltip').classList.add('hidden');
+    });
+}
+
+function shiftDailyChartWindow(days) {
+    const today = new Date(); today.setHours(0,0,0,0);
+    const next = new Date(_dailyChartWindowEnd);
+    next.setDate(next.getDate() + days);
+    if (next > today) return; // не уходим в будущее дальше сегодняшнего дня
+    _dailyChartWindowEnd = next;
+    document.getElementById('dailyChartTooltip').classList.add('hidden');
+    drawDailyRevenueChart();
+}
+
+function drawDailyRevenueChart() {
+    const canvas = document.getElementById('dailyRevenueCanvas');
+    if (!canvas || !_dailyChartWindowEnd) return;
+    const W = canvas.offsetWidth || 360;
+    const H = 140;
+    const dpr = window.devicePixelRatio || 1;
+    canvas.width  = W * dpr;
+    canvas.height = H * dpr;
+    canvas.style.width  = W + 'px';
+    canvas.style.height = H + 'px';
+    const ctx = canvas.getContext('2d');
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.clearRect(0, 0, W, H);
+
+    // Собираем N дней, оканчивающихся на _dailyChartWindowEnd
+    const days = [];
+    for (let i = DAILY_CHART_WINDOW_DAYS - 1; i >= 0; i--) {
+        const d = new Date(_dailyChartWindowEnd);
+        d.setDate(d.getDate() - i);
+        days.push(d);
+    }
+    const revenueByDate = {};
+    orders.forEach(o => {
+        if (!o.date) return;
+        revenueByDate[o.date] = (revenueByDate[o.date] || 0) + orderGrandTotal(o);
+    });
+    const values = days.map(d => revenueByDate[isoDate(d)] || 0);
+    const maxV = Math.max(...values, 0.01);
+
+    const pad = { top: 10, bottom: 16, left: 38, right: 8 };
+    const chartW = W - pad.left - pad.right;
+    const chartH = H - pad.top - pad.bottom;
+    const stepX = chartW / (days.length - 1);
+
+    // Подпись диапазона дат над графиком
+    const rangeLabel = `${formatDateDMY(isoDate(days[0]))} – ${formatDateDMY(isoDate(days[days.length-1]))}`;
+    const rangeEl = document.getElementById('dailyChartRange');
+    if (rangeEl) rangeEl.textContent = rangeLabel;
+
+    // Фон выходных (Сб/Вс) — вертикальные полосы
+    days.forEach((d, i) => {
+        const dow = d.getDay(); // 0=Вс, 6=Сб
+        if (dow === 0 || dow === 6) {
+            const x = pad.left + i * stepX - stepX/2;
+            ctx.fillStyle = 'rgba(99,102,241,0.06)';
+            ctx.fillRect(x, pad.top, stepX, chartH);
+        }
+    });
+
+    // Сетка по Y
+    ctx.strokeStyle = '#e5e7eb'; ctx.lineWidth = 1;
+    [0, 0.5, 1].forEach(f => {
+        const y = pad.top + chartH * (1 - f);
+        ctx.beginPath(); ctx.moveTo(pad.left, y); ctx.lineTo(W - pad.right, y); ctx.stroke();
+        ctx.fillStyle = '#9ca3af'; ctx.font = '9px sans-serif'; ctx.textAlign = 'right';
+        ctx.fillText((maxV * f).toFixed(0), pad.left - 4, y + 3);
+    });
+
+    // Подписи недель (дата понедельника каждой недели окна)
+    days.forEach((d, i) => {
+        if (d.getDay() === 1) { // понедельник
+            const x = pad.left + i * stepX;
+            ctx.fillStyle = '#9ca3af'; ctx.font = '8px sans-serif'; ctx.textAlign = 'center';
+            ctx.fillText(`${d.getDate()}.${String(d.getMonth()+1).padStart(2,'0')}`, x, H - 3);
+        }
+    });
+
+    // Линия выручки
+    const points = days.map((d, i) => ({
+        x: pad.left + i * stepX,
+        y: pad.top + chartH - (values[i] / maxV) * chartH,
+        date: isoDate(d), value: values[i], dow: d.getDay()
+    }));
+    ctx.strokeStyle = '#4f46e5'; ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    points.forEach((p, i) => { i === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y); });
+    ctx.stroke();
+
+    // Точки
+    points.forEach(p => {
+        ctx.fillStyle = p.value > 0 ? '#4f46e5' : '#d1d5db';
+        ctx.beginPath(); ctx.arc(p.x, p.y, 2, 0, Math.PI*2); ctx.fill();
+    });
+
+    canvas._dailyChartPoints = points; // сохраняем для определения тапа
+}
+
+function showDailyChartTooltip(e) {
+    const canvas = document.getElementById('dailyRevenueCanvas');
+    const tooltip = document.getElementById('dailyChartTooltip');
+    if (!canvas || !tooltip || !canvas._dailyChartPoints) return;
+    const rect = canvas.getBoundingClientRect();
+    const tapX = e.clientX - rect.left;
+    let nearest = null, minDist = Infinity;
+    canvas._dailyChartPoints.forEach(p => {
+        const dist = Math.abs(p.x - tapX);
+        if (dist < minDist) { minDist = dist; nearest = p; }
+    });
+    if (!nearest) return;
+    tooltip.textContent = `${WEEKDAY_NAMES_FULL[nearest.dow]}, ${formatDateDMY(nearest.date)} — ${nearest.value.toFixed(2)} €`;
+    tooltip.style.left = nearest.x + 'px';
+    tooltip.style.top = Math.max(0, nearest.y - 6) + 'px';
+    tooltip.classList.remove('hidden');
+}
