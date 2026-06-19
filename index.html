@@ -814,6 +814,35 @@
             </div>
         </div>
 
+        <!-- Быстрое создание нового ингредиента прямо из карточки рецепта -->
+        <div id="quickAddIngredientModal" class="modal">
+            <div class="modal-content">
+                <h2 class="text-base font-semibold mb-2 text-gray-800">Новый ингредиент</h2>
+                <label class="text-xs text-gray-600">Название</label>
+                <input id="qaiName" class="border p-1 rounded-md mb-1 w-full text-xs">
+                <div class="grid grid-cols-2 gap-2">
+                    <div>
+                        <label class="text-xs text-gray-600">Цена упаковки (€)</label>
+                        <input id="qaiPrice" type="number" step="0.01" min="0" class="border p-1 rounded-md mb-1 w-full text-xs">
+                    </div>
+                    <div>
+                        <label class="text-xs text-gray-600">Размер упаковки</label>
+                        <input id="qaiSize" type="number" step="0.01" min="0.01" class="border p-1 rounded-md mb-1 w-full text-xs">
+                    </div>
+                </div>
+                <label class="text-xs text-gray-600">Единица измерения</label>
+                <select id="qaiUnit" class="border p-1 rounded-md mb-2 w-full text-xs">
+                    <option value="g">граммы (г)</option>
+                    <option value="kg">килограммы (кг)</option>
+                    <option value="ml">миллилитры (мл)</option>
+                    <option value="l">литры (л)</option>
+                    <option value="pcs">штуки (шт)</option>
+                </select>
+                <button onclick="confirmQuickAddIngredient()" class="btn bg-gray-700 text-white p-1 rounded-md hover:bg-gray-800 text-xs mr-1">Создать</button>
+                <button onclick="closeModal()" class="btn bg-gray-400 text-white p-1 rounded-md hover:bg-gray-500 text-xs">Отмена</button>
+            </div>
+        </div>
+
         <!-- Статистика -->
         <div id="statsModal" class="modal">
             <div class="modal-content" style="max-width:420px;">
