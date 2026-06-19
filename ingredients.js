@@ -93,3 +93,48 @@ async function saveIngredientEdit() {
     } catch (e) { console.error(e); alert('Ошибка сохранения. Проверьте подключение.'); }
     finally { hideLoading(); }
 }
+
+// ==================== БЫСТРОЕ СОЗДАНИЕ ИЗ КАРТОЧКИ РЕЦЕПТА ====================
+// Если при вводе в поле "Добавить в рецепт" нужного ингредиента ещё нет в базе,
+// в выпадающем списке показывается пункт "+ Создать «...»" (см. setupSearchDropdown
+// в helpers.js). Этот модал спрашивает только цену/размер упаковки/единицу — название
+// уже известно (введено пользователем) — и после создания возвращает в то же поле рецепта.
+let _quickAddIngredientContext = null; // 'product' | 'semiFinished' — куда вернуться после создания
+
+function openQuickAddIngredientModal(name, context) {
+    _quickAddIngredientContext = context;
+    document.getElementById('qaiName').value = name;
+    document.getElementById('qaiPrice').value = '';
+    document.getElementById('qaiSize').value = '';
+    document.getElementById('qaiUnit').value = 'g';
+    document.getElementById('quickAddIngredientModal').style.display = 'flex';
+}
+
+async function confirmQuickAddIngredient() {
+    const name = document.getElementById('qaiName').value.trim();
+    const packagePrice = parseFloat(document.getElementById('qaiPrice').value);
+    const packageSize  = parseFloat(document.getElementById('qaiSize').value);
+    const unit = document.getElementById('qaiUnit').value;
+    if (!name || isNaN(packagePrice) || isNaN(packageSize) || packageSize <= 0) {
+        alert('Заполните все поля корректно!'); return;
+    }
+    showLoading();
+    try {
+        const { data, error } = await db.from('ingredients').insert({
+            name, package_price: parseFloat(packagePrice.toFixed(2)), package_size: packageSize, unit
+        }).select().single();
+        if (error) throw error;
+        const newIng = { id: data.id, name: data.name, package_price: Number(data.package_price), package_size: Number(data.package_size), unit: data.unit };
+        ingredients.push(newIng);
+        displayIngredients();
+        logActivity('ingredient', `Добавлен ингредиент «${name}» (из карточки рецепта)`);
+        closeModal();
+
+        // Подставляем созданный ингредиент обратно в поле поиска того рецепта,
+        // откуда вызвали создание — остаётся только нажать "Добавить".
+        const inputId = _quickAddIngredientContext === 'semiFinished' ? 'newSfRecipeIngredient' : 'newRecipeIngredient';
+        const input = document.getElementById(inputId);
+        if (input) input.value = newIng.name;
+    } catch (e) { console.error(e); alert('Ошибка сохранения. Проверьте подключение.'); }
+    finally { hideLoading(); }
+}

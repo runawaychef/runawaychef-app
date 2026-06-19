@@ -146,7 +146,8 @@ async function saveSfdHeader() {
 
 function fillNewSfRecipeIngredientSelect() {
     setupSearchDropdown('newSfRecipeIngredient', 'newSfRecipeIngredientDropdown',
-        () => ingredients.slice().sort((a,b)=>a.name.localeCompare(b.name)).map(i => i.name));
+        () => ingredients.slice().sort((a,b)=>a.name.localeCompare(b.name)).map(i => i.name),
+        null, (text) => openQuickAddIngredientModal(text, 'semiFinished'));
 }
 
 function renderSemiFinishedRecipe(sf) {

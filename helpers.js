@@ -51,7 +51,10 @@ function escapeHtml(str) {
 // dropdownId   — id пустого <div class="search-dropdown hidden"> рядом с полем
 // getItems()   — функция, возвращающая актуальный массив строк (названий) на момент открытия
 // onPick(name) — необязательный колбэк, вызывается после выбора варианта из списка
-function setupSearchDropdown(inputId, dropdownId, getItems, onPick) {
+// onCreate(text) — необязательный колбэк; если задан и среди items нет точного совпадения
+//                  (без учёта регистра) с введённым текстом, в списке появляется пункт
+//                  "+ Создать «текст»", по клику на который вызывается onCreate(text)
+function setupSearchDropdown(inputId, dropdownId, getItems, onPick, onCreate) {
     const input = document.getElementById(inputId);
     const dropdown = document.getElementById(dropdownId);
     if (!input || !dropdown) return;
@@ -63,7 +66,12 @@ function setupSearchDropdown(inputId, dropdownId, getItems, onPick) {
         const q = (filterText || '').trim().toLowerCase();
         const filtered = q ? items.filter(name => name.toLowerCase().includes(q)) : items;
         dropdown.innerHTML = '';
-        if (!filtered.length) { dropdown.classList.add('hidden'); return; }
+
+        const queryText = (filterText || '').trim();
+        const exactMatch = queryText && items.some(name => name.toLowerCase() === queryText.toLowerCase());
+        const showCreate = onCreate && queryText && !exactMatch;
+
+        if (!filtered.length && !showCreate) { dropdown.classList.add('hidden'); return; }
         filtered.forEach(name => {
             const row = document.createElement('div');
             row.className = 'search-dropdown-item';
@@ -77,11 +85,24 @@ function setupSearchDropdown(inputId, dropdownId, getItems, onPick) {
             });
             dropdown.appendChild(row);
         });
+        if (showCreate) {
+            const row = document.createElement('div');
+            row.className = 'search-dropdown-item';
+            row.style.color = '#2563eb';
+            row.style.fontWeight = '600';
+            row.textContent = `+ Создать «${queryText}»`;
+            row.addEventListener('mousedown', (e) => {
+                e.preventDefault();
+                dropdown.classList.add('hidden');
+                onCreate(queryText);
+            });
+            dropdown.appendChild(row);
+        }
         dropdown.classList.remove('hidden');
     }
 
     input.addEventListener('focus', () => render(''));      // по клику — полный список, как раньше
-    input.addEventListener('input', () => render(input.value)); // по вводу — фильтрация
+    input.addEventListener('input', () => render(input.value)); // по вводу — фильтрация (+ "Создать", если задан onCreate)
     input.addEventListener('blur', () => setTimeout(() => dropdown.classList.add('hidden'), 150));
 }
 

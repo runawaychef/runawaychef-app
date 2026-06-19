@@ -161,7 +161,7 @@ function fillNewRecipeIngredientSelect() {
             ? semiFinished.slice().sort((a,b)=>a.name.localeCompare(b.name)).map(s => s.name + ' (п/ф)')
             : [];
         return names.concat(sfNames);
-    });
+    }, null, (text) => openQuickAddIngredientModal(text, 'product'));
 }
 
 // Находит ингредиент/полуфабрикат по тексту, введённому в поле поиска.
