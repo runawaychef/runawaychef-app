@@ -98,7 +98,6 @@ function displayOrders() {
                 ${svgEdit(`openEditOrderModal(${realIdx})`)}
                 ${svgDelete(`openDeleteModal(${realIdx},'order','заказ клиента «${order.customer}»')`)}
                 ${svgCopy(`copyOrder(${realIdx})`)}
-                <svg class="w-4 h-4 text-indigo-500 hover:text-indigo-700 inline cursor-pointer" title="Открыть" fill="none" stroke="currentColor" viewBox="0 0 24 24" onclick="openOrderDetail(${order.id})"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
             </td>`;
         tbody.appendChild(row);
     });

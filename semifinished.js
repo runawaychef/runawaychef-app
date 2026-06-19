@@ -38,13 +38,12 @@ function displaySemiFinished() {
         const row = document.createElement('tr');
         row.className = 'order-row';
         row.innerHTML = `
-            <td class="border p-0.5 text-xs" onclick="openSemiFinishedDetail(${sf.id})">${sf.name}</td>
+            <td class="border p-0.5 text-xs" onclick="openSemiFinishedDetail(${sf.id})">${escapeHtml(sf.name)}</td>
             <td class="border p-0.5 text-xs text-center" onclick="openSemiFinishedDetail(${sf.id})">${sf.batch_size} ${unitLabel}</td>
             <td class="border p-0.5 text-xs text-center" onclick="openSemiFinishedDetail(${sf.id})">${unitCost.toFixed(4)} €/${unitLabel}</td>
             <td class="border p-0.5 text-center">
                 ${svgEdit(`openEditSemiFinishedModal(${i})`)}
                 ${svgDelete(`openDeleteModal(${i},'semiFinished','полуфабрикат «${sf.name}»')`)}
-                <svg class="w-4 h-4 text-indigo-500 hover:text-indigo-700 inline cursor-pointer" title="Открыть" fill="none" stroke="currentColor" viewBox="0 0 24 24" onclick="openSemiFinishedDetail(${sf.id})"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
             </td>`;
         tbody.appendChild(row);
     });
