@@ -63,6 +63,15 @@
             width: 100%;
         }
 
+        /* Экран входа в аккаунт (Supabase Auth) — открывается раньше выбора сотрудника */
+        #authScreen {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: linear-gradient(to bottom, #f7f7f7, #e5e7eb);
+            display: flex; align-items: center; justify-content: center;
+            z-index: 210;
+        }
+        #authScreen.hidden { display: none; }
+
         /* Экран выбора сотрудника */
         #loginScreen {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
@@ -110,6 +119,20 @@
 </head>
 <body class="font-sans">
 
+<!-- Экран входа (email/пароль через Supabase Auth) -->
+<div id="authScreen" class="hidden">
+    <div class="bg-white p-4 rounded-md shadow-md w-full max-w-xs text-center">
+        <h1 class="text-lg font-bold mb-3 text-gray-800">Runway Chef Project</h1>
+        <p class="text-sm text-gray-600 mb-3">Вход в приложение</p>
+        <form id="authForm" class="flex flex-col gap-2 text-left">
+            <input id="authEmail" type="email" required placeholder="Email" autocomplete="username" class="border p-1.5 rounded-md text-sm">
+            <input id="authPassword" type="password" required placeholder="Пароль" autocomplete="current-password" class="border p-1.5 rounded-md text-sm">
+            <button id="authSubmitBtn" type="submit" class="btn bg-gray-700 text-white p-1.5 rounded-md hover:bg-gray-800 text-sm mt-1">Войти</button>
+        </form>
+        <p id="authError" class="text-xs text-red-500 mt-2 hidden">Неверный email или пароль.</p>
+    </div>
+</div>
+
 <!-- Экран выбора сотрудника -->
 <div id="loginScreen">
     <div class="bg-white p-4 rounded-md shadow-md w-full max-w-xs text-center">
@@ -117,6 +140,7 @@
         <p class="text-sm text-gray-600 mb-3">Кто вводит данные?</p>
         <div id="employeeList" class="flex flex-col gap-2"></div>
         <p id="loginError" class="text-xs text-red-500 mt-2 hidden">Не удалось загрузить список сотрудников. Проверьте подключение к интернету.</p>
+        <p class="text-xs text-gray-400 mt-3 cursor-pointer underline" onclick="signOutAccount()">Сменить аккаунт</p>
     </div>
 </div>
 
@@ -902,6 +926,7 @@
 <script src="dates.js?v=3"></script>
 <script src="money.js?v=3"></script>
 <script src="supabaseClient.js?v=3"></script>
+<script src="auth.js?v=1"></script>
 <script src="employees.js?v=3"></script>
 <script src="ingredients.js?v=3"></script>
 <script src="semifinished.js?v=3"></script>
@@ -1132,17 +1157,7 @@ function closeHistoryScreen() {
 document.getElementById('orderDate').value = new Date().toISOString().split('T')[0];
 
 (async function init() {
-    await initLogin();
-    // Если сотрудник уже выбран ранее (на этом устройстве) — авто-вход
-    const saved = localStorage.getItem('currentEmployee');
-    if (saved) {
-        try {
-            const emp = JSON.parse(saved);
-            if (emp && emp.id && emp.name) {
-                await selectEmployee(emp);
-            }
-        } catch (e) { /* ignore */ }
-    }
+    await initAuth();
 })();
 
 // Регистрация Service Worker для установки как приложение (PWA)
