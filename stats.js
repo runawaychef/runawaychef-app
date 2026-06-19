@@ -638,8 +638,8 @@ function drawDailyRevenueChart() {
 
         // Вертикальная пунктирная линия через всю высоту графика
         ctx.save();
-        ctx.strokeStyle = '#9ca3af';
-        ctx.lineWidth = 1;
+        ctx.strokeStyle = '#ef4444';
+        ctx.lineWidth = 2;
         ctx.setLineDash([3, 3]);
         ctx.beginPath();
         ctx.moveTo(nearest.x, pad.top);
