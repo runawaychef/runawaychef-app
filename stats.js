@@ -6,12 +6,11 @@
 // orderGrandTotal/orderVatAmount (money.js), closeModal (главный скрипт).
 // updateTotals используется также из orders.js (для сумм недели/месяца под списком заказов).
 
+// Раздел "Статистика" теперь обычная вкладка (см. showTab в index.html),
+// а не всплывающее окно. Функция оставлена как алиас — на случай,
+// если где-то ещё остался старый вызов openStatsModal().
 function openStatsModal() {
-    document.getElementById('statsModal').style.display = 'flex';
-    updateStatsCustomerFilter();
-    toggleDateRange();
-    applyFilter();
-    updateInfoCounts();
+    showTab('stats');
 }
 
 function downloadBackup() {
