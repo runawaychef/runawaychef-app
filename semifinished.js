@@ -292,7 +292,7 @@ async function copySfRecipeFromByName(sourceName) {
 
     let msg = `Скопировать ${toCopy.length} ${toCopy.length === 1 ? 'позицию' : 'позиций'} из рецепта «${sourceName}» в «${sf.name}»?`;
     if (skipped) msg += `\n(${skipped} уже есть в текущем рецепте — будут пропущены)`;
-    if (!confirm(msg)) return;
+    if (!(await showConfirm(msg))) return;
 
     showLoading();
     try {

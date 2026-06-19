@@ -4,6 +4,34 @@
 // Обычный скрипт (без модулей) — функции доступны глобально, как раньше.
 // Зависит от: products/customers (главный скрипт).
 
+// Окно подтверждения в стиле приложения (замена системного confirm(),
+// которое на Android/Chrome всегда показывает адрес сайта в заголовке —
+// это выглядит как "чужое"/системное окно, а не часть приложения).
+// Использование: const ok = await showConfirm('Сменить сотрудника?');
+function showConfirm(message) {
+    return new Promise((resolve) => {
+        const modal = document.getElementById('confirmModal');
+        const msgEl = document.getElementById('confirmMessage');
+        const okBtn = document.getElementById('confirmOkBtn');
+        const cancelBtn = document.getElementById('confirmCancelBtn');
+        if (!modal || !msgEl || !okBtn || !cancelBtn) { resolve(window.confirm(message)); return; }
+
+        msgEl.textContent = message;
+        modal.style.display = 'flex';
+
+        function cleanup(result) {
+            modal.style.display = 'none';
+            okBtn.removeEventListener('click', onOk);
+            cancelBtn.removeEventListener('click', onCancel);
+            resolve(result);
+        }
+        function onOk() { cleanup(true); }
+        function onCancel() { cleanup(false); }
+        okBtn.addEventListener('click', onOk);
+        cancelBtn.addEventListener('click', onCancel);
+    });
+}
+
 // Экранирование пользовательских строк перед вставкой через innerHTML
 // (защита от XSS, если в имя клиента/товара/заметку попадут HTML-теги).
 function escapeHtml(str) {

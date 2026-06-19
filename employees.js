@@ -53,8 +53,8 @@ async function selectEmployee(emp) {
     logActivity('auth', `Вход: ${emp.name}`);
 }
 
-function logoutEmployee() {
-    if (!confirm('Сменить сотрудника?')) return;
+async function logoutEmployee() {
+    if (!(await showConfirm('Сменить сотрудника?'))) return;
     logActivity('auth', `Выход: ${currentEmployee ? currentEmployee.name : ''}`);
     currentEmployee = null;
     localStorage.removeItem('currentEmployee');

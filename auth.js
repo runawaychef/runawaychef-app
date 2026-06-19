@@ -78,7 +78,7 @@ async function handleAuthSubmit(e) {
 
 // Полный выход из аккаунта (не путать со сменой сотрудника на экране выбора).
 async function signOutAccount() {
-    if (!confirm('Выйти из приложения полностью? Потребуется снова ввести email и пароль.')) return;
+    if (!(await showConfirm('Выйти из приложения полностью? Потребуется снова ввести email и пароль.'))) return;
     try { await db.auth.signOut(); } catch (e) { console.error(e); }
     localStorage.removeItem('currentEmployee');
     currentEmployee = null;
