@@ -585,9 +585,8 @@
                         <!-- Строка добавления новой позиции -->
                         <tbody>
                             <tr class="new-item-row bg-blue-50">
-                                <td><select id="newItemProduct" onchange="autoFillNewItemPrice()" class="text-xs">
-                                    <option value="">— изделие —</option>
-                                </select></td>
+                                <td><input id="newItemProduct" list="newItemProductList" oninput="autoFillNewItemPrice()" onchange="autoFillNewItemPrice()" placeholder="— изделие —" autocomplete="off" class="text-xs">
+                                    <datalist id="newItemProductList"></datalist></td>
                                 <td><input id="newItemQty" type="number" step="0.01" min="0.01" placeholder="1" class="text-xs"></td>
                                 <td><input id="newItemPrice" type="number" step="0.01" placeholder="0.00" class="text-xs"></td>
                                 <td class="text-xs text-gray-400 text-center">—</td>
@@ -709,9 +708,8 @@
             <div class="modal-content">
                 <h2 class="text-base font-semibold mb-2 text-gray-800">Редактировать позицию</h2>
                 <label class="text-xs text-gray-600">Изделие</label>
-                <select id="editItemProduct" onchange="autoFillEditItemPrice()" class="border p-0.5 rounded-md mb-1 w-full text-xs">
-                    <option value="">Выберите изделие</option>
-                </select>
+                <input id="editItemProduct" list="editItemProductList" oninput="autoFillEditItemPrice()" onchange="autoFillEditItemPrice()" placeholder="Выберите изделие" autocomplete="off" class="border p-0.5 rounded-md mb-1 w-full text-xs">
+                <datalist id="editItemProductList"></datalist>
                 <label class="text-xs text-gray-600">Количество</label>
                 <input id="editItemQty" type="number" step="0.01" min="0.01" class="border p-0.5 rounded-md mb-1 w-full text-xs">
                 <label class="text-xs text-gray-600">Цена (€)</label>
@@ -871,19 +869,19 @@
     </div><!-- appContent -->
 </div><!-- container -->
 
-<script src="dates.js?v=2"></script>
-<script src="money.js?v=2"></script>
-<script src="supabaseClient.js?v=2"></script>
-<script src="employees.js?v=2"></script>
-<script src="ingredients.js"></script>
-<script src="semifinished.js"></script>
-<script src="products.js?v=2"></script>
-<script src="customers.js?v=2"></script>
-<script src="orders.js?v=2"></script>
-<script src="stats.js"></script>
-<script src="history.js"></script>
-<script src="modals.js"></script>
-<script src="helpers.js"></script>
+<script src="dates.js?v=3"></script>
+<script src="money.js?v=3"></script>
+<script src="supabaseClient.js?v=3"></script>
+<script src="employees.js?v=3"></script>
+<script src="ingredients.js?v=3"></script>
+<script src="semifinished.js?v=3"></script>
+<script src="products.js?v=3"></script>
+<script src="customers.js?v=3"></script>
+<script src="orders.js?v=3"></script>
+<script src="stats.js?v=3"></script>
+<script src="history.js?v=3"></script>
+<script src="modals.js?v=3"></script>
+<script src="helpers.js?v=3"></script>
 <script>
 // SUPABASE_URL, SUPABASE_KEY, db перенесены в supabaseClient.js
 
