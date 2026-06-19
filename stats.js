@@ -474,6 +474,7 @@ const WEEKDAY_NAMES_FULL  = ['Воскресенье','Понедельник','
 
 let _dailyChartWindowEnd = null; // Date — последний (самый поздний) день видимого окна
 let _dailyChartInitialized = false;
+let _dailyChartCrosshairX = null; // canvas-локальная X координата текущей подсказки/линии (null — не показывать)
 
 function isoDate(d) {
     const y = d.getFullYear(), m = String(d.getMonth()+1).padStart(2,'0'), day = String(d.getDate()).padStart(2,'0');
@@ -494,34 +495,37 @@ function initDailyRevenueChart() {
     if (!canvas) return;
     let dragStartX = null, dragStartY = null, dragStartWindowEnd = null;
 
+    function localX(e) {
+        const rect = canvas.getBoundingClientRect();
+        return e.clientX - rect.left;
+    }
+
     canvas.addEventListener('pointerdown', (e) => {
         dragStartX = e.clientX;
         dragStartY = e.clientY;
         dragStartWindowEnd = new Date(_dailyChartWindowEnd);
         canvas.setPointerCapture(e.pointerId);
+        _dailyChartCrosshairX = localX(e); // сразу показываем линию/подсказку в точке касания
+        drawDailyRevenueChart();
     });
     canvas.addEventListener('pointermove', (e) => {
         if (dragStartX === null) return;
         const dx = e.clientX - dragStartX;
         const dayWidthPx = canvas._dayStepX || 16;
         const deltaDays = Math.round(-dx / dayWidthPx); // тащим влево -> более поздние даты
-        if (!deltaDays) return;
         const today = new Date(); today.setHours(0,0,0,0);
         let candidate = new Date(dragStartWindowEnd);
         candidate.setDate(candidate.getDate() + deltaDays);
         if (candidate > today) candidate = today;
         if (candidate.getTime() !== _dailyChartWindowEnd.getTime()) {
             _dailyChartWindowEnd = candidate;
-            document.getElementById('dailyChartTooltip').classList.add('hidden');
-            drawDailyRevenueChart();
         }
+        _dailyChartCrosshairX = localX(e); // линия/подсказка следуют за пальцем в реальном времени
+        drawDailyRevenueChart();
     });
-    canvas.addEventListener('pointerup', (e) => {
-        if (dragStartX === null) return;
-        const totalDx = Math.abs(e.clientX - dragStartX);
-        const totalDy = Math.abs(e.clientY - dragStartY);
-        if (totalDx < 10 && totalDy < 10) showDailyChartTooltip(e); // это был тап, а не перетаскивание
+    canvas.addEventListener('pointerup', () => {
         dragStartX = null; dragStartY = null;
+        // Линия и подсказка остаются на месте последнего касания — как в биржевых графиках
     });
     canvas.addEventListener('pointercancel', () => { dragStartX = null; dragStartY = null; });
 }
@@ -566,13 +570,15 @@ function drawDailyRevenueChart() {
     const rangeEl = document.getElementById('dailyChartRange');
     if (rangeEl) rangeEl.textContent = rangeLabel;
 
-    // Фон выходных (Сб/Вс) — вертикальные полосы
+    // Фон выходных (Сб/Вс) — вертикальные полосы (более заметные) + цветная полоска снизу
     days.forEach((d, i) => {
         const dow = d.getDay(); // 0=Вс, 6=Сб
         if (dow === 0 || dow === 6) {
             const x = pad.left + i * stepX - stepX/2;
-            ctx.fillStyle = 'rgba(99,102,241,0.06)';
+            ctx.fillStyle = 'rgba(99,102,241,0.13)';
             ctx.fillRect(x, pad.top, stepX, chartH);
+            ctx.fillStyle = '#6366f1';
+            ctx.fillRect(x, pad.top + chartH - 2, stepX, 2);
         }
     });
 
@@ -619,23 +625,43 @@ function drawDailyRevenueChart() {
         ctx.beginPath(); ctx.arc(p.x, p.y, 2, 0, Math.PI*2); ctx.fill();
     });
 
-    canvas._dailyChartPoints = points; // сохраняем для определения тапа
-}
+    canvas._dailyChartPoints = points; // сохраняем для определения ближайшей точки
 
-function showDailyChartTooltip(e) {
-    const canvas = document.getElementById('dailyRevenueCanvas');
+    // Вертикальная линия-курсор + подсветка точки + подсказка — следуют за пальцем live
     const tooltip = document.getElementById('dailyChartTooltip');
-    if (!canvas || !tooltip || !canvas._dailyChartPoints) return;
-    const rect = canvas.getBoundingClientRect();
-    const tapX = e.clientX - rect.left;
-    let nearest = null, minDist = Infinity;
-    canvas._dailyChartPoints.forEach(p => {
-        const dist = Math.abs(p.x - tapX);
-        if (dist < minDist) { minDist = dist; nearest = p; }
-    });
-    if (!nearest) return;
-    tooltip.textContent = `${WEEKDAY_NAMES_FULL[nearest.dow]}, ${formatDateDMY(nearest.date)} — ${nearest.value.toFixed(2)} €`;
-    tooltip.style.left = nearest.x + 'px';
-    tooltip.style.top = Math.max(0, nearest.y - 6) + 'px';
-    tooltip.classList.remove('hidden');
+    if (_dailyChartCrosshairX !== null && points.length) {
+        let nearest = points[0], minDist = Infinity;
+        points.forEach(p => {
+            const dist = Math.abs(p.x - _dailyChartCrosshairX);
+            if (dist < minDist) { minDist = dist; nearest = p; }
+        });
+
+        // Вертикальная пунктирная линия через всю высоту графика
+        ctx.save();
+        ctx.strokeStyle = '#9ca3af';
+        ctx.lineWidth = 1;
+        ctx.setLineDash([3, 3]);
+        ctx.beginPath();
+        ctx.moveTo(nearest.x, pad.top);
+        ctx.lineTo(nearest.x, pad.top + chartH);
+        ctx.stroke();
+        ctx.restore();
+
+        // Увеличенная точка поверх линии — видно, какой день выбран
+        ctx.fillStyle = '#4f46e5';
+        ctx.beginPath(); ctx.arc(nearest.x, nearest.y, 4, 0, Math.PI*2); ctx.fill();
+        ctx.fillStyle = 'white';
+        ctx.beginPath(); ctx.arc(nearest.x, nearest.y, 1.5, 0, Math.PI*2); ctx.fill();
+
+        if (tooltip) {
+            tooltip.textContent = `${WEEKDAY_NAMES_FULL[nearest.dow]}, ${formatDateDMY(nearest.date)} — ${nearest.value.toFixed(2)} €`;
+            // Не даём подсказке вылезти за левый/правый край канваса
+            const clampedX = Math.min(Math.max(nearest.x, 30), W - 30);
+            tooltip.style.left = clampedX + 'px';
+            tooltip.style.top = Math.max(0, nearest.y - 6) + 'px';
+            tooltip.classList.remove('hidden');
+        }
+    } else if (tooltip) {
+        tooltip.classList.add('hidden');
+    }
 }
