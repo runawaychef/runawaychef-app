@@ -465,6 +465,7 @@
                 <div class="bg-white p-2 rounded-md shadow-md">
                     <h2 class="text-lg font-semibold mb-2 text-gray-800">Список клиентов</h2>
                     <p class="text-xs text-gray-400 mb-2">Нажмите на строку, чтобы открыть карточку клиента</p>
+                    <p id="customersNameWarning" class="text-xs text-red-600 bg-red-50 border border-red-200 rounded-md p-1.5 mb-2 hidden">⚠ У некоторых клиентов не указано имя. Откройте их карточку и заполните имя — без этого их заказы будут отображаться некорректно.</p>
                     <table class="w-full table-auto">
                         <thead><tr class="bg-gray-100">
                             <th class="p-0.5 text-xs w-[35%]">Имя</th>
@@ -506,6 +507,7 @@
                             </label>
                         </div>
                     </div>
+                    <button onclick="applyVatExemptToAllOrders()" class="btn bg-gray-200 text-gray-700 px-2 py-1 rounded-md hover:bg-gray-300 text-xs w-full">Применить текущий статус НДС ко всем заказам клиента</button>
                 </div>
 
                 <div class="bg-white p-2 rounded-md shadow-md mb-3">
@@ -1060,8 +1062,8 @@
 <script src="ingredients.js?v=3"></script>
 <script src="semifinished.js?v=3"></script>
 <script src="products.js?v=3"></script>
-<script src="customers.js?v=4"></script>
-<script src="orders.js?v=3"></script>
+<script src="customers.js?v=6"></script>
+<script src="orders.js?v=4"></script>
 <script src="stats.js?v=7"></script>
 <script src="history.js?v=3"></script>
 <script src="modals.js?v=3"></script>
@@ -1176,7 +1178,7 @@ async function loadAllData() {
             return {
                 id: o.id,
                 customer_id: o.customer_id,
-                customer: cust ? cust.name : '(удалённый клиент)',
+                customer: cust ? (cust.name || '(имя клиента не указано)') : '(удалённый клиент)',
                 date: o.order_date,
                 status: o.status || 'принят',
                 discount: Number(o.discount || 0),

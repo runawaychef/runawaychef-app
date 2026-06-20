@@ -325,7 +325,7 @@ async function copyOrder(i) {
 // orderTotal/orderDiscountAmount/orderVatAmount/orderGrandTotal (money.js),
 // formatDateDMY (dates.js), showLoading/hideLoading, logActivity (employees.js),
 // svgEdit/svgDelete, fillDetailCustomerSelect, updateProductSelects,
-// updateCustomerSelectInModal, openDeleteModal, closeModal, editIndex/editItemIdx (главный скрипт).
+// updateCustomerSelects, openDeleteModal, closeModal, editIndex/editItemIdx (главный скрипт).
 
 function openOrderDetail(orderId) {
     currentOrderId = orderId;
@@ -386,8 +386,7 @@ function closeOrderDetail() {
 async function saveDetailHeader() {
     const order = orders.find(o => o.id === currentOrderId);
     if (!order) return;
-    const customerName = document.getElementById('detailCustomer').value;
-    const cust = customers.find(c => c.name === customerName);
+    const customerName = document.getElementById('detailCustomer').value.trim();
     const date     = document.getElementById('detailDate').value;
     const status   = document.getElementById('detailStatus').value;
     const discount = parseFloat(document.getElementById('detailDiscount').value) || 0;
@@ -395,7 +394,23 @@ async function saveDetailHeader() {
     const notes = document.getElementById('detailNotes').value;
     const employeeIdRaw = document.getElementById('detailEmployee').value;
     const employeeId = employeeIdRaw ? Number(employeeIdRaw) : null;
-    if (!cust) { alert('Клиент не найден!'); return; }
+
+    // Клиента переподбираем только если поле реально изменилось (а не на каждое
+    // сохранение любого другого поля) — иначе правка статуса/НДС/скидки ломалась бы,
+    // если по любой причине (например, пустое имя клиента в базе) поле "Клиент"
+    // не совпадает 1-в-1 с текущим списком клиентов.
+    let custId = order.customer_id;
+    let custName = order.customer;
+    if (customerName !== (order.customer || '')) {
+        const cust = customers.find(c => c.name === customerName);
+        if (!cust) {
+            alert(`Клиент «${customerName}» не найден в списке. Выберите клиента из выпадающего списка.`);
+            document.getElementById('detailCustomer').value = order.customer || ''; // откатываем поле
+            return;
+        }
+        custId = cust.id;
+        custName = cust.name;
+    }
 
     // Запоминаем прежние значения для журнала
     const old = { customer: order.customer, date: order.date, status: order.status, discount: order.discount, employee: order.employee, notes: order.notes || '' };
@@ -403,12 +418,12 @@ async function saveDetailHeader() {
     showLoading();
     try {
         const { error } = await db.from('orders').update({
-            customer_id: cust.id, order_date: date, status, discount, vat_exempt: vatExempt, employee_id: employeeId, notes
+            customer_id: custId, order_date: date, status, discount, vat_exempt: vatExempt, employee_id: employeeId, notes
         }).eq('id', order.id);
         if (error) throw error;
         const emp = employees.find(e => e.id === employeeId);
-        order.customer_id = cust.id;
-        order.customer    = cust.name;
+        order.customer_id = custId;
+        order.customer    = custName;
         order.date        = date;
         order.status      = status;
         order.discount    = discount;
@@ -593,7 +608,7 @@ function deleteItem(itemIdx) {
 function openEditOrderModal(i) {
     editIndex = i;
     const o = orders[i];
-    updateCustomerSelectInModal('editOrderCustomer', o.customer);
+    document.getElementById('editOrderCustomer').value = o.customer;
     document.getElementById('editOrderDate').value   = o.date;
     document.getElementById('editOrderStatus').value = o.status;
     document.getElementById('editOrderModal').style.display = 'flex';

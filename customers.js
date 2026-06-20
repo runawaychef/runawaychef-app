@@ -10,20 +10,26 @@ function displayCustomers() {
     customers.sort((a, b) => a.name.localeCompare(b.name));
     const tbody = document.getElementById('customerTableBody');
     tbody.innerHTML = '';
+    let warningCount = 0;
     customers.forEach((c, i) => {
+        const hasName = !!(c.name && c.name.trim());
+        if (!hasName) warningCount++;
+        const nameLabel = hasName ? escapeHtml(c.name) : '⚠ (имя не указано)';
         const row = document.createElement('tr');
-        row.className = 'order-row';
+        row.className = 'order-row' + (hasName ? '' : ' bg-red-50');
         row.innerHTML = `
-            <td class="border p-0.5 text-xs" onclick="openCustomerDetail(${c.id})">${escapeHtml(c.name)}</td>
+            <td class="border p-0.5 text-xs ${hasName ? '' : 'text-red-600 font-semibold'}" onclick="openCustomerDetail(${c.id})">${nameLabel}</td>
             <td class="border p-0.5 text-xs" onclick="openCustomerDetail(${c.id})">${escapeHtml(c.contact)}</td>
             <td class="border p-0.5 text-xs" onclick="openCustomerDetail(${c.id})">${c.discount.toFixed(2)}</td>
             <td class="border p-0.5 text-xs text-center" onclick="openCustomerDetail(${c.id})">${c.vat_exempt ? '✓' : ''}</td>
             <td class="border p-0.5 text-center">
                 ${svgEdit(`openCustomerDetail(${c.id})`)}
-                ${svgDelete(`openDeleteModal(${i},'customer','клиента «${c.name}»')`)}
+                ${svgDelete(`openDeleteModal(${i},'customer','клиента «${c.name || '(без имени)'}»')`)}
             </td>`;
         tbody.appendChild(row);
     });
+    const warningEl = document.getElementById('customersNameWarning');
+    if (warningEl) warningEl.classList.toggle('hidden', warningCount === 0);
     updateCustomerSelects();
     updateStatsCustomerFilter();
     updateOrderCustomerFilter();
@@ -46,6 +52,39 @@ async function addCustomer() {
         document.getElementById('customerContact').value = '';
         document.getElementById('customerDiscount').value = '';
         document.getElementById('customerVatExempt').checked = false;
+    } catch (e) { console.error(e); alert('Ошибка сохранения. Проверьте подключение.'); }
+    finally { hideLoading(); }
+}
+
+// Массово проставляет текущий НДС-статус клиента во ВСЕХ его существующих заказах.
+// Разовое действие по явному запросу — НДС-статус заказа сам по себе не меняется
+// задним числом автоматически при смене статуса клиента (см. saveCdHeader).
+async function applyVatExemptToAllOrders() {
+    const cust = customers.find(c => c.id === currentCustomerId);
+    if (!cust) return;
+
+    const custOrders = orders.filter(o => o.customer_id === cust.id);
+    const toUpdate = custOrders.filter(o => !!o.vat_exempt !== !!cust.vat_exempt);
+
+    if (!toUpdate.length) {
+        alert('У всех заказов этого клиента НДС-статус уже совпадает с текущим.');
+        return;
+    }
+
+    const statusLabel = cust.vat_exempt ? '«Без НДС»' : '«С НДС»';
+    const ok = await showConfirm(`Применить статус ${statusLabel} к ${toUpdate.length} ${toUpdate.length === 1 ? 'заказу' : 'заказам'} клиента «${cust.name}»?\nЭто изменит уже существующие заказы.`);
+    if (!ok) return;
+
+    showLoading();
+    try {
+        const ids = toUpdate.map(o => o.id);
+        const { error } = await db.from('orders').update({ vat_exempt: cust.vat_exempt }).in('id', ids);
+        if (error) throw error;
+        toUpdate.forEach(o => { o.vat_exempt = cust.vat_exempt; });
+        logActivity('customer', `Применён НДС-статус ${statusLabel} к ${toUpdate.length} заказам клиента «${cust.name}»`);
+        renderCustomerStats(cust);
+        renderCustomerOrders();
+        alert(`Готово: обновлено заказов — ${toUpdate.length}.`);
     } catch (e) { console.error(e); alert('Ошибка сохранения. Проверьте подключение.'); }
     finally { hideLoading(); }
 }
