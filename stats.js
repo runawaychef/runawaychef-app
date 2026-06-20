@@ -186,14 +186,14 @@ function updateTotals(filteredOrders) {
 }
 
 // --- Таблица по клиентам ---
-let lastCustomerTableData = null; // кэш для повторного использования при открытии полного списка
+// (кэш lastCustomerTableData больше не нужен — теперь весь список всегда виден через прокрутку)
 
 function buildCustomerRowsHtml(sorted, totals, vats, qtys, grandTotal) {
     let html = '';
     sorted.forEach(([name, val], i) => {
         const pct = grandTotal > 0 ? (val/grandTotal*100).toFixed(1) : '0.0';
         const color = `hsl(${i * 360 / sorted.length}, 60%, 50%)`;
-        html += `<tr class="border-b"><td class="p-0.5 flex items-center gap-1"><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${color};flex-shrink:0"></span>${name}</td><td class="p-0.5 text-right">${qtys[name] || 0}</td><td class="p-0.5 text-right font-medium">${val.toFixed(2)}</td><td class="p-0.5 text-right text-blue-700">${(vats[name]||0).toFixed(2)}</td><td class="p-0.5 text-right text-gray-500">${pct}%</td></tr>`;
+        html += `<tr class="border-b"><td class="p-0.5 flex items-center gap-1"><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${color};flex-shrink:0"></span>${escapeHtml(name)}</td><td class="p-0.5 text-right">${qtys[name] || 0}</td><td class="p-0.5 text-right stats-num">${val.toFixed(2)}</td><td class="p-0.5 text-right text-blue-700">${(vats[name]||0).toFixed(2)}</td><td class="p-0.5 text-right stats-pct">${pct}%</td></tr>`;
     });
     return html;
 }
@@ -213,40 +213,21 @@ function drawCustomerTable(filtered) {
     const grandVat   = Object.values(vats).reduce((s,v) => s+v, 0);
     const grandQty   = Object.values(qtys).reduce((s,v) => s+v, 0);
 
-    // Сохраняем для возможного открытия полного списка
-    lastCustomerTableData = { sorted, totals, vats, qtys, grandTotal, grandVat, grandQty };
-
     const container = document.getElementById('statsCustomerTableScroll');
     const totalContainer = document.getElementById('statsCustomerTableTotal');
-    const moreBtn = document.getElementById('statsCustomerShowAllBtn');
 
     if (!sorted.length) {
         container.innerHTML = '<p class="text-xs text-gray-400">Нет данных</p>';
         totalContainer.innerHTML = '';
-        if (moreBtn) moreBtn.classList.add('hidden');
         return;
     }
 
-    const top10 = sorted.slice(0, 10);
-    let html = '<table class="w-full text-xs"><thead><tr class="bg-gray-100"><th class="p-0.5 text-left">Клиент</th><th class="p-0.5 text-right">Кол-во</th><th class="p-0.5 text-right">Сумма (€)</th><th class="p-0.5 text-right">НДС (€)</th><th class="p-0.5 text-right">Доля</th></tr></thead><tbody>';
-    html += buildCustomerRowsHtml(top10, totals, vats, qtys, grandTotal);
+    let html = '<table class="w-full stats-table"><thead><tr class="bg-gray-100" style="position:sticky;top:0;"><th class="p-0.5 text-left">Клиент</th><th class="p-0.5 text-right">Кол-во</th><th class="p-0.5 text-right">Сумма (€)</th><th class="p-0.5 text-right">НДС (€)</th><th class="p-0.5 text-right">Доля</th></tr></thead><tbody>';
+    html += buildCustomerRowsHtml(sorted, totals, vats, qtys, grandTotal);
     html += '</tbody></table>';
     container.innerHTML = html;
     totalContainer.innerHTML =
-        `<table class="w-full text-xs"><tr class="bg-gray-50 font-semibold"><td class="p-0.5" style="width:40%">Итого</td><td class="p-0.5 text-right" style="width:15%">${grandQty}</td><td class="p-0.5 text-right" style="width:20%">${grandTotal.toFixed(2)}</td><td class="p-0.5 text-right text-blue-700" style="width:15%">${grandVat.toFixed(2)}</td><td class="p-0.5" style="width:10%"></td></tr></table>`;
-
-    if (moreBtn) moreBtn.classList.toggle('hidden', sorted.length <= 10);
-}
-
-function openAllCustomersModal() {
-    if (!lastCustomerTableData) return;
-    const { sorted, totals, vats, qtys, grandTotal, grandVat, grandQty } = lastCustomerTableData;
-    let html = '<table class="w-full text-xs"><thead><tr class="bg-gray-100"><th class="p-0.5 text-left">Клиент</th><th class="p-0.5 text-right">Кол-во</th><th class="p-0.5 text-right">Сумма (€)</th><th class="p-0.5 text-right">НДС (€)</th><th class="p-0.5 text-right">Доля</th></tr></thead><tbody>';
-    html += buildCustomerRowsHtml(sorted, totals, vats, qtys, grandTotal);
-    html += `<tr class="bg-gray-50 font-semibold"><td class="p-0.5">Итого</td><td class="p-0.5 text-right">${grandQty}</td><td class="p-0.5 text-right">${grandTotal.toFixed(2)}</td><td class="p-0.5 text-right text-blue-700">${grandVat.toFixed(2)}</td><td class="p-0.5"></td></tr>`;
-    html += '</tbody></table>';
-    document.getElementById('allCustomersTable').innerHTML = html;
-    document.getElementById('allCustomersModal').style.display = 'flex';
+        `<table class="w-full stats-table"><tr class="bg-gray-50 font-semibold"><td class="p-0.5" style="width:40%">Итого</td><td class="p-0.5 text-right" style="width:15%">${grandQty}</td><td class="p-0.5 text-right" style="width:20%">${grandTotal.toFixed(2)}</td><td class="p-0.5 text-right text-blue-700" style="width:15%">${grandVat.toFixed(2)}</td><td class="p-0.5" style="width:10%"></td></tr></table>`;
 }
 
 // --- Топ изделий ---
@@ -265,15 +246,15 @@ function drawProductTable(filtered) {
         return;
     }
     const max = sorted[0][1];
-    let html = '<table class="w-full text-xs"><thead><tr class="bg-gray-100"><th class="p-0.5 text-left">Изделие</th><th class="p-0.5 text-right">Кол-во</th><th class="p-0.5 text-right">Сумма (€)</th></tr></thead><tbody>';
+    let html = '<table class="w-full stats-table"><thead><tr class="bg-gray-100"><th class="p-0.5 text-left">Изделие</th><th class="p-0.5 text-right">Кол-во</th><th class="p-0.5 text-right">Сумма (€)</th></tr></thead><tbody>';
     sorted.forEach(([name, val]) => {
         const barW = max > 0 ? Math.round(val/max*100) : 0;
         html += `<tr class="border-b"><td class="p-0.5">
-            <div>${name}</div>
+            <div>${escapeHtml(name)}</div>
             <div style="background:#e5e7eb;border-radius:2px;height:4px;margin-top:2px;">
                 <div style="background:#6b7280;width:${barW}%;height:4px;border-radius:2px;"></div>
             </div>
-        </td><td class="p-0.5 text-right align-top">${qtys[name] || 0}</td><td class="p-0.5 text-right font-medium align-top">${val.toFixed(2)}</td></tr>`;
+        </td><td class="p-0.5 text-right align-top">${qtys[name] || 0}</td><td class="p-0.5 text-right stats-num align-top">${val.toFixed(2)}</td></tr>`;
     });
     html += '</tbody></table>';
     document.getElementById('statsProductTable').innerHTML = html;
@@ -307,7 +288,7 @@ function drawProductProfitabilityTable() {
         return;
     }
     const sorted = [...withRecipe].sort((a, b) => productProfitPct(b) - productProfitPct(a)).slice(0, 10);
-    let html = '<table class="w-full text-xs"><thead><tr class="bg-gray-100"><th class="p-0.5 text-left">Изделие</th><th class="p-0.5 text-right">Себест.</th><th class="p-0.5 text-right">Цена</th><th class="p-0.5 text-right">Рент.</th></tr></thead><tbody>';
+    let html = '<table class="w-full stats-table"><thead><tr class="bg-gray-100"><th class="p-0.5 text-left">Изделие</th><th class="p-0.5 text-right">Себест.</th><th class="p-0.5 text-right">Цена</th><th class="p-0.5 text-right">Рент.</th></tr></thead><tbody>';
     sorted.forEach(p => {
         const cost = productUnitCost(p);
         const pct  = productProfitPct(p);
