@@ -36,6 +36,10 @@
         .tab { cursor: pointer; }
         .tab.active { background: #4b5563; color: white; }
         table { overflow-x: auto; touch-action: pan-x; }
+        /* Внутри вертикально прокручиваемого блока "Сумма по клиентам" таблице
+           нужно разрешить именно вертикальный свайп, иначе побеждает общее
+           правило выше (pan-x) и смахивание не работает, хотя ползунок виден. */
+        #statsCustomerTableScroll table { touch-action: pan-y; }
         td, th { font-size: 13px; font-family: inherit; }
         .flag { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin: 0; vertical-align: middle; }
         .flag-red { background-color: #ef4444; }
@@ -1015,7 +1019,7 @@
 <script src="products.js?v=3"></script>
 <script src="customers.js?v=3"></script>
 <script src="orders.js?v=3"></script>
-<script src="stats.js?v=4"></script>
+<script src="stats.js?v=6"></script>
 <script src="history.js?v=3"></script>
 <script src="modals.js?v=3"></script>
 <script src="helpers.js?v=3"></script>
