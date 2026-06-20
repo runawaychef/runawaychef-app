@@ -182,7 +182,7 @@
                             <option value="pcs">Продаётся за штуку (шт)</option>
                             <option value="kg">Продаётся на вес (кг)</option>
                         </select>
-                        <input id="productPrice" type="number" step="0.01" placeholder="Продажная цена (€) за шт/кг" class="border p-0.5 rounded-md focus:outline-none focus:ring-1 focus:ring-gray-300 text-xs">
+                        <input id="productPrice" type="number" autocomplete="off" inputmode="decimal" step="0.01" placeholder="Продажная цена (€) за шт/кг" class="border p-0.5 rounded-md focus:outline-none focus:ring-1 focus:ring-gray-300 text-xs">
                         <button onclick="addProduct()" class="btn bg-gray-500 text-white p-0.5 rounded-md hover:bg-gray-600 text-xs">Добавить изделие</button>
                     </div>
                 </div>
@@ -229,15 +229,15 @@
                         </div>
                         <div>
                             <label class="text-xs text-gray-500">Продажная цена (€) <span id="pdPriceUnitHint" class="text-gray-400"></span></label>
-                            <input id="pdPrice" type="number" step="0.01" onchange="savePdHeader()" class="border p-0.5 rounded-md text-xs w-full">
+                            <input id="pdPrice" type="number" autocomplete="off" inputmode="decimal" step="0.01" onchange="savePdHeader()" class="border p-0.5 rounded-md text-xs w-full">
                         </div>
                         <div>
                             <label class="text-xs text-gray-500">Размер партии</label>
-                            <input id="pdBatchSize" type="number" step="0.01" min="0.01" onchange="savePdHeader()" class="border p-0.5 rounded-md text-xs w-full">
+                            <input id="pdBatchSize" type="number" autocomplete="off" inputmode="decimal" step="0.01" min="0.01" onchange="savePdHeader()" class="border p-0.5 rounded-md text-xs w-full">
                         </div>
                         <div class="col-span-2">
                             <label class="text-xs text-gray-500">Прочие расходы на партию (€)</label>
-                            <input id="pdOtherCosts" type="number" step="0.01" min="0" onchange="savePdHeader()" class="border p-0.5 rounded-md text-xs w-full">
+                            <input id="pdOtherCosts" type="number" autocomplete="off" inputmode="decimal" step="0.01" min="0" onchange="savePdHeader()" class="border p-0.5 rounded-md text-xs w-full">
                         </div>
                     </div>
                 </div>
@@ -267,7 +267,7 @@
                             <div id="newRecipeIngredientDropdown" class="search-dropdown hidden"></div>
                         </div>
                         <div class="flex gap-1">
-                            <input id="newRecipeQty" type="number" step="0.01" placeholder="Количество" class="border p-1 rounded-md text-xs flex-1">
+                            <input id="newRecipeQty" type="number" autocomplete="off" inputmode="decimal" step="0.01" placeholder="Количество" class="border p-1 rounded-md text-xs flex-1">
                             <button onclick="addIngredientToRecipe()" class="btn bg-gray-500 text-white px-3 py-1 rounded-md text-xs hover:bg-gray-600 whitespace-nowrap">+ Добавить</button>
                         </div>
                     </div>
@@ -293,8 +293,8 @@
                 <h2 class="text-lg font-semibold mb-2 text-gray-800">Добавить ингредиент</h2>
                 <div class="grid grid-cols-1 gap-0.5">
                     <input id="ingredientName" type="text" placeholder="Название ингредиента" class="border p-0.5 rounded-md focus:outline-none focus:ring-1 focus:ring-gray-300 text-xs">
-                    <input id="ingredientPackagePrice" type="number" step="0.01" placeholder="Цена за упаковку (€)" class="border p-0.5 rounded-md focus:outline-none focus:ring-1 focus:ring-gray-300 text-xs">
-                    <input id="ingredientPackageSize" type="number" step="0.01" placeholder="Размер упаковки" class="border p-0.5 rounded-md focus:outline-none focus:ring-1 focus:ring-gray-300 text-xs">
+                    <input id="ingredientPackagePrice" type="number" autocomplete="off" inputmode="decimal" step="0.01" placeholder="Цена за упаковку (€)" class="border p-0.5 rounded-md focus:outline-none focus:ring-1 focus:ring-gray-300 text-xs">
+                    <input id="ingredientPackageSize" type="number" autocomplete="off" inputmode="decimal" step="0.01" placeholder="Размер упаковки" class="border p-0.5 rounded-md focus:outline-none focus:ring-1 focus:ring-gray-300 text-xs">
                     <select id="ingredientUnit" class="border p-0.5 rounded-md focus:outline-none focus:ring-1 focus:ring-gray-300 text-xs">
                         <option value="g">граммы (г)</option>
                         <option value="kg">килограммы (кг)</option>
@@ -334,7 +334,7 @@
                     <p class="text-xs text-gray-400 mb-2">Например: крем, конфитюр, тесто — промежуточный состав из ингредиентов</p>
                     <div class="grid grid-cols-1 gap-0.5">
                         <input id="semiFinishedName" type="text" placeholder="Название (например, Вишнёвый конфитюр)" class="border p-0.5 rounded-md focus:outline-none focus:ring-1 focus:ring-gray-300 text-xs">
-                        <input id="semiFinishedBatchSize" type="number" step="0.01" min="0.01" placeholder="Размер партии (например 500)" class="border p-0.5 rounded-md focus:outline-none focus:ring-1 focus:ring-gray-300 text-xs">
+                        <input id="semiFinishedBatchSize" type="number" autocomplete="off" inputmode="decimal" step="0.01" min="0.01" placeholder="Размер партии (например 500)" class="border p-0.5 rounded-md focus:outline-none focus:ring-1 focus:ring-gray-300 text-xs">
                         <select id="semiFinishedUnit" class="border p-0.5 rounded-md focus:outline-none focus:ring-1 focus:ring-gray-300 text-xs">
                             <option value="g">граммы (г)</option>
                             <option value="kg">килограммы (кг)</option>
@@ -376,7 +376,7 @@
                         </div>
                         <div>
                             <label class="text-xs text-gray-500">Размер партии</label>
-                            <input id="sfdBatchSize" type="number" step="0.01" min="0.01" onchange="saveSfdHeader()" class="border p-0.5 rounded-md text-xs w-full">
+                            <input id="sfdBatchSize" type="number" autocomplete="off" inputmode="decimal" step="0.01" min="0.01" onchange="saveSfdHeader()" class="border p-0.5 rounded-md text-xs w-full">
                         </div>
                         <div>
                             <label class="text-xs text-gray-500">Единица</label>
@@ -389,7 +389,7 @@
                         </div>
                         <div class="col-span-2">
                             <label class="text-xs text-gray-500">Прочие расходы на партию (€)</label>
-                            <input id="sfdOtherCosts" type="number" step="0.01" min="0" onchange="saveSfdHeader()" class="border p-0.5 rounded-md text-xs w-full">
+                            <input id="sfdOtherCosts" type="number" autocomplete="off" inputmode="decimal" step="0.01" min="0" onchange="saveSfdHeader()" class="border p-0.5 rounded-md text-xs w-full">
                         </div>
                     </div>
                 </div>
@@ -419,7 +419,7 @@
                             <div id="newSfRecipeIngredientDropdown" class="search-dropdown hidden"></div>
                         </div>
                         <div class="flex gap-1">
-                            <input id="newSfRecipeQty" type="number" step="0.01" placeholder="Количество" class="border p-1 rounded-md text-xs flex-1">
+                            <input id="newSfRecipeQty" type="number" autocomplete="off" inputmode="decimal" step="0.01" placeholder="Количество" class="border p-1 rounded-md text-xs flex-1">
                             <button onclick="addIngredientToSfRecipe()" class="btn bg-gray-500 text-white px-3 py-1 rounded-md text-xs hover:bg-gray-600 whitespace-nowrap">+ Добавить</button>
                         </div>
                     </div>
@@ -442,7 +442,7 @@
                 <div class="grid grid-cols-1 gap-0.5">
                     <input id="customerName" type="text" placeholder="Имя клиента" class="border p-0.5 rounded-md focus:outline-none focus:ring-1 focus:ring-gray-300 text-xs">
                     <input id="customerContact" type="text" placeholder="Контакты" class="border p-0.5 rounded-md focus:outline-none focus:ring-1 focus:ring-gray-300 text-xs">
-                    <input id="customerDiscount" type="number" step="0.01" placeholder="Скидка (%)" class="border p-0.5 rounded-md focus:outline-none focus:ring-1 focus:ring-gray-300 text-xs">
+                    <input id="customerDiscount" type="number" autocomplete="off" inputmode="decimal" step="0.01" placeholder="Скидка (%)" class="border p-0.5 rounded-md focus:outline-none focus:ring-1 focus:ring-gray-300 text-xs">
                     <label class="flex items-center gap-2 text-xs text-gray-700 px-0.5">
                         <input id="customerVatExempt" type="checkbox"> Без НДС
                     </label>
@@ -616,7 +616,7 @@
                         </div>
                         <div>
                             <label class="text-xs text-gray-500">Скидка (%)</label>
-                            <input id="detailDiscount" type="number" step="0.01" min="0" max="100" onchange="saveDetailHeader()" class="border p-0.5 rounded-md text-xs w-full">
+                            <input id="detailDiscount" type="number" autocomplete="off" inputmode="decimal" step="0.01" min="0" max="100" onchange="saveDetailHeader()" class="border p-0.5 rounded-md text-xs w-full">
                         </div>
                         <div>
                             <label class="text-xs text-gray-500">Исполнитель</label>
@@ -656,8 +656,8 @@
                                     <input id="newItemProduct" oninput="autoFillNewItemPrice()" placeholder="— изделие —" autocomplete="off" class="text-xs">
                                     <div id="newItemProductDropdown" class="search-dropdown hidden"></div>
                                 </div></td>
-                                <td><input id="newItemQty" type="number" step="0.01" min="0.01" placeholder="1" class="text-xs"></td>
-                                <td><input id="newItemPrice" type="number" step="0.01" placeholder="0.00" class="text-xs"></td>
+                                <td><input id="newItemQty" type="number" autocomplete="off" inputmode="decimal" step="0.01" min="0.01" placeholder="1" class="text-xs"></td>
+                                <td><input id="newItemPrice" type="number" autocomplete="off" inputmode="decimal" step="0.01" placeholder="0.00" class="text-xs"></td>
                                 <td class="text-xs text-gray-400 text-center">—</td>
                                 <td class="text-center">
                                     <button onclick="addItemToOrder()" class="btn bg-gray-500 text-white px-2 py-0.5 rounded text-xs hover:bg-gray-600">+ Добавить</button>
@@ -685,7 +685,7 @@
             <div class="modal-content">
                 <h2 class="text-base font-semibold mb-2 text-gray-800">Редактировать изделие</h2>
                 <input id="editProductName" type="text" placeholder="Название изделия" class="border p-0.5 rounded-md mb-1 w-full text-xs">
-                <input id="editProductPrice" type="number" step="0.01" placeholder="Продажная цена (€)" class="border p-0.5 rounded-md mb-2 w-full text-xs">
+                <input id="editProductPrice" type="number" autocomplete="off" inputmode="decimal" step="0.01" placeholder="Продажная цена (€)" class="border p-0.5 rounded-md mb-2 w-full text-xs">
                 <button onclick="saveProductEdit()" class="btn bg-gray-500 text-white p-0.5 rounded-md hover:bg-gray-600 mr-1 text-xs">Сохранить</button>
                 <button onclick="closeModal()" class="btn bg-gray-400 text-white p-0.5 rounded-md hover:bg-gray-500 text-xs">Отмена</button>
             </div>
@@ -696,8 +696,8 @@
             <div class="modal-content">
                 <h2 class="text-base font-semibold mb-2 text-gray-800">Редактировать ингредиент</h2>
                 <input id="editIngredientName" type="text" placeholder="Название ингредиента" class="border p-0.5 rounded-md mb-1 w-full text-xs">
-                <input id="editIngredientPackagePrice" type="number" step="0.01" placeholder="Цена за упаковку (€)" class="border p-0.5 rounded-md mb-1 w-full text-xs">
-                <input id="editIngredientPackageSize" type="number" step="0.01" placeholder="Размер упаковки" class="border p-0.5 rounded-md mb-1 w-full text-xs">
+                <input id="editIngredientPackagePrice" type="number" autocomplete="off" inputmode="decimal" step="0.01" placeholder="Цена за упаковку (€)" class="border p-0.5 rounded-md mb-1 w-full text-xs">
+                <input id="editIngredientPackageSize" type="number" autocomplete="off" inputmode="decimal" step="0.01" placeholder="Размер упаковки" class="border p-0.5 rounded-md mb-1 w-full text-xs">
                 <select id="editIngredientUnit" class="border p-0.5 rounded-md mb-2 w-full text-xs">
                     <option value="g">граммы (г)</option>
                     <option value="kg">килограммы (кг)</option>
@@ -719,7 +719,7 @@
                     <option value="">Выберите ингредиент</option>
                 </select>
                 <label class="text-xs text-gray-600">Количество</label>
-                <input id="editRecipeQty" type="number" step="0.01" min="0" class="border p-0.5 rounded-md mb-2 w-full text-xs">
+                <input id="editRecipeQty" type="number" autocomplete="off" inputmode="decimal" step="0.01" min="0" class="border p-0.5 rounded-md mb-2 w-full text-xs">
                 <button onclick="saveRecipeItemEdit()" class="btn bg-gray-500 text-white p-0.5 rounded-md hover:bg-gray-600 mr-1 text-xs">Сохранить</button>
                 <button onclick="closeModal()" class="btn bg-gray-400 text-white p-0.5 rounded-md hover:bg-gray-500 text-xs">Отмена</button>
             </div>
@@ -730,7 +730,7 @@
             <div class="modal-content">
                 <h2 class="text-base font-semibold mb-2 text-gray-800">Редактировать полуфабрикат</h2>
                 <input id="editSemiFinishedName" type="text" placeholder="Название" class="border p-0.5 rounded-md mb-1 w-full text-xs">
-                <input id="editSemiFinishedBatchSize" type="number" step="0.01" min="0.01" placeholder="Размер партии" class="border p-0.5 rounded-md mb-1 w-full text-xs">
+                <input id="editSemiFinishedBatchSize" type="number" autocomplete="off" inputmode="decimal" step="0.01" min="0.01" placeholder="Размер партии" class="border p-0.5 rounded-md mb-1 w-full text-xs">
                 <select id="editSemiFinishedUnit" class="border p-0.5 rounded-md mb-2 w-full text-xs">
                     <option value="g">граммы (г)</option>
                     <option value="kg">килограммы (кг)</option>
@@ -751,7 +751,7 @@
                     <option value="">Выберите ингредиент</option>
                 </select>
                 <label class="text-xs text-gray-600">Количество</label>
-                <input id="editSfRecipeQty" type="number" step="0.01" min="0" class="border p-0.5 rounded-md mb-2 w-full text-xs">
+                <input id="editSfRecipeQty" type="number" autocomplete="off" inputmode="decimal" step="0.01" min="0" class="border p-0.5 rounded-md mb-2 w-full text-xs">
                 <button onclick="saveSfRecipeItemEdit()" class="btn bg-gray-500 text-white p-0.5 rounded-md hover:bg-gray-600 mr-1 text-xs">Сохранить</button>
                 <button onclick="closeModal()" class="btn bg-gray-400 text-white p-0.5 rounded-md hover:bg-gray-500 text-xs">Отмена</button>
             </div>
@@ -763,7 +763,7 @@
                 <h2 class="text-base font-semibold mb-2 text-gray-800">Редактировать клиента</h2>
                 <input id="editCustomerName" type="text" placeholder="Имя клиента" class="border p-0.5 rounded-md mb-1 w-full text-xs">
                 <input id="editCustomerContact" type="text" placeholder="Контакты" class="border p-0.5 rounded-md mb-1 w-full text-xs">
-                <input id="editCustomerDiscount" type="number" step="0.01" placeholder="Скидка (%)" class="border p-0.5 rounded-md mb-1 w-full text-xs">
+                <input id="editCustomerDiscount" type="number" autocomplete="off" inputmode="decimal" step="0.01" placeholder="Скидка (%)" class="border p-0.5 rounded-md mb-1 w-full text-xs">
                 <label class="flex items-center gap-2 text-xs text-gray-700 px-0.5 mb-2">
                     <input id="editCustomerVatExempt" type="checkbox"> Без НДС
                 </label>
@@ -782,9 +782,9 @@
                     <div id="editItemProductDropdown" class="search-dropdown hidden"></div>
                 </div>
                 <label class="text-xs text-gray-600">Количество</label>
-                <input id="editItemQty" type="number" step="0.01" min="0.01" class="border p-0.5 rounded-md mb-1 w-full text-xs">
+                <input id="editItemQty" type="number" autocomplete="off" inputmode="decimal" step="0.01" min="0.01" class="border p-0.5 rounded-md mb-1 w-full text-xs">
                 <label class="text-xs text-gray-600">Цена (€)</label>
-                <input id="editItemPrice" type="number" step="0.01" class="border p-0.5 rounded-md mb-2 w-full text-xs">
+                <input id="editItemPrice" type="number" autocomplete="off" inputmode="decimal" step="0.01" class="border p-0.5 rounded-md mb-2 w-full text-xs">
                 <button onclick="saveItemEdit()" class="btn bg-gray-500 text-white p-0.5 rounded-md hover:bg-gray-600 mr-1 text-xs">Сохранить</button>
                 <button onclick="closeModal()" class="btn bg-gray-400 text-white p-0.5 rounded-md hover:bg-gray-500 text-xs">Отмена</button>
             </div>
@@ -861,11 +861,11 @@
                 <div class="grid grid-cols-2 gap-2">
                     <div>
                         <label class="text-xs text-gray-600">Цена упаковки (€)</label>
-                        <input id="qaiPrice" type="number" step="0.01" min="0" class="border p-1 rounded-md mb-1 w-full text-xs">
+                        <input id="qaiPrice" type="number" autocomplete="off" inputmode="decimal" step="0.01" min="0" class="border p-1 rounded-md mb-1 w-full text-xs">
                     </div>
                     <div>
                         <label class="text-xs text-gray-600">Размер упаковки</label>
-                        <input id="qaiSize" type="number" step="0.01" min="0.01" class="border p-1 rounded-md mb-1 w-full text-xs">
+                        <input id="qaiSize" type="number" autocomplete="off" inputmode="decimal" step="0.01" min="0.01" class="border p-1 rounded-md mb-1 w-full text-xs">
                     </div>
                 </div>
                 <label class="text-xs text-gray-600">Единица измерения</label>
@@ -904,6 +904,7 @@
                         <option value="all">Весь период</option>
                         <option value="week">Текущая неделя</option>
                         <option value="month">Текущий месяц</option>
+                        <option value="year">Текущий год</option>
                         <option value="custom">От - До</option>
                     </select>
                 </div>
