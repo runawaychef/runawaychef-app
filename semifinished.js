@@ -28,7 +28,7 @@ function semiFinishedUnitCost(sf) {
 }
 
 function displaySemiFinished() {
-    semiFinished.sort((a, b) => a.name.localeCompare(b.name));
+    semiFinished.sort((a, b) => (a.name||"").localeCompare(b.name||""));
     const tbody = document.getElementById('semiFinishedTableBody');
     if (!tbody) return;
     tbody.innerHTML = '';
@@ -152,7 +152,7 @@ async function saveSfdHeader() {
 
 function fillNewSfRecipeIngredientSelect() {
     setupSearchDropdown('newSfRecipeIngredient', 'newSfRecipeIngredientDropdown',
-        () => ingredients.slice().sort((a,b)=>a.name.localeCompare(b.name)).map(i => i.name),
+        () => ingredients.slice().sort((a,b)=>(a.name||"").localeCompare(b.name||"")).map(i => i.name),
         null, (text) => openQuickAddIngredientModal(text, 'semiFinished'));
 }
 
@@ -229,7 +229,7 @@ function openEditSfRecipeItemModal(i) {
 
     const sel = document.getElementById('editSfRecipeIngredient');
     sel.innerHTML = '<option value="">Выберите ингредиент</option>';
-    ingredients.sort((a,b)=>a.name.localeCompare(b.name)).forEach(ing => {
+    ingredients.sort((a,b)=>(a.name||"").localeCompare(b.name||"")).forEach(ing => {
         const opt = document.createElement('option');
         opt.value = ing.id; opt.textContent = ing.name;
         if (ing.id === ri.ingredient_id) opt.selected = true;
@@ -305,7 +305,7 @@ function setupCopySfRecipeControl(sf) {
     setupSearchDropdown('copySfRecipeFromInput', 'copySfRecipeFromDropdown',
         () => semiFinished
             .filter(s => s.id !== currentSemiFinishedId && (s.ingredients || []).length)
-            .sort((a,b) => a.name.localeCompare(b.name))
+            .sort((a,b) => (a.name||"").localeCompare(b.name||""))
             .map(s => s.name),
         (name) => {
             document.getElementById('copySfRecipeFromInput').value = '';

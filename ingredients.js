@@ -16,7 +16,7 @@ function ingredientUnitPrice(ing) {
 }
 
 function displayIngredients() {
-    ingredients.sort((a, b) => a.name.localeCompare(b.name));
+    ingredients.sort((a, b) => (a.name||"").localeCompare(b.name||""));
     const tbody = document.getElementById('ingredientTableBody');
     if (!tbody) return;
     tbody.innerHTML = '';

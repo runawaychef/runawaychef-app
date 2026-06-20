@@ -157,7 +157,7 @@ function updateOrderCustomerFilter() {
     const list = document.getElementById('orderFilterList');
     if (!list) return;
     list.innerHTML = '';
-    customers.sort((a,b)=>a.name.localeCompare(b.name)).forEach(c => {
+    customers.sort((a,b)=>(a.name||"").localeCompare(b.name||"")).forEach(c => {
         const checked = selectedOrderCustomers.includes(c.name) ? 'checked' : '';
         const label = document.createElement('label');
         label.className = 'flex items-center gap-2 px-1 py-1 text-xs hover:bg-gray-50 rounded';

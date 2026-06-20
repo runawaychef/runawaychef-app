@@ -7,7 +7,7 @@
 // updateOrderCustomerFilter, openDeleteModal, closeModal (главный скрипт).
 
 function displayCustomers() {
-    customers.sort((a, b) => a.name.localeCompare(b.name));
+    customers.sort((a, b) => (a.name||"").localeCompare(b.name||""));
     const tbody = document.getElementById('customerTableBody');
     tbody.innerHTML = '';
     let warningCount = 0;

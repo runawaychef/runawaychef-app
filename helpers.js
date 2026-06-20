@@ -62,7 +62,13 @@ function setupSearchDropdown(inputId, dropdownId, getItems, onPick, onCreate) {
     input.dataset.searchInit = '1';
 
     function render(filterText) {
-        const items = getItems() || [];
+        let items;
+        try {
+            items = (getItems() || []).filter(name => typeof name === 'string' && name.length > 0);
+        } catch (e) {
+            console.error('setupSearchDropdown getItems() error:', e);
+            items = [];
+        }
         const q = (filterText || '').trim().toLowerCase();
         const filtered = q ? items.filter(name => name.toLowerCase().includes(q)) : items;
         dropdown.innerHTML = '';
@@ -109,53 +115,30 @@ function setupSearchDropdown(inputId, dropdownId, getItems, onPick, onCreate) {
 function updateProductSelects() {
     // Для строки добавления / редактирования позиции в детальном виде заказа
     setupSearchDropdown('newItemProduct', 'newItemProductDropdown',
-        () => products.slice().sort((a,b)=>a.name.localeCompare(b.name)).map(p => p.name),
+        () => products.slice().sort((a,b)=>(a.name||"").localeCompare(b.name||"")).map(p => p.name),
         () => autoFillNewItemPrice());
     setupSearchDropdown('editItemProduct', 'editItemProductDropdown',
-        () => products.slice().sort((a,b)=>a.name.localeCompare(b.name)).map(p => p.name),
+        () => products.slice().sort((a,b)=>(a.name||"").localeCompare(b.name||"")).map(p => p.name),
         () => autoFillEditItemPrice());
 }
 
 function updateCustomerSelects() {
-    fillDetailCustomerSelect('');
-    updateCustomerSelectInModal('editOrderCustomer', '');
+    setupSearchDropdown('orderCustomer', 'orderCustomerDropdown',
+        () => customers.slice().sort((a,b)=>(a.name||"").localeCompare(b.name||"")).map(c => c.name));
+
+    setupSearchDropdown('detailCustomer', 'detailCustomerDropdown',
+        () => customers.slice().sort((a,b)=>(a.name||"").localeCompare(b.name||"")).map(c => c.name),
+        () => onDetailCustomerChange());
+
+    setupSearchDropdown('editOrderCustomer', 'editOrderCustomerDropdown',
+        () => customers.slice().sort((a,b)=>(a.name||"").localeCompare(b.name||"")).map(c => c.name));
 }
 
+// Подставляет текущее значение клиента в поле детального просмотра заказа
+// (вызывается при открытии заказа — список к этому моменту уже инициализирован).
 function fillDetailCustomerSelect(selected) {
-    const sel = document.getElementById('detailCustomer');
-    if (!sel) return;
-    sel.innerHTML = '<option value="">Выберите клиента</option>';
-    customers.sort((a,b)=>a.name.localeCompare(b.name)).forEach(c => {
-        const opt = document.createElement('option');
-        opt.value = c.name; opt.textContent = c.name;
-        if (c.name === selected) opt.selected = true;
-        sel.appendChild(opt);
-    });
-
-    // Для формы нового заказа
-    const sel2 = document.getElementById('orderCustomer');
-    if (sel2) {
-        const prev = sel2.value;
-        sel2.innerHTML = '<option value="">Выберите клиента</option>';
-        customers.sort((a,b)=>a.name.localeCompare(b.name)).forEach(c => {
-            const opt = document.createElement('option');
-            opt.value = c.name; opt.textContent = c.name;
-            if (c.name === prev) opt.selected = true;
-            sel2.appendChild(opt);
-        });
-    }
-}
-
-function updateCustomerSelectInModal(selId, selected) {
-    const sel = document.getElementById(selId);
-    if (!sel) return;
-    sel.innerHTML = '<option value="">Выберите клиента</option>';
-    customers.sort((a,b)=>a.name.localeCompare(b.name)).forEach(c => {
-        const opt = document.createElement('option');
-        opt.value = c.name; opt.textContent = c.name;
-        if (c.name === selected) opt.selected = true;
-        sel.appendChild(opt);
-    });
+    const input = document.getElementById('detailCustomer');
+    if (input) input.value = selected || '';
 }
 
 // SVG-иконки (вариант E3: серые контурные, подсвечиваются своим цветом при наведении/нажатии — см. .action-icon в index.html)

@@ -8,7 +8,7 @@
 const UNIT_PRODUCT_LABELS = { pcs: 'шт', kg: 'кг' };
 
 function displayProducts() {
-    products.sort((a, b) => a.name.localeCompare(b.name));
+    products.sort((a, b) => (a.name||"").localeCompare(b.name||""));
     const tbody = document.getElementById('productTableBody');
     tbody.innerHTML = '';
     let warningCount = 0;
@@ -159,9 +159,9 @@ async function savePdHeader() {
 
 function fillNewRecipeIngredientSelect() {
     setupSearchDropdown('newRecipeIngredient', 'newRecipeIngredientDropdown', () => {
-        const names = ingredients.slice().sort((a,b)=>a.name.localeCompare(b.name)).map(i => i.name);
+        const names = ingredients.slice().sort((a,b)=>(a.name||"").localeCompare(b.name||"")).map(i => i.name);
         const sfNames = (typeof semiFinished !== 'undefined')
-            ? semiFinished.slice().sort((a,b)=>a.name.localeCompare(b.name)).map(s => s.name + ' (п/ф)')
+            ? semiFinished.slice().sort((a,b)=>(a.name||"").localeCompare(b.name||"")).map(s => s.name + ' (п/ф)')
             : [];
         return names.concat(sfNames);
     }, null, (text) => openQuickAddIngredientModal(text, 'product'));
@@ -281,7 +281,7 @@ function openEditRecipeItemModal(i) {
     if (ingredients.length) {
         const grpIng = document.createElement('optgroup');
         grpIng.label = 'Ингредиенты';
-        ingredients.sort((a,b)=>a.name.localeCompare(b.name)).forEach(ing => {
+        ingredients.sort((a,b)=>(a.name||"").localeCompare(b.name||"")).forEach(ing => {
             const opt = document.createElement('option');
             opt.value = 'ing-' + ing.id; opt.textContent = ing.name;
             if (opt.value === currentValue) opt.selected = true;
@@ -292,7 +292,7 @@ function openEditRecipeItemModal(i) {
     if (typeof semiFinished !== 'undefined' && semiFinished.length) {
         const grpSf = document.createElement('optgroup');
         grpSf.label = 'Полуфабрикаты';
-        semiFinished.sort((a,b)=>a.name.localeCompare(b.name)).forEach(sf => {
+        semiFinished.sort((a,b)=>(a.name||"").localeCompare(b.name||"")).forEach(sf => {
             const opt = document.createElement('option');
             opt.value = 'sf-' + sf.id; opt.textContent = sf.name;
             if (opt.value === currentValue) opt.selected = true;
@@ -395,7 +395,7 @@ function setupCopyRecipeControl(prod) {
     setupSearchDropdown('copyRecipeFromInput', 'copyRecipeFromDropdown',
         () => products
             .filter(p => p.id !== currentProductId && (p.ingredients || []).length)
-            .sort((a,b) => a.name.localeCompare(b.name))
+            .sort((a,b) => (a.name||"").localeCompare(b.name||""))
             .map(p => p.name),
         (name) => {
             document.getElementById('copyRecipeFromInput').value = '';
