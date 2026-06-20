@@ -222,12 +222,12 @@ function drawCustomerTable(filtered) {
         return;
     }
 
-    let html = '<table class="w-full stats-table"><thead><tr class="bg-gray-100" style="position:sticky;top:0;"><th class="p-0.5 text-left">Клиент</th><th class="p-0.5 text-right">Кол-во</th><th class="p-0.5 text-right">Сумма (€)</th><th class="p-0.5 text-right">НДС (€)</th><th class="p-0.5 text-right">Доля</th></tr></thead><tbody>';
+    let html = '<table class="w-full stats-table" style="table-layout:fixed;"><thead><tr class="bg-gray-100" style="position:sticky;top:0;"><th class="p-0.5 text-left" style="width:40%;">Клиент</th><th class="p-0.5 text-right" style="width:15%;">Кол-во</th><th class="p-0.5 text-right" style="width:20%;">Сумма (€)</th><th class="p-0.5 text-right" style="width:15%;">НДС (€)</th><th class="p-0.5 text-right" style="width:10%;">Доля</th></tr></thead><tbody>';
     html += buildCustomerRowsHtml(sorted, totals, vats, qtys, grandTotal);
     html += '</tbody></table>';
     container.innerHTML = html;
     totalContainer.innerHTML =
-        `<table class="w-full stats-table"><tr class="bg-gray-50 font-semibold"><td class="p-0.5" style="width:40%">Итого</td><td class="p-0.5 text-right" style="width:15%">${grandQty}</td><td class="p-0.5 text-right" style="width:20%">${grandTotal.toFixed(2)}</td><td class="p-0.5 text-right text-blue-700" style="width:15%">${grandVat.toFixed(2)}</td><td class="p-0.5" style="width:10%"></td></tr></table>`;
+        `<table class="w-full stats-table" style="table-layout:fixed;"><tr class="bg-gray-50 font-semibold"><td class="p-0.5" style="width:40%">Итого</td><td class="p-0.5 text-right" style="width:15%">${grandQty}</td><td class="p-0.5 text-right" style="width:20%">${grandTotal.toFixed(2)}</td><td class="p-0.5 text-right text-blue-700" style="width:15%">${grandVat.toFixed(2)}</td><td class="p-0.5" style="width:10%"></td></tr></table>`;
 }
 
 // --- Топ изделий ---
