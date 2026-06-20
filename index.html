@@ -187,7 +187,7 @@
                 <div class="bg-white p-2 rounded-md shadow-md">
                     <h2 class="text-lg font-semibold mb-2 text-gray-800">Список изделий</h2>
                     <p class="text-xs text-gray-400 mb-2">Нажмите на строку изделия, чтобы открыть рецептуру</p>
-                    <p id="productsUnitWarning" class="text-xs text-red-600 bg-red-50 border border-red-200 rounded-md p-1.5 mb-2 hidden">⚠ У некоторых изделий не выбрана единица измерения (шт/кг). Откройте их и укажите единицу.</p>
+                    <p id="productsUnitWarning" class="text-xs text-red-600 bg-red-50 border border-red-200 rounded-md p-1.5 mb-2 hidden">⚠ У некоторых изделий не выбрана единица измерения или не подтверждён рецепт. Откройте их и проверьте.</p>
                     <table class="w-full table-auto">
                         <thead><tr class="bg-gray-100">
                             <th class="p-0.5 text-xs w-[45%]">Название</th>
@@ -269,6 +269,10 @@
                             <button onclick="addIngredientToRecipe()" class="btn bg-gray-500 text-white px-3 py-1 rounded-md text-xs hover:bg-gray-600 whitespace-nowrap">+ Добавить</button>
                         </div>
                     </div>
+                    <label class="flex items-center gap-2 text-xs text-gray-700 border-t pt-2 mb-1 cursor-pointer">
+                        <input type="checkbox" id="pdRecipeConfirmed" onchange="toggleRecipeConfirmed()">
+                        Рецепт заполнен полностью
+                    </label>
                     <div class="text-right text-xs text-gray-600 space-y-0.5 border-t pt-1">
                         <div>Себестоимость партии: <span id="pdBatchCost" class="font-medium text-gray-800">0.00 €</span></div>
                         <div>Себестоимость 1 шт: <span id="pdUnitCost" class="font-semibold text-gray-900">0.00 €</span></div>
@@ -341,6 +345,7 @@
                 <div class="bg-white p-2 rounded-md shadow-md">
                     <h2 class="text-lg font-semibold mb-2 text-gray-800">Список полуфабрикатов</h2>
                     <p class="text-xs text-gray-400 mb-2">Нажмите на строку, чтобы открыть рецептуру</p>
+                    <p id="semiFinishedRecipeWarning" class="text-xs text-red-600 bg-red-50 border border-red-200 rounded-md p-1.5 mb-2 hidden">⚠ У некоторых полуфабрикатов не подтверждён рецепт. Откройте их и проверьте.</p>
                     <table class="w-full table-auto">
                         <thead><tr class="bg-gray-100">
                             <th class="p-0.5 text-xs w-[40%]">Название</th>
@@ -416,6 +421,10 @@
                             <button onclick="addIngredientToSfRecipe()" class="btn bg-gray-500 text-white px-3 py-1 rounded-md text-xs hover:bg-gray-600 whitespace-nowrap">+ Добавить</button>
                         </div>
                     </div>
+                    <label class="flex items-center gap-2 text-xs text-gray-700 border-t pt-2 mb-1 cursor-pointer">
+                        <input type="checkbox" id="sfdRecipeConfirmed" onchange="toggleSfRecipeConfirmed()">
+                        Рецепт заполнен полностью
+                    </label>
                     <div class="text-right text-xs text-gray-600 space-y-0.5 border-t pt-1">
                         <div>Себестоимость партии: <span id="sfdBatchCost" class="font-medium text-gray-800">0.00 €</span></div>
                         <div>Себестоимость за единицу: <span id="sfdUnitCost" class="font-semibold text-gray-900">0.0000 €</span></div>
@@ -1042,14 +1051,14 @@ async function loadAllData() {
     showLoading();
     try {
         const [pRes, cRes, oRes, oiRes, eRes, ingRes, piRes, sfRes, sfiRes] = await Promise.all([
-            db.from('products').select('id, name, price, batch_size, other_costs, unit').order('name'),
+            db.from('products').select('id, name, price, batch_size, other_costs, unit, recipe_confirmed').order('name'),
             db.from('customers').select('id, name, contact, discount, vat_exempt').order('name'),
             db.from('orders').select('id, customer_id, order_date, status, discount, vat_exempt, employee_id, notes'),
             db.from('order_items').select('id, order_id, product_id, quantity, price'),
             db.from('employees').select('id, name').order('name'),
             db.from('ingredients').select('id, name, package_price, package_size, unit').order('name'),
             db.from('product_ingredients').select('id, product_id, ingredient_id, semi_finished_id, quantity'),
-            db.from('semi_finished').select('id, name, batch_size, unit, other_costs').order('name'),
+            db.from('semi_finished').select('id, name, batch_size, unit, other_costs, recipe_confirmed').order('name'),
             db.from('semi_finished_ingredients').select('id, semi_finished_id, ingredient_id, quantity')
         ]);
         if (pRes.error) throw pRes.error;
@@ -1071,6 +1080,7 @@ async function loadAllData() {
         });
         semiFinished = (sfRes.data || []).map(sf => ({
             id: sf.id, name: sf.name, batch_size: Number(sf.batch_size || 1), unit: sf.unit, other_costs: Number(sf.other_costs || 0),
+            recipe_confirmed: !!sf.recipe_confirmed,
             ingredients: sfRecipeBySf[sf.id] || []
         }));
 
@@ -1084,6 +1094,7 @@ async function loadAllData() {
             id: p.id, name: p.name, price: Number(p.price),
             batch_size: Number(p.batch_size || 1), other_costs: Number(p.other_costs || 0),
             unit: p.unit || '',
+            recipe_confirmed: !!p.recipe_confirmed,
             ingredients: recipeByProduct[p.id] || []
         }));
         customers = (cRes.data || []).map(c => ({ id: c.id, name: c.name, contact: c.contact || '', discount: Number(c.discount || 0), vat_exempt: !!c.vat_exempt }));
