@@ -288,12 +288,12 @@ function drawProductProfitabilityTable() {
         return;
     }
     const sorted = [...withRecipe].sort((a, b) => productProfitPct(b) - productProfitPct(a)).slice(0, 10);
-    let html = '<table class="w-full stats-table"><thead><tr class="bg-gray-100"><th class="p-0.5 text-left">Изделие</th><th class="p-0.5 text-right">Себест.</th><th class="p-0.5 text-right">Цена</th><th class="p-0.5 text-right">Рент.</th></tr></thead><tbody>';
+    let html = '<table class="w-full stats-table" style="table-layout:fixed;"><thead><tr class="bg-gray-100"><th class="p-0.5 text-left" style="width:46%;">Изделие</th><th class="p-0.5 text-right" style="width:18%;">Себест. (€)</th><th class="p-0.5 text-right" style="width:18%;">Цена (€)</th><th class="p-0.5 text-right" style="width:18%;">Рент.</th></tr></thead><tbody>';
     sorted.forEach(p => {
         const cost = productUnitCost(p);
         const pct  = productProfitPct(p);
         const pctClass = pct >= 0 ? 'text-green-700' : 'text-red-600';
-        html += `<tr class="border-b"><td class="p-0.5">${escapeHtml(p.name)}</td><td class="p-0.5 text-right whitespace-nowrap">${cost.toFixed(2)} €</td><td class="p-0.5 text-right whitespace-nowrap">${p.price.toFixed(2)} €</td><td class="p-0.5 text-right font-semibold whitespace-nowrap ${pctClass}">${pct.toFixed(1)}%</td></tr>`;
+        html += `<tr class="border-b"><td class="p-0.5" style="word-break:break-word;">${escapeHtml(p.name)}</td><td class="p-0.5 text-right whitespace-nowrap">${cost.toFixed(2)}</td><td class="p-0.5 text-right whitespace-nowrap">${p.price.toFixed(2)}</td><td class="p-0.5 text-right font-semibold whitespace-nowrap ${pctClass}">${pct.toFixed(1)}%</td></tr>`;
     });
     html += '</tbody></table>';
     container.innerHTML = html;
