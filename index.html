@@ -101,9 +101,11 @@
         }
         @keyframes spin { to { transform: rotate(360deg); } }
 
-        /* Кнопка настроек (шестерёнка) в правом верхнем углу */
+        /* Кнопка настроек (шестерёнка) в правом верхнем углу.
+           top учитывает безопасную зону iPhone (чёлка/динамический остров) —
+           на Android env() равен 0, поведение не меняется. */
         #settingsBtn {
-            position: fixed; top: 6px; right: 6px;
+            position: fixed; top: calc(6px + env(safe-area-inset-top)); right: 6px;
             background: white; border: 1px solid #e5e7eb; border-radius: 50%;
             width: 34px; height: 34px; display: flex; align-items: center; justify-content: center;
             z-index: 50; box-shadow: 0 1px 3px rgba(0,0,0,0.08); cursor: pointer;
