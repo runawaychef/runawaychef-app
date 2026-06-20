@@ -47,12 +47,14 @@ function getFilteredOrders() {
     const dateTo    = document.getElementById('statsDateTo')   ? document.getElementById('statsDateTo').value   : '';
     let filtered = [...orders];
     if (selectedStatsCustomers.length > 0) filtered = filtered.filter(o => selectedStatsCustomers.includes(o.customer));
-    if (dateRange === 'week' || dateRange === 'month') {
+    if (dateRange === 'week' || dateRange === 'month' || dateRange === 'year') {
         const today = new Date();
         let start;
         if (dateRange === 'week') {
             start = new Date(today);
             start.setDate(today.getDate() - today.getDay() + (today.getDay() === 0 ? -6 : 1));
+        } else if (dateRange === 'year') {
+            start = new Date(today.getFullYear(), 0, 1);
         } else {
             start = new Date(today.getFullYear(), today.getMonth(), 1);
         }
