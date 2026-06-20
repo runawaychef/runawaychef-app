@@ -11,13 +11,15 @@ function displayProducts() {
     products.sort((a, b) => a.name.localeCompare(b.name));
     const tbody = document.getElementById('productTableBody');
     tbody.innerHTML = '';
-    let missingUnitCount = 0;
+    let warningCount = 0;
     products.forEach((p, i) => {
         const hasUnit = !!p.unit;
-        if (!hasUnit) missingUnitCount++;
+        const recipeOk = !!p.recipe_confirmed;
+        const needsAttention = !hasUnit || !recipeOk;
+        if (needsAttention) warningCount++;
         const unitLabel = hasUnit ? UNIT_PRODUCT_LABELS[p.unit] : '⚠';
         const row = document.createElement('tr');
-        row.className = 'order-row' + (hasUnit ? '' : ' bg-red-50');
+        row.className = 'order-row' + (needsAttention ? ' bg-red-50' : '');
         row.innerHTML = `
             <td class="border p-0.5 text-xs" onclick="openProductDetail(${p.id})">${escapeHtml(p.name)}</td>
             <td class="border p-0.5 text-xs text-center ${hasUnit ? '' : 'text-red-600 font-semibold'}" onclick="openProductDetail(${p.id})">${unitLabel}</td>
@@ -30,7 +32,7 @@ function displayProducts() {
         tbody.appendChild(row);
     });
     const warningEl = document.getElementById('productsUnitWarning');
-    if (warningEl) warningEl.classList.toggle('hidden', missingUnitCount === 0);
+    if (warningEl) warningEl.classList.toggle('hidden', warningCount === 0);
     updateProductSelects();
 }
 
@@ -105,6 +107,7 @@ function openProductDetail(productId) {
     document.getElementById('pdPrice').value = prod.price.toFixed(2);
     document.getElementById('pdBatchSize').value = prod.batch_size || 1;
     document.getElementById('pdOtherCosts').value = (prod.other_costs || 0).toFixed(2);
+    document.getElementById('pdRecipeConfirmed').checked = !!prod.recipe_confirmed;
 
     updatePdUnitUI(prod.unit);
     renderProductRecipe(prod);
@@ -250,6 +253,7 @@ async function addIngredientToRecipe() {
         if (!prod.ingredients) prod.ingredients = [];
         prod.ingredients.push({ id: data.id, ingredient_id: data.ingredient_id, semi_finished_id: data.semi_finished_id, quantity: Number(data.quantity) });
         renderProductRecipe(prod);
+        await resetProductRecipeConfirmed(prod);
         let itemName = '';
         if (type === 'sf') {
             const sf = semiFinished.find(s => s.id === selectedId);
@@ -326,6 +330,7 @@ async function saveRecipeItemEdit() {
             quantity
         };
         renderProductRecipe(prod);
+        await resetProductRecipeConfirmed(prod);
         closeModal();
         logActivity('product', `Изменён ингредиент в рецепте «${prod.name}»`);
     } catch (e) { console.error(e); alert('Ошибка сохранения. Проверьте подключение.'); }
@@ -345,6 +350,39 @@ function deleteRecipeItem(i) {
         itemName = ing ? ing.name : '';
     }
     openDeleteModal(i, 'recipeItem', `«${itemName}» из рецепта`);
+}
+
+// ==================== ПОДТВЕРЖДЕНИЕ "РЕЦЕПТ ЗАПОЛНЕН ПОЛНОСТЬЮ" ====================
+// Ручная галочка (не выводится автоматически). Сбрасывается сама при любом
+// изменении состава рецепта (добавление/правка/удаление позиции, копирование),
+// чтобы не вводить в заблуждение — рецепт нужно подтвердить заново.
+
+async function toggleRecipeConfirmed() {
+    const prod = products.find(p => p.id === currentProductId);
+    if (!prod) return;
+    const checked = document.getElementById('pdRecipeConfirmed').checked;
+    showLoading();
+    try {
+        const { error } = await db.from('products').update({ recipe_confirmed: checked }).eq('id', prod.id);
+        if (error) throw error;
+        prod.recipe_confirmed = checked;
+        logActivity('product', `Рецепт «${prod.name}» отмечен как ${checked ? 'заполненный полностью' : 'неполный'}`);
+    } catch (e) {
+        console.error(e); alert('Ошибка сохранения. Проверьте подключение.');
+        document.getElementById('pdRecipeConfirmed').checked = !checked; // откатываем чекбокс
+    } finally { hideLoading(); }
+}
+
+// Сбрасывает подтверждение при любом изменении состава рецепта (без отдельного
+// индикатора загрузки — это "побочный эффект" основного действия, не должно его тормозить).
+async function resetProductRecipeConfirmed(prod) {
+    if (!prod.recipe_confirmed) return; // уже не подтверждён — нечего сбрасывать
+    prod.recipe_confirmed = false;
+    const checkbox = document.getElementById('pdRecipeConfirmed');
+    if (checkbox) checkbox.checked = false;
+    try {
+        await db.from('products').update({ recipe_confirmed: false }).eq('id', prod.id);
+    } catch (e) { console.error('Не удалось сбросить recipe_confirmed:', e); }
 }
 
 // ==================== КОПИРОВАНИЕ РЕЦЕПТА ИЗ ДРУГОГО ИЗДЕЛИЯ ====================
@@ -393,6 +431,7 @@ async function copyRecipeFromProductByName(sourceName) {
         if (!prod.ingredients) prod.ingredients = [];
         data.forEach(d => prod.ingredients.push({ id: d.id, ingredient_id: d.ingredient_id, semi_finished_id: d.semi_finished_id, quantity: Number(d.quantity) }));
         renderProductRecipe(prod);
+        await resetProductRecipeConfirmed(prod);
         logActivity('product', `В рецепт «${prod.name}» скопировано ${toCopy.length} поз. из рецепта «${sourceName}»`);
     } catch (e) { console.error(e); alert('Ошибка сохранения. Проверьте подключение.'); }
     finally { hideLoading(); }

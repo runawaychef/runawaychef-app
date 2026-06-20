@@ -32,11 +32,14 @@ function displaySemiFinished() {
     const tbody = document.getElementById('semiFinishedTableBody');
     if (!tbody) return;
     tbody.innerHTML = '';
+    let warningCount = 0;
     semiFinished.forEach((sf, i) => {
         const unitLabel = SF_UNIT_LABELS[sf.unit] || sf.unit;
         const unitCost = semiFinishedUnitCost(sf);
+        const needsAttention = !sf.recipe_confirmed;
+        if (needsAttention) warningCount++;
         const row = document.createElement('tr');
-        row.className = 'order-row';
+        row.className = 'order-row' + (needsAttention ? ' bg-red-50' : '');
         row.innerHTML = `
             <td class="border p-0.5 text-xs" onclick="openSemiFinishedDetail(${sf.id})">${escapeHtml(sf.name)}</td>
             <td class="border p-0.5 text-xs text-center" onclick="openSemiFinishedDetail(${sf.id})">${sf.batch_size} ${unitLabel}</td>
@@ -47,6 +50,8 @@ function displaySemiFinished() {
             </td>`;
         tbody.appendChild(row);
     });
+    const warningEl = document.getElementById('semiFinishedRecipeWarning');
+    if (warningEl) warningEl.classList.toggle('hidden', warningCount === 0);
     updateSemiFinishedSelects();
 }
 
@@ -109,6 +114,7 @@ function openSemiFinishedDetail(sfId) {
     document.getElementById('sfdBatchSize').value = sf.batch_size;
     document.getElementById('sfdUnit').value = sf.unit;
     document.getElementById('sfdOtherCosts').value = (sf.other_costs || 0).toFixed(2);
+    document.getElementById('sfdRecipeConfirmed').checked = !!sf.recipe_confirmed;
 
     renderSemiFinishedRecipe(sf);
     fillNewSfRecipeIngredientSelect();
@@ -205,6 +211,7 @@ async function addIngredientToSfRecipe() {
         if (!sf.ingredients) sf.ingredients = [];
         sf.ingredients.push({ id: data.id, ingredient_id: ingredientId, quantity: Number(data.quantity) });
         renderSemiFinishedRecipe(sf);
+        await resetSfRecipeConfirmed(sf);
         logActivity('semiFinished', `В рецепт «${sf.name}» добавлен ингредиент «${ing.name}» (${quantity})`);
         inputEl.value = '';
         document.getElementById('newSfRecipeQty').value = '';
@@ -251,6 +258,7 @@ async function saveSfRecipeItemEdit() {
         if (error) throw error;
         sf.ingredients[editSfRecipeItemIdx] = { id: ri.id, ingredient_id: ingredientId, quantity };
         renderSemiFinishedRecipe(sf);
+        await resetSfRecipeConfirmed(sf);
         closeModal();
         logActivity('semiFinished', `Изменён ингредиент в рецепте «${sf.name}»`);
     } catch (e) { console.error(e); alert('Ошибка сохранения. Проверьте подключение.'); }
@@ -263,6 +271,33 @@ function deleteSfRecipeItem(i) {
     const ri = sf.ingredients[i];
     const ing = ingredients.find(x => x.id === ri.ingredient_id);
     openDeleteModal(i, 'sfRecipeItem', `ингредиент «${ing ? ing.name : ''}» из рецепта полуфабриката`);
+}
+
+// ==================== ПОДТВЕРЖДЕНИЕ "РЕЦЕПТ ЗАПОЛНЕН ПОЛНОСТЬЮ" ====================
+async function toggleSfRecipeConfirmed() {
+    const sf = semiFinished.find(s => s.id === currentSemiFinishedId);
+    if (!sf) return;
+    const checked = document.getElementById('sfdRecipeConfirmed').checked;
+    showLoading();
+    try {
+        const { error } = await db.from('semi_finished').update({ recipe_confirmed: checked }).eq('id', sf.id);
+        if (error) throw error;
+        sf.recipe_confirmed = checked;
+        logActivity('semiFinished', `Рецепт «${sf.name}» отмечен как ${checked ? 'заполненный полностью' : 'неполный'}`);
+    } catch (e) {
+        console.error(e); alert('Ошибка сохранения. Проверьте подключение.');
+        document.getElementById('sfdRecipeConfirmed').checked = !checked;
+    } finally { hideLoading(); }
+}
+
+async function resetSfRecipeConfirmed(sf) {
+    if (!sf.recipe_confirmed) return;
+    sf.recipe_confirmed = false;
+    const checkbox = document.getElementById('sfdRecipeConfirmed');
+    if (checkbox) checkbox.checked = false;
+    try {
+        await db.from('semi_finished').update({ recipe_confirmed: false }).eq('id', sf.id);
+    } catch (e) { console.error('Не удалось сбросить recipe_confirmed:', e); }
 }
 
 // ==================== КОПИРОВАНИЕ РЕЦЕПТА ИЗ ДРУГОГО ПОЛУФАБРИКАТА ====================
@@ -303,6 +338,7 @@ async function copySfRecipeFromByName(sourceName) {
         if (!sf.ingredients) sf.ingredients = [];
         data.forEach(d => sf.ingredients.push({ id: d.id, ingredient_id: d.ingredient_id, quantity: Number(d.quantity) }));
         renderSemiFinishedRecipe(sf);
+        await resetSfRecipeConfirmed(sf);
         logActivity('semiFinished', `В рецепт «${sf.name}» скопировано ${toCopy.length} поз. из рецепта «${sourceName}»`);
     } catch (e) { console.error(e); alert('Ошибка сохранения. Проверьте подключение.'); }
     finally { hideLoading(); }

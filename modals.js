@@ -66,6 +66,7 @@ async function confirmDelete() {
                 if (error) throw error;
                 prod.ingredients.splice(deleteId, 1);
                 renderProductRecipe(prod);
+                await resetProductRecipeConfirmed(prod);
                 logActivity('product', `Удалён ингредиент из рецепта «${prod.name}»`);
             }
         } else if (deleteType === 'semiFinished') {
@@ -83,6 +84,7 @@ async function confirmDelete() {
                 if (error) throw error;
                 sf.ingredients.splice(deleteId, 1);
                 renderSemiFinishedRecipe(sf);
+                await resetSfRecipeConfirmed(sf);
                 logActivity('semiFinished', `Удалён ингредиент из рецепта полуфабриката «${sf.name}»`);
             }
         }
