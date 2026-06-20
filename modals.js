@@ -35,10 +35,17 @@ async function confirmDelete() {
             logActivity('customer', `Удалён клиент «${cust.name}»`);
         } else if (deleteType === 'order') {
             const order = orders[deleteId];
+            const wasOpenInDetail = order.id === currentOrderId;
             // order_items удалятся автоматически (on delete cascade)
             const { error } = await db.from('orders').delete().eq('id', order.id);
             if (error) throw error;
             orders.splice(deleteId, 1);
+            if (wasOpenInDetail) {
+                // Удалили заказ прямо из его карточки — возвращаемся к списку
+                currentOrderId = null;
+                document.getElementById('ordersList').classList.remove('hidden');
+                document.getElementById('orderDetail').classList.remove('active');
+            }
             displayOrders();
             logActivity('order', `Удалён заказ №${order.id} (клиент «${order.customer}»)`);
         } else if (deleteType === 'item') {

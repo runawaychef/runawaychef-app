@@ -383,6 +383,23 @@ function closeOrderDetail() {
     displayOrders();
 }
 
+// Удаление заказа прямо из его карточки (переиспользует стандартное окно
+// подтверждения — openDeleteModal/confirmDelete, как и удаление из списка).
+function deleteCurrentOrder() {
+    const idx = orders.findIndex(o => o.id === currentOrderId);
+    if (idx === -1) return;
+    const order = orders[idx];
+    openDeleteModal(idx, 'order', `заказ клиента «${order.customer}»`);
+}
+
+// Переход из карточки заказа в карточку его клиента (раздел "Клиенты")
+function goToCustomerFromOrder() {
+    const order = orders.find(o => o.id === currentOrderId);
+    if (!order || !order.customer_id) { alert('У этого заказа не указан клиент.'); return; }
+    showTab('customers');
+    openCustomerDetail(order.customer_id);
+}
+
 async function saveDetailHeader() {
     const order = orders.find(o => o.id === currentOrderId);
     if (!order) return;
