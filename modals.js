@@ -21,16 +21,30 @@ async function confirmDelete() {
     try {
         if (deleteType === 'product') {
             const prod = products[deleteId];
+            const wasOpenInDetail = prod.id === currentProductId;
             const { error } = await db.from('products').delete().eq('id', prod.id);
             if (error) throw error;
             products.splice(deleteId, 1);
+            if (wasOpenInDetail) {
+                currentProductId = null;
+                document.getElementById('productsList').classList.remove('hidden');
+                document.getElementById('productDetail').classList.remove('active');
+                refreshFab();
+            }
             displayProducts();
             logActivity('product', `Удалено изделие «${prod.name}»`);
         } else if (deleteType === 'customer') {
             const cust = customers[deleteId];
+            const wasOpenInDetail = cust.id === currentCustomerId;
             const { error } = await db.from('customers').delete().eq('id', cust.id);
             if (error) throw error;
             customers.splice(deleteId, 1);
+            if (wasOpenInDetail) {
+                currentCustomerId = null;
+                document.getElementById('customersList').classList.remove('hidden');
+                document.getElementById('customerDetail').classList.remove('active');
+                refreshFab();
+            }
             displayCustomers();
             logActivity('customer', `Удалён клиент «${cust.name}»`);
         } else if (deleteType === 'order') {
@@ -60,9 +74,16 @@ async function confirmDelete() {
             }
         } else if (deleteType === 'ingredient') {
             const ing = ingredients[deleteId];
+            const wasOpenInDetail = ing.id === currentIngredientId;
             const { error } = await db.from('ingredients').delete().eq('id', ing.id);
             if (error) throw error;
             ingredients.splice(deleteId, 1);
+            if (wasOpenInDetail) {
+                currentIngredientId = null;
+                document.getElementById('ingredientsList').classList.remove('hidden');
+                document.getElementById('ingredientDetail').classList.remove('active');
+                refreshFab();
+            }
             displayIngredients();
             logActivity('ingredient', `Удалён ингредиент «${ing.name}»`);
         } else if (deleteType === 'recipeItem') {

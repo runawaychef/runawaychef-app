@@ -237,27 +237,23 @@ document.addEventListener('click', function(e) {
 
 // ---- Создание и копирование заказа ----
 
-async function createNewOrder() {
-    const customerName = document.getElementById('orderCustomer').value;
-    const date     = document.getElementById('orderDate').value;
-    const status   = document.getElementById('orderStatus').value;
-    if (!customerName || !date) { alert('Выберите клиента и укажите дату!'); return; }
-    const cust = customers.find(c => c.name === customerName);
-    if (!cust) { alert('Клиент не найден!'); return; }
-    const discount = cust.discount || 0;
-    const vatExempt = !!cust.vat_exempt;
+// Кнопка "+": сразу создаёт черновик заказа (клиент пока не выбран,
+// дата — сегодня, статус — "принят") и открывает его карточку.
+// Клиента и остальное можно дозаполнить уже внутри карточки.
+async function createDraftOrderAndOpen() {
+    const today = new Date().toISOString().split('T')[0];
     const employeeId = currentEmployee ? currentEmployee.id : null;
     showLoading();
     try {
         const { data, error } = await db.from('orders').insert({
-            customer_id: cust.id, order_date: date, status, discount, vat_exempt: vatExempt, employee_id: employeeId
+            customer_id: null, order_date: today, status: 'принят', discount: 0, vat_exempt: false, employee_id: employeeId
         }).select().single();
         if (error) throw error;
         const emp = employees.find(e => e.id === data.employee_id);
         const newOrder = {
-            id: data.id, customer_id: cust.id, customer: cust.name,
-            date: data.order_date, status: data.status, discount: Number(data.discount || 0),
-            vat_exempt: !!data.vat_exempt,
+            id: data.id, customer_id: null, customer: '',
+            date: data.order_date, status: data.status, discount: 0,
+            vat_exempt: false,
             employee_id: data.employee_id || null, employee: emp ? emp.name : '',
             notes: '',
             items: []
@@ -265,11 +261,7 @@ async function createNewOrder() {
         orders.push(newOrder);
         displayOrders();
         openOrderDetail(newOrder.id);
-        logActivity('order', `Создан заказ №${newOrder.id} для клиента «${cust.name}»`, newOrder.id);
-        // сбросить форму
-        document.getElementById('orderCustomer').value = '';
-        document.getElementById('orderDate').value = new Date().toISOString().split('T')[0];
-        document.getElementById('orderStatus').value = 'принят';
+        logActivity('order', `Создан черновик заказа №${newOrder.id}`, newOrder.id);
     } catch (e) { console.error(e); alert('Ошибка создания заказа. Проверьте подключение.'); }
     finally { hideLoading(); }
 }
@@ -349,6 +341,7 @@ function openOrderDetail(orderId) {
 
     renderDetailItems(order);
     updateProductSelects();
+    refreshFab();
 }
 
 function fillDetailEmployeeSelect(selectedId) {
@@ -381,6 +374,7 @@ function closeOrderDetail() {
     document.getElementById('ordersList').classList.remove('hidden');
     document.getElementById('orderDetail').classList.remove('active');
     displayOrders();
+    refreshFab();
 }
 
 // Удаление заказа прямо из его карточки (переиспользует стандартное окно

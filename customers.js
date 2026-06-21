@@ -35,6 +35,15 @@ function displayCustomers() {
     updateOrderCustomerFilter();
 }
 
+// Кнопка "+": попап для создания нового клиента
+function openAddCustomerModal() {
+    document.getElementById('customerName').value = '';
+    document.getElementById('customerContact').value = '';
+    document.getElementById('customerDiscount').value = '';
+    document.getElementById('customerVatExempt').checked = false;
+    document.getElementById('addCustomerModal').style.display = 'flex';
+}
+
 async function addCustomer() {
     const name     = document.getElementById('customerName').value.trim();
     const contact  = document.getElementById('customerContact').value.trim();
@@ -47,6 +56,7 @@ async function addCustomer() {
         if (error) throw error;
         customers.push({ id: data.id, name: data.name, contact: data.contact || '', discount: Number(data.discount || 0), vat_exempt: !!data.vat_exempt });
         displayCustomers();
+        closeModal();
         logActivity('customer', `Добавлен клиент «${name}»`);
         document.getElementById('customerName').value    = '';
         document.getElementById('customerContact').value = '';
@@ -106,6 +116,7 @@ function openCustomerDetail(custId) {
 
     renderCustomerStats(cust);
     renderCustomerOrders();
+    refreshFab();
 }
 
 function closeCustomerDetail() {
@@ -113,6 +124,15 @@ function closeCustomerDetail() {
     document.getElementById('customersList').classList.remove('hidden');
     document.getElementById('customerDetail').classList.remove('active');
     displayCustomers();
+    refreshFab();
+}
+
+// Удаление клиента прямо из его карточки (то же окно подтверждения, что и из списка)
+function deleteCurrentCustomer() {
+    const idx = customers.findIndex(c => c.id === currentCustomerId);
+    if (idx === -1) return;
+    const cust = customers[idx];
+    openDeleteModal(idx, 'customer', `клиента «${cust.name || '(без имени)'}»`);
 }
 
 async function saveCdHeader() {

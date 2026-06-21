@@ -64,6 +64,8 @@
         #productDetail.active { display: block; }
         #customerDetail { display: none; }
         #customerDetail.active { display: block; }
+        #ingredientDetail { display: none; }
+        #ingredientDetail.active { display: block; }
 
         /* Детальный вид полуфабриката */
         #semiFinishedDetail { display: none; }
@@ -123,6 +125,18 @@
             z-index: 50; box-shadow: 0 1px 3px rgba(0,0,0,0.08); cursor: pointer;
         }
         #settingsBtn.hidden { display: none; }
+
+        /* Плавающая кнопка "+" — создание новой записи в текущем разделе.
+           Закреплена внизу справа, видна при прокрутке, контекст (что именно
+           создаёт) определяется в JS через refreshFab(). */
+        #fabAddBtn {
+            position: fixed; right: 16px; bottom: calc(16px + env(safe-area-inset-bottom));
+            width: 52px; height: 52px; border-radius: 50%;
+            background: #4f46e5; color: white; border: none;
+            display: flex; align-items: center; justify-content: center;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.25); z-index: 60; cursor: pointer;
+        }
+        #fabAddBtn.hidden { display: none; }
         .search-input-wrap { position: relative; }
         .search-dropdown { position: absolute; top: 100%; left: 0; right: 0; z-index: 200; background: white; border: 1px solid #d1d5db; border-top: none; max-height: 180px; overflow-y: auto; box-shadow: 0 4px 8px rgba(0,0,0,0.15); }
         .search-dropdown.hidden { display: none; }
@@ -172,6 +186,11 @@
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#4b5563" stroke-width="1.6"><path stroke-linecap="round" stroke-linejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><circle cx="12" cy="12" r="3"/></svg>
 </button>
 
+<!-- Плавающая кнопка "+": создать заказ/клиента/изделие/ингредиент — контекстно по разделу -->
+<button id="fabAddBtn" class="hidden" title="Добавить">
+    <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+</button>
+
 <div class="container mx-auto p-2 max-w-2xl">
     <div id="appContent" class="app-locked">
         <h1 class="text-2xl font-bold text-center mb-4 text-gray-800">Runway Chef Project</h1>
@@ -186,18 +205,6 @@
         <!-- ===== ИЗДЕЛИЯ ===== -->
         <div id="products" class="tab-content hidden">
             <div id="productsList">
-                <div class="bg-white p-2 rounded-md shadow-md mb-4">
-                    <h2 class="text-lg font-semibold mb-2 text-gray-800">Добавить изделие</h2>
-                    <div class="grid grid-cols-1 gap-0.5">
-                        <input id="productName" type="text" placeholder="Название изделия" class="border p-0.5 rounded-md focus:outline-none focus:ring-1 focus:ring-gray-300 text-xs">
-                        <select id="productUnit" class="border p-0.5 rounded-md focus:outline-none focus:ring-1 focus:ring-gray-300 text-xs">
-                            <option value="pcs">Продаётся за штуку (шт)</option>
-                            <option value="kg">Продаётся на вес (кг)</option>
-                        </select>
-                        <input id="productPrice" type="number" autocomplete="off" inputmode="decimal" step="0.01" placeholder="Продажная цена (€) за шт/кг" class="border p-0.5 rounded-md focus:outline-none focus:ring-1 focus:ring-gray-300 text-xs">
-                        <button onclick="addProduct()" class="btn bg-gray-500 text-white p-0.5 rounded-md hover:bg-gray-600 text-xs">Добавить изделие</button>
-                    </div>
-                </div>
                 <div class="bg-white p-2 rounded-md shadow-md">
                     <h2 class="text-lg font-semibold mb-2 text-gray-800">Список изделий</h2>
                     <p class="text-xs text-gray-400 mb-2">Нажмите на строку изделия, чтобы открыть рецептуру</p>
@@ -222,6 +229,7 @@
                             <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
                             Назад к изделиям
                         </button>
+                        <button onclick="deleteCurrentProduct()" class="btn text-xs bg-red-50 text-red-600 px-2 py-1 rounded-md hover:bg-red-100">Удалить изделие</button>
                     </div>
                     <div id="pdUnitWarning" class="hidden bg-red-50 border border-red-200 text-red-700 text-xs rounded-md p-1.5 mb-2">
                         ⚠ Для этого изделия не выбрана единица измерения. Пожалуйста, выберите «шт» или «кг».
@@ -298,37 +306,64 @@
 
         <!-- ===== ИНГРЕДИЕНТЫ ===== -->
         <div id="ingredients" class="tab-content hidden">
-            <div class="flex justify-end mb-2">
-                <button onclick="showTab('semiFinished')" class="btn bg-gray-200 text-gray-700 px-2 py-1 rounded-md hover:bg-gray-300 text-xs">🧪 Полуфабрикаты →</button>
-            </div>
-            <div class="bg-white p-2 rounded-md shadow-md mb-4">
-                <h2 class="text-lg font-semibold mb-2 text-gray-800">Добавить ингредиент</h2>
-                <div class="grid grid-cols-1 gap-0.5">
-                    <input id="ingredientName" type="text" placeholder="Название ингредиента" class="border p-0.5 rounded-md focus:outline-none focus:ring-1 focus:ring-gray-300 text-xs">
-                    <input id="ingredientPackagePrice" type="number" autocomplete="off" inputmode="decimal" step="0.01" placeholder="Цена за упаковку (€)" class="border p-0.5 rounded-md focus:outline-none focus:ring-1 focus:ring-gray-300 text-xs">
-                    <input id="ingredientPackageSize" type="number" autocomplete="off" inputmode="decimal" step="0.01" placeholder="Размер упаковки" class="border p-0.5 rounded-md focus:outline-none focus:ring-1 focus:ring-gray-300 text-xs">
-                    <select id="ingredientUnit" class="border p-0.5 rounded-md focus:outline-none focus:ring-1 focus:ring-gray-300 text-xs">
-                        <option value="g">граммы (г)</option>
-                        <option value="kg">килограммы (кг)</option>
-                        <option value="ml">миллилитры (мл)</option>
-                        <option value="l">литры (л)</option>
-                        <option value="pcs">штуки (шт)</option>
-                    </select>
-                    <button onclick="addIngredient()" class="btn bg-gray-500 text-white p-0.5 rounded-md hover:bg-gray-600 text-xs">Добавить ингредиент</button>
+            <div id="ingredientsList">
+                <div class="flex justify-end mb-2">
+                    <button onclick="showTab('semiFinished')" class="btn bg-gray-200 text-gray-700 px-2 py-1 rounded-md hover:bg-gray-300 text-xs">🧪 Полуфабрикаты →</button>
+                </div>
+                <div class="bg-white p-2 rounded-md shadow-md">
+                    <h2 class="text-lg font-semibold mb-2 text-gray-800">Список ингредиентов</h2>
+                    <p class="text-xs text-gray-400 mb-2">Нажмите на строку, чтобы открыть карточку ингредиента</p>
+                    <table class="w-full table-auto">
+                        <thead><tr class="bg-gray-100">
+                            <th class="p-0.5 text-xs w-[30%]">Название</th>
+                            <th class="p-0.5 text-xs w-[18%]">Цена за упак.</th>
+                            <th class="p-0.5 text-xs w-[18%]">Размер упак.</th>
+                            <th class="p-0.5 text-xs w-[18%]">Цена за ед.</th>
+                            <th class="p-0.5 text-xs w-[16%]">Действия</th>
+                        </tr></thead>
+                        <tbody id="ingredientTableBody"></tbody>
+                    </table>
                 </div>
             </div>
-            <div class="bg-white p-2 rounded-md shadow-md">
-                <h2 class="text-lg font-semibold mb-2 text-gray-800">Список ингредиентов</h2>
-                <table class="w-full table-auto">
-                    <thead><tr class="bg-gray-100">
-                        <th class="p-0.5 text-xs w-[30%]">Название</th>
-                        <th class="p-0.5 text-xs w-[18%]">Цена за упак.</th>
-                        <th class="p-0.5 text-xs w-[18%]">Размер упак.</th>
-                        <th class="p-0.5 text-xs w-[18%]">Цена за ед.</th>
-                        <th class="p-0.5 text-xs w-[16%]">Действия</th>
-                    </tr></thead>
-                    <tbody id="ingredientTableBody"></tbody>
-                </table>
+
+            <!-- Карточка ингредиента -->
+            <div id="ingredientDetail">
+                <div class="bg-white p-2 rounded-md shadow-md mb-3">
+                    <div class="flex items-center justify-between mb-2">
+                        <button onclick="closeIngredientDetail()" class="btn text-xs bg-gray-200 text-gray-700 px-2 py-1 rounded-md hover:bg-gray-300 flex items-center gap-1">
+                            <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+                            Назад к ингредиентам
+                        </button>
+                        <button onclick="deleteCurrentIngredient()" class="btn text-xs bg-red-50 text-red-600 px-2 py-1 rounded-md hover:bg-red-100">Удалить ингредиент</button>
+                    </div>
+                    <div class="grid grid-cols-2 gap-1 mb-2">
+                        <div class="col-span-2">
+                            <label class="text-xs text-gray-500">Название</label>
+                            <input id="idName" type="text" onblur="saveIdHeader()" class="border p-0.5 rounded-md text-xs w-full">
+                        </div>
+                        <div>
+                            <label class="text-xs text-gray-500">Цена за упаковку (€)</label>
+                            <input id="idPackagePrice" type="number" autocomplete="off" inputmode="decimal" step="0.01" onchange="saveIdHeader()" class="border p-0.5 rounded-md text-xs w-full">
+                        </div>
+                        <div>
+                            <label class="text-xs text-gray-500">Размер упаковки</label>
+                            <input id="idPackageSize" type="number" autocomplete="off" inputmode="decimal" step="0.01" min="0.01" onchange="saveIdHeader()" class="border p-0.5 rounded-md text-xs w-full">
+                        </div>
+                        <div class="col-span-2">
+                            <label class="text-xs text-gray-500">Единица измерения</label>
+                            <select id="idUnit" onchange="saveIdHeader()" class="border p-0.5 rounded-md text-xs w-full">
+                                <option value="g">граммы (г)</option>
+                                <option value="kg">килограммы (кг)</option>
+                                <option value="ml">миллилитры (мл)</option>
+                                <option value="l">литры (л)</option>
+                                <option value="pcs">штуки (шт)</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="text-right text-xs text-gray-600 border-t pt-1">
+                        Цена за единицу: <span id="idUnitPrice" class="font-semibold text-gray-900">0.0000 €</span>
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -450,18 +485,6 @@
         <!-- ===== КЛИЕНТЫ ===== -->
         <div id="customers" class="tab-content hidden">
             <div id="customersList">
-                <div class="bg-white p-2 rounded-md shadow-md mb-4">
-                    <h2 class="text-lg font-semibold mb-2 text-gray-800">Добавить клиента</h2>
-                    <div class="grid grid-cols-1 gap-0.5">
-                        <input id="customerName" type="text" placeholder="Имя клиента" class="border p-0.5 rounded-md focus:outline-none focus:ring-1 focus:ring-gray-300 text-xs">
-                        <input id="customerContact" type="text" placeholder="Контакты" class="border p-0.5 rounded-md focus:outline-none focus:ring-1 focus:ring-gray-300 text-xs">
-                        <input id="customerDiscount" type="number" autocomplete="off" inputmode="decimal" step="0.01" placeholder="Скидка (%)" class="border p-0.5 rounded-md focus:outline-none focus:ring-1 focus:ring-gray-300 text-xs">
-                        <label class="flex items-center gap-2 text-xs text-gray-700 px-0.5">
-                            <input id="customerVatExempt" type="checkbox"> Без НДС
-                        </label>
-                        <button onclick="addCustomer()" class="btn bg-gray-500 text-white p-0.5 rounded-md hover:bg-gray-600 text-xs">Добавить клиента</button>
-                    </div>
-                </div>
                 <div class="bg-white p-2 rounded-md shadow-md">
                     <h2 class="text-lg font-semibold mb-2 text-gray-800">Список клиентов</h2>
                     <p class="text-xs text-gray-400 mb-2">Нажмите на строку, чтобы открыть карточку клиента</p>
@@ -487,6 +510,7 @@
                             <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
                             Назад к клиентам
                         </button>
+                        <button onclick="deleteCurrentCustomer()" class="btn text-xs bg-red-50 text-red-600 px-2 py-1 rounded-md hover:bg-red-100">Удалить клиента</button>
                     </div>
                     <div class="grid grid-cols-2 gap-1 mb-2">
                         <div>
@@ -577,23 +601,6 @@
 
             <!-- СПИСОК ЗАКАЗОВ -->
             <div id="ordersList">
-                <div class="bg-white p-2 rounded-md shadow-md mb-4">
-                    <h2 class="text-lg font-semibold mb-2 text-gray-800">Новый заказ</h2>
-                    <div class="grid grid-cols-1 gap-0.5">
-                        <div class="search-input-wrap">
-                            <input id="orderCustomer" placeholder="Выберите клиента" autocomplete="off" class="border p-0.5 rounded-md focus:outline-none focus:ring-1 focus:ring-gray-300 text-xs w-full">
-                            <div id="orderCustomerDropdown" class="search-dropdown hidden"></div>
-                        </div>
-                        <label for="orderDate" class="text-xs text-gray-700">Дата</label>
-                        <input id="orderDate" type="date" class="border p-0.5 rounded-md focus:outline-none focus:ring-1 focus:ring-gray-300 text-xs">
-                        <select id="orderStatus" class="border p-0.5 rounded-md focus:outline-none focus:ring-1 focus:ring-gray-300 text-xs">
-                            <option value="принят">Принят</option>
-                            <option value="в работе">В работе</option>
-                            <option value="выполнен">Выполнен</option>
-                        </select>
-                        <button onclick="createNewOrder()" class="btn bg-gray-500 text-white p-0.5 rounded-md hover:bg-gray-600 text-xs">Создать заказ и добавить позиции</button>
-                    </div>
-                </div>
                 <div class="bg-white p-2 rounded-md shadow-md">
                     <h2 class="text-lg font-semibold mb-2 text-gray-800">Список заказов</h2>
                     <p class="text-xs text-gray-400 mb-2">Нажмите на строку заказа, чтобы открыть его</p>
@@ -767,23 +774,7 @@
         </div>
 
         <!-- Редактировать ингредиент -->
-        <div id="editIngredientModal" class="modal">
-            <div class="modal-content">
-                <h2 class="text-base font-semibold mb-2 text-gray-800">Редактировать ингредиент</h2>
-                <input id="editIngredientName" type="text" placeholder="Название ингредиента" class="border p-0.5 rounded-md mb-1 w-full text-xs">
-                <input id="editIngredientPackagePrice" type="number" autocomplete="off" inputmode="decimal" step="0.01" placeholder="Цена за упаковку (€)" class="border p-0.5 rounded-md mb-1 w-full text-xs">
-                <input id="editIngredientPackageSize" type="number" autocomplete="off" inputmode="decimal" step="0.01" placeholder="Размер упаковки" class="border p-0.5 rounded-md mb-1 w-full text-xs">
-                <select id="editIngredientUnit" class="border p-0.5 rounded-md mb-2 w-full text-xs">
-                    <option value="g">граммы (г)</option>
-                    <option value="kg">килограммы (кг)</option>
-                    <option value="ml">миллилитры (мл)</option>
-                    <option value="l">литры (л)</option>
-                    <option value="pcs">штуки (шт)</option>
-                </select>
-                <button onclick="saveIngredientEdit()" class="btn bg-gray-500 text-white p-0.5 rounded-md hover:bg-gray-600 mr-1 text-xs">Сохранить</button>
-                <button onclick="closeModal()" class="btn bg-gray-400 text-white p-0.5 rounded-md hover:bg-gray-500 text-xs">Отмена</button>
-            </div>
-        </div>
+
 
         <!-- Редактировать позицию рецепта -->
         <div id="editRecipeItemModal" class="modal">
@@ -943,6 +934,55 @@
             </div>
         </div>
 
+        <!-- Новое изделие (открывается кнопкой "+") -->
+        <div id="addProductModal" class="modal">
+            <div class="modal-content">
+                <h2 class="text-base font-semibold mb-2 text-gray-800">Новое изделие</h2>
+                <input id="productName" type="text" placeholder="Название изделия" class="border p-0.5 rounded-md mb-1 w-full text-xs">
+                <select id="productUnit" class="border p-0.5 rounded-md mb-1 w-full text-xs">
+                    <option value="pcs">Продаётся за штуку (шт)</option>
+                    <option value="kg">Продаётся на вес (кг)</option>
+                </select>
+                <input id="productPrice" type="number" autocomplete="off" inputmode="decimal" step="0.01" placeholder="Продажная цена (€) за шт/кг" class="border p-0.5 rounded-md mb-2 w-full text-xs">
+                <button onclick="addProduct()" class="btn bg-gray-700 text-white p-1 rounded-md hover:bg-gray-800 text-xs mr-1">Создать</button>
+                <button onclick="closeModal()" class="btn bg-gray-400 text-white p-1 rounded-md hover:bg-gray-500 text-xs">Отмена</button>
+            </div>
+        </div>
+
+        <!-- Новый клиент (открывается кнопкой "+") -->
+        <div id="addCustomerModal" class="modal">
+            <div class="modal-content">
+                <h2 class="text-base font-semibold mb-2 text-gray-800">Новый клиент</h2>
+                <input id="customerName" type="text" placeholder="Имя клиента" class="border p-0.5 rounded-md mb-1 w-full text-xs">
+                <input id="customerContact" type="text" placeholder="Контакты" class="border p-0.5 rounded-md mb-1 w-full text-xs">
+                <input id="customerDiscount" type="number" autocomplete="off" inputmode="decimal" step="0.01" placeholder="Скидка (%)" class="border p-0.5 rounded-md mb-1 w-full text-xs">
+                <label class="flex items-center gap-2 text-xs text-gray-700 px-0.5 mb-2">
+                    <input id="customerVatExempt" type="checkbox"> Без НДС
+                </label>
+                <button onclick="addCustomer()" class="btn bg-gray-700 text-white p-1 rounded-md hover:bg-gray-800 text-xs mr-1">Создать</button>
+                <button onclick="closeModal()" class="btn bg-gray-400 text-white p-1 rounded-md hover:bg-gray-500 text-xs">Отмена</button>
+            </div>
+        </div>
+
+        <!-- Новый ингредиент (открывается кнопкой "+") -->
+        <div id="addIngredientModal" class="modal">
+            <div class="modal-content">
+                <h2 class="text-base font-semibold mb-2 text-gray-800">Новый ингредиент</h2>
+                <input id="ingredientName" type="text" placeholder="Название ингредиента" class="border p-0.5 rounded-md mb-1 w-full text-xs">
+                <input id="ingredientPackagePrice" type="number" autocomplete="off" inputmode="decimal" step="0.01" placeholder="Цена за упаковку (€)" class="border p-0.5 rounded-md mb-1 w-full text-xs">
+                <input id="ingredientPackageSize" type="number" autocomplete="off" inputmode="decimal" step="0.01" placeholder="Размер упаковки" class="border p-0.5 rounded-md mb-1 w-full text-xs">
+                <select id="ingredientUnit" class="border p-0.5 rounded-md mb-2 w-full text-xs">
+                    <option value="g">граммы (г)</option>
+                    <option value="kg">килограммы (кг)</option>
+                    <option value="ml">миллилитры (мл)</option>
+                    <option value="l">литры (л)</option>
+                    <option value="pcs">штуки (шт)</option>
+                </select>
+                <button onclick="addIngredient()" class="btn bg-gray-700 text-white p-1 rounded-md hover:bg-gray-800 text-xs mr-1">Создать</button>
+                <button onclick="closeModal()" class="btn bg-gray-400 text-white p-1 rounded-md hover:bg-gray-500 text-xs">Отмена</button>
+            </div>
+        </div>
+
         <!-- Статистика -->
         <div id="stats" class="tab-content hidden">
             <div class="bg-white rounded-md shadow-md p-2 mb-3">
@@ -1063,15 +1103,15 @@
 <script src="supabaseClient.js?v=3"></script>
 <script src="auth.js?v=1"></script>
 <script src="employees.js?v=3"></script>
-<script src="ingredients.js?v=4"></script>
+<script src="ingredients.js?v=5"></script>
 <script src="semifinished.js?v=4"></script>
-<script src="products.js?v=4"></script>
-<script src="customers.js?v=7"></script>
-<script src="orders.js?v=7"></script>
+<script src="products.js?v=5"></script>
+<script src="customers.js?v=8"></script>
+<script src="orders.js?v=8"></script>
 <script src="stats.js?v=8"></script>
 <script src="history.js?v=3"></script>
-<script src="modals.js?v=4"></script>
-<script src="helpers.js?v=4"></script>
+<script src="modals.js?v=5"></script>
+<script src="helpers.js?v=5"></script>
 <script>
 // SUPABASE_URL, SUPABASE_KEY, db перенесены в supabaseClient.js
 
@@ -1096,6 +1136,7 @@ let currentOrderId   = null; // id заказа, открытого в дета�
 let currentProductId = null; // id изделия, открытого в детальном виде (products.js)
 let currentSemiFinishedId = null; // id полуфабриката, открытого в детальном виде (semifinished.js)
 let currentCustomerId = null; // id клиента, открытого в детальном виде (customers.js)
+let currentIngredientId = null; // id ингредиента, открытого в детальном виде (ingredients.js)
 
 
 // ==================== ЗАГРУЗКА / ИНДИКАТОР ====================
@@ -1218,10 +1259,44 @@ function showTab(tabId) {
     if (tabId === 'orders')    { closeOrderDetail(); displayOrders(); }
     if (tabId === 'products')  { closeProductDetailSilent(); displayProducts(); }
     if (tabId === 'customers') { closeCustomerDetailSilent(); displayCustomers(); }
-    if (tabId === 'ingredients') displayIngredients();
+    if (tabId === 'ingredients') { closeIngredientDetailSilent(); displayIngredients(); }
     if (tabId === 'semiFinished') { closeSemiFinishedDetailSilent(); displaySemiFinished(); }
     if (tabId === 'history')   { updateHistoryEmployeeFilter(); loadHistory(); }
     if (tabId === 'stats')     { updateStatsCustomerFilter(); toggleDateRange(); applyFilter(); updateInfoCounts(); initDailyRevenueChart(); }
+    refreshFab();
+}
+
+// ==================== ПЛАВАЮЩАЯ КНОПКА "+" ====================
+// Видна только на 4 разделах со списками (Заказы/Клиенты/Изделия/Ингредиенты)
+// и только когда открыт сам список, а не карточка какой-то записи.
+// Вызывается из showTab() и из всех open*Detail()/close*Detail() функций.
+function refreshFab() {
+    const fab = document.getElementById('fabAddBtn');
+    if (!fab) return;
+    const activeTabBtn = document.querySelector('.tab.active');
+    const match = activeTabBtn && activeTabBtn.getAttribute('onclick') ? activeTabBtn.getAttribute('onclick').match(/showTab\('(\w+)'\)/) : null;
+    const tabId = match ? match[1] : null;
+
+    const isDetailOpen = () =>
+        document.getElementById('orderDetail')?.classList.contains('active') ||
+        document.getElementById('productDetail')?.classList.contains('active') ||
+        document.getElementById('customerDetail')?.classList.contains('active') ||
+        document.getElementById('ingredientDetail')?.classList.contains('active');
+
+    const actions = {
+        orders: createDraftOrderAndOpen,
+        customers: openAddCustomerModal,
+        products: openAddProductModal,
+        ingredients: openAddIngredientModal,
+    };
+
+    if (tabId && actions[tabId] && !isDetailOpen()) {
+        fab.classList.remove('hidden');
+        fab.onclick = actions[tabId];
+    } else {
+        fab.classList.add('hidden');
+        fab.onclick = null;
+    }
 }
 
 // Сброс детального вида полуфабриката без повторной перерисовки списка
@@ -1240,6 +1315,7 @@ function closeProductDetailSilent() {
     const detail = document.getElementById('productDetail');
     if (list) list.classList.remove('hidden');
     if (detail) detail.classList.remove('active');
+    refreshFab();
 }
 
 // Сброс детального вида клиента без повторной перерисовки списка
@@ -1249,6 +1325,17 @@ function closeCustomerDetailSilent() {
     const detail = document.getElementById('customerDetail');
     if (list) list.classList.remove('hidden');
     if (detail) detail.classList.remove('active');
+    refreshFab();
+}
+
+// Сброс детального вида ингредиента без повторной перерисовки списка
+function closeIngredientDetailSilent() {
+    currentIngredientId = null;
+    const list = document.getElementById('ingredientsList');
+    const detail = document.getElementById('ingredientDetail');
+    if (list) list.classList.remove('hidden');
+    if (detail) detail.classList.remove('active');
+    refreshFab();
 }
 
 // Переход из карточки клиента к полной карточке заказа в разделе "Заказы"
@@ -1308,7 +1395,6 @@ function closeHistoryScreen() {
 
 
 // ==================== ИНИЦИАЛИЗАЦИЯ ====================
-document.getElementById('orderDate').value = new Date().toISOString().split('T')[0];
 
 (async function init() {
     await initAuth();

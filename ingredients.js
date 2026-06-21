@@ -24,17 +24,27 @@ function displayIngredients() {
         const unitPrice = ingredientUnitPrice(ing);
         const unitLabel = UNIT_LABELS[ing.unit] || ing.unit;
         const row = document.createElement('tr');
+        row.className = 'order-row';
         row.innerHTML = `
-            <td class="border p-0.5 text-xs">${ing.name}</td>
-            <td class="border p-0.5 text-xs text-center">${ing.package_price.toFixed(2)} €</td>
-            <td class="border p-0.5 text-xs text-center">${ing.package_size} ${unitLabel}</td>
-            <td class="border p-0.5 text-xs text-center">${unitPrice.toFixed(4)} €/${unitLabel}</td>
+            <td class="border p-0.5 text-xs" onclick="openIngredientDetail(${ing.id})">${escapeHtml(ing.name)}</td>
+            <td class="border p-0.5 text-xs text-center" onclick="openIngredientDetail(${ing.id})">${ing.package_price.toFixed(2)} €</td>
+            <td class="border p-0.5 text-xs text-center" onclick="openIngredientDetail(${ing.id})">${ing.package_size} ${unitLabel}</td>
+            <td class="border p-0.5 text-xs text-center" onclick="openIngredientDetail(${ing.id})">${unitPrice.toFixed(4)} €/${unitLabel}</td>
             <td class="border p-0.5 text-center">
-                ${svgEdit(`openEditIngredientModal(${i})`)}
+                ${svgEdit(`openIngredientDetail(${ing.id})`)}
                 ${svgDelete(`openDeleteModal(${i},'ingredient','ингредиент «${ing.name}»')`)}
             </td>`;
         tbody.appendChild(row);
     });
+}
+
+// Кнопка "+": попап для создания нового ингредиента
+function openAddIngredientModal() {
+    document.getElementById('ingredientName').value = '';
+    document.getElementById('ingredientPackagePrice').value = '';
+    document.getElementById('ingredientPackageSize').value = '';
+    document.getElementById('ingredientUnit').value = 'g';
+    document.getElementById('addIngredientModal').style.display = 'flex';
 }
 
 async function addIngredient() {
@@ -53,6 +63,7 @@ async function addIngredient() {
         if (error) throw error;
         ingredients.push({ id: data.id, name: data.name, package_price: Number(data.package_price), package_size: Number(data.package_size), unit: data.unit });
         displayIngredients();
+        closeModal();
         logActivity('ingredient', `Добавлен ингредиент «${name}»`);
         document.getElementById('ingredientName').value = '';
         document.getElementById('ingredientPackagePrice').value = '';
@@ -61,25 +72,46 @@ async function addIngredient() {
     finally { hideLoading(); }
 }
 
-function openEditIngredientModal(i) {
-    editIndex = i;
-    const ing = ingredients[i];
-    document.getElementById('editIngredientName').value = ing.name;
-    document.getElementById('editIngredientPackagePrice').value = ing.package_price.toFixed(2);
-    document.getElementById('editIngredientPackageSize').value = ing.package_size;
-    document.getElementById('editIngredientUnit').value = ing.unit;
-    document.getElementById('editIngredientModal').style.display = 'flex';
+// ==================== КАРТОЧКА ИНГРЕДИЕНТА ====================
+function openIngredientDetail(ingId) {
+    currentIngredientId = ingId;
+    const ing = ingredients.find(i => i.id === ingId);
+    if (!ing) return;
+
+    document.getElementById('ingredientsList').classList.add('hidden');
+    document.getElementById('ingredientDetail').classList.add('active');
+
+    document.getElementById('idName').value = ing.name;
+    document.getElementById('idPackagePrice').value = ing.package_price.toFixed(2);
+    document.getElementById('idPackageSize').value = ing.package_size;
+    document.getElementById('idUnit').value = ing.unit;
+    renderIngredientUnitPrice(ing);
+    refreshFab();
 }
 
-async function saveIngredientEdit() {
-    const name = document.getElementById('editIngredientName').value.trim();
-    const packagePrice = parseFloat(document.getElementById('editIngredientPackagePrice').value);
-    const packageSize  = parseFloat(document.getElementById('editIngredientPackageSize').value);
-    const unit = document.getElementById('editIngredientUnit').value;
+function closeIngredientDetail() {
+    currentIngredientId = null;
+    document.getElementById('ingredientsList').classList.remove('hidden');
+    document.getElementById('ingredientDetail').classList.remove('active');
+    displayIngredients();
+    refreshFab();
+}
+
+function renderIngredientUnitPrice(ing) {
+    const unitLabel = UNIT_LABELS[ing.unit] || ing.unit;
+    document.getElementById('idUnitPrice').textContent = `${ingredientUnitPrice(ing).toFixed(4)} €/${unitLabel}`;
+}
+
+async function saveIdHeader() {
+    const ing = ingredients.find(i => i.id === currentIngredientId);
+    if (!ing) return;
+    const name = document.getElementById('idName').value.trim();
+    const packagePrice = parseFloat(document.getElementById('idPackagePrice').value);
+    const packageSize  = parseFloat(document.getElementById('idPackageSize').value);
+    const unit = document.getElementById('idUnit').value;
     if (!name || isNaN(packagePrice) || isNaN(packageSize) || packageSize <= 0) {
         alert('Заполните все поля корректно!'); return;
     }
-    const ing = ingredients[editIndex];
     showLoading();
     try {
         const { error } = await db.from('ingredients').update({
@@ -88,10 +120,18 @@ async function saveIngredientEdit() {
         if (error) throw error;
         ing.name = name; ing.package_price = parseFloat(packagePrice.toFixed(2));
         ing.package_size = packageSize; ing.unit = unit;
-        displayIngredients(); closeModal();
+        renderIngredientUnitPrice(ing);
         logActivity('ingredient', `Изменён ингредиент «${name}»`);
     } catch (e) { console.error(e); alert('Ошибка сохранения. Проверьте подключение.'); }
     finally { hideLoading(); }
+}
+
+// Удаление ингредиента прямо из его карточки
+function deleteCurrentIngredient() {
+    const idx = ingredients.findIndex(i => i.id === currentIngredientId);
+    if (idx === -1) return;
+    const ing = ingredients[idx];
+    openDeleteModal(idx, 'ingredient', `ингредиент «${ing.name}»`);
 }
 
 // ==================== БЫСТРОЕ СОЗДАНИЕ ИЗ КАРТОЧКИ РЕЦЕПТА ====================

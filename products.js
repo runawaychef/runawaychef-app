@@ -36,6 +36,14 @@ function displayProducts() {
     updateProductSelects();
 }
 
+// Кнопка "+": попап для создания нового изделия
+function openAddProductModal() {
+    document.getElementById('productName').value = '';
+    document.getElementById('productUnit').value = 'pcs';
+    document.getElementById('productPrice').value = '';
+    document.getElementById('addProductModal').style.display = 'flex';
+}
+
 async function addProduct() {
     const name  = document.getElementById('productName').value.trim();
     const unit  = document.getElementById('productUnit').value;
@@ -45,8 +53,9 @@ async function addProduct() {
     try {
         const { data, error } = await db.from('products').insert({ name, price: parseFloat(price.toFixed(2)), unit }).select().single();
         if (error) throw error;
-        products.push({ id: data.id, name: data.name, price: Number(data.price), batch_size: Number(data.batch_size || 1), other_costs: Number(data.other_costs || 0), unit: data.unit || '', ingredients: [] });
+        products.push({ id: data.id, name: data.name, price: Number(data.price), batch_size: Number(data.batch_size || 1), other_costs: Number(data.other_costs || 0), unit: data.unit || '', recipe_confirmed: false, ingredients: [] });
         displayProducts();
+        closeModal();
         logActivity('product', `Добавлено изделие «${name}» (${price.toFixed(2)} € за ${UNIT_PRODUCT_LABELS[unit] || unit})`);
         document.getElementById('productName').value = '';
         document.getElementById('productPrice').value = '';
@@ -113,6 +122,7 @@ function openProductDetail(productId) {
     renderProductRecipe(prod);
     fillNewRecipeIngredientSelect();
     setupCopyRecipeControl(prod);
+    refreshFab();
 }
 
 function updatePdUnitUI(unit) {
@@ -127,6 +137,15 @@ function closeProductDetail() {
     document.getElementById('productsList').classList.remove('hidden');
     document.getElementById('productDetail').classList.remove('active');
     displayProducts();
+    refreshFab();
+}
+
+// Удаление изделия прямо из его карточки
+function deleteCurrentProduct() {
+    const idx = products.findIndex(p => p.id === currentProductId);
+    if (idx === -1) return;
+    const prod = products[idx];
+    openDeleteModal(idx, 'product', `изделие «${prod.name}»`);
 }
 
 async function savePdHeader() {

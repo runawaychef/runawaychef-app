@@ -123,9 +123,6 @@ function updateProductSelects() {
 }
 
 function updateCustomerSelects() {
-    setupSearchDropdown('orderCustomer', 'orderCustomerDropdown',
-        () => customers.slice().sort((a,b)=>(a.name||"").localeCompare(b.name||"")).map(c => c.name));
-
     setupSearchDropdown('detailCustomer', 'detailCustomerDropdown',
         () => customers.slice().sort((a,b)=>(a.name||"").localeCompare(b.name||"")).map(c => c.name),
         () => onDetailCustomerChange());
