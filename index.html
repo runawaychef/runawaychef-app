@@ -1053,7 +1053,7 @@
 <script src="money.js?v=3"></script>
 <script src="supabaseClient.js?v=3"></script>
 <script src="auth.js?v=1"></script>
-<script src="employees.js?v=4"></script>
+<script src="employees.js?v=5"></script>
 <script src="ingredients.js?v=7"></script>
 <script src="semifinished.js?v=5"></script>
 <script src="products.js?v=7"></script>
@@ -1255,6 +1255,9 @@ function refreshFab() {
     if (tabId && actions[tabId] && !isDetailOpen()) {
         fab.classList.remove('hidden');
         fab.onclick = actions[tabId];
+        void fab.offsetWidth; // принудительный reflow — на некоторых мобильных
+                               // браузерах position:fixed элемент не перерисовывается
+                               // сразу после снятия display:none без этого "толчка"
     } else {
         fab.classList.add('hidden');
         fab.onclick = null;

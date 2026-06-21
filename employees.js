@@ -48,6 +48,8 @@ async function selectEmployee(emp) {
     document.getElementById('appContent').classList.remove('app-locked');
     document.getElementById('settingsBtn').classList.remove('hidden');
     await loadAllData();
+    refreshFab(); // кнопка "+" не появлялась при первом входе, пока не переключишь вкладку — чиним
+    setTimeout(refreshFab, 150); // подстраховка на случай отложенной перерисовки на мобильном
     logActivity('auth', `Вход: ${emp.name}`);
 }
 
