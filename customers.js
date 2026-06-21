@@ -98,6 +98,124 @@ async function applyVatExemptToAllOrders() {
     finally { hideLoading(); }
 }
 
+// Возвращает заказы клиента, отфильтрованные по выбранному в карточке периоду
+// (тот же фильтр, что используется для списка заказов клиента).
+function getCustomerOrdersForRange(cust) {
+    const range = document.getElementById('cdDateRange').value;
+    let custOrders = orders.filter(o => o.customer_id === cust.id);
+    if (range === 'week' || range === 'month' || range === 'year') {
+        const today = new Date();
+        let start;
+        if (range === 'week') {
+            start = new Date(today);
+            start.setDate(today.getDate() - today.getDay() + (today.getDay() === 0 ? -6 : 1));
+        } else if (range === 'year') {
+            start = new Date(today.getFullYear(), 0, 1);
+        } else {
+            start = new Date(today.getFullYear(), today.getMonth(), 1);
+        }
+        custOrders = custOrders.filter(o => new Date(o.date) >= start);
+    }
+    return { range, custOrders };
+}
+
+const RANGE_LABELS = { all: 'Весь период', week: 'Текущая неделя', month: 'Текущий месяц', year: 'Текущий год' };
+
+// ==================== СВОДНЫЙ ОТЧЁТ ПО ИЗДЕЛИЯМ ЗА ПЕРИОД ====================
+function openCustomerReportPreview() {
+    const cust = customers.find(c => c.id === currentCustomerId);
+    if (!cust) return;
+    const { range, custOrders } = getCustomerOrdersForRange(cust);
+
+    if (!custOrders.length) {
+        showInfo('Нет заказов за выбранный период — отчёт формировать не из чего.');
+        return;
+    }
+
+    // Сводим количество и сумму по каждому изделию за период
+    const byProduct = {}; // name -> { qty, sum }
+    custOrders.forEach(o => {
+        (o.items || []).forEach(it => {
+            if (!byProduct[it.product]) byProduct[it.product] = { qty: 0, sum: 0 };
+            byProduct[it.product].qty += Number(it.quantity) || 0;
+            byProduct[it.product].sum += (Number(it.quantity) || 0) * (Number(it.price) || 0);
+        });
+    });
+    const rows = Object.entries(byProduct).sort((a, b) => b[1].sum - a[1].sum);
+    const totalSum = rows.reduce((s, [, v]) => s + v.sum, 0);
+    const totalQty = rows.reduce((s, [, v]) => s + v.qty, 0);
+
+    // Диапазон дат для заголовка
+    const dates = custOrders.map(o => o.date).sort();
+    const periodLabel = dates.length
+        ? (dates[0] === dates[dates.length-1] ? formatDateDMY(dates[0]) : `${formatDateDMY(dates[0])} – ${formatDateDMY(dates[dates.length-1])}`)
+        : RANGE_LABELS[range];
+
+    let html = `
+        <div style="padding:6px;">
+            <h2 style="font-size:16px;font-weight:700;color:#1f2937;margin:0 0 2px;">${escapeHtml(cust.name)}</h2>
+            <p style="font-size:11px;color:#6b7280;margin:0 0 12px;">Сводный отчёт по изделиям · ${RANGE_LABELS[range]} (${periodLabel})</p>
+            <table style="width:100%;border-collapse:collapse;font-size:12px;">
+                <thead><tr style="background:#f3f4f6;">
+                    <th style="text-align:left;padding:4px;border-bottom:1px solid #e5e7eb;">Изделие</th>
+                    <th style="text-align:right;padding:4px;border-bottom:1px solid #e5e7eb;">Кол-во</th>
+                    <th style="text-align:right;padding:4px;border-bottom:1px solid #e5e7eb;">Сумма (€)</th>
+                </tr></thead><tbody>`;
+    rows.forEach(([name, v]) => {
+        html += `<tr><td style="padding:4px;border-bottom:1px solid #f3f4f6;">${escapeHtml(name)}</td><td style="text-align:right;padding:4px;border-bottom:1px solid #f3f4f6;">${v.qty}</td><td style="text-align:right;padding:4px;border-bottom:1px solid #f3f4f6;">${v.sum.toFixed(2)}</td></tr>`;
+    });
+    html += `</tbody>
+            <tfoot><tr style="font-weight:700;background:#f9fafb;">
+                <td style="padding:4px;">Итого</td>
+                <td style="text-align:right;padding:4px;">${totalQty}</td>
+                <td style="text-align:right;padding:4px;">${totalSum.toFixed(2)}</td>
+            </tr></tfoot>
+            </table>
+            <p style="font-size:10px;color:#9ca3af;margin-top:10px;">Заказов за период: ${custOrders.length}. Сумма — по ценам позиций, без учёта скидки и НДС.</p>
+        </div>`;
+
+    document.getElementById('customerReportContent').innerHTML = html;
+    document.getElementById('customerReportModal').style.display = 'flex';
+}
+
+async function downloadCustomerReportPdf() {
+    const cust = customers.find(c => c.id === currentCustomerId);
+    if (!cust) return;
+    const { range, custOrders } = getCustomerOrdersForRange(cust);
+    const dates = custOrders.map(o => o.date).sort();
+    const periodTag = dates.length
+        ? (dates[0] === dates[dates.length-1] ? dates[0] : `${dates[0]}_${dates[dates.length-1]}`)
+        : range;
+    const safeName = cust.name.replace(/[^\p{L}\p{N}]+/gu, '_').replace(/^_+|_+$/g, '') || 'клиент';
+    const filename = `${safeName}_${periodTag}.pdf`;
+
+    const el = document.getElementById('customerReportContent');
+    showLoading();
+    try {
+        const canvas = await html2canvas(el, { scale: 2, backgroundColor: '#ffffff' });
+        const imgData = canvas.toDataURL('image/png');
+        const { jsPDF } = window.jspdf;
+        const pdf = new jsPDF('p', 'mm', 'a4');
+        const pageW = pdf.internal.pageSize.getWidth();
+        const pageH = pdf.internal.pageSize.getHeight();
+        const imgW = pageW - 20; // отступы по 10мм
+        const imgH = (canvas.height * imgW) / canvas.width;
+
+        let heightLeft = imgH;
+        let position = 10;
+        pdf.addImage(imgData, 'PNG', 10, position, imgW, imgH);
+        heightLeft -= (pageH - 20);
+        while (heightLeft > 0) {
+            position = heightLeft - imgH + 10;
+            pdf.addPage();
+            pdf.addImage(imgData, 'PNG', 10, position, imgW, imgH);
+            heightLeft -= (pageH - 20);
+        }
+        pdf.save(filename);
+    } catch (e) { console.error(e); showInfo('Не удалось сформировать PDF. Проверьте подключение.'); }
+    finally { hideLoading(); }
+}
+
 // ==================== КАРТОЧКА КЛИЕНТА ====================
 function openCustomerDetail(custId) {
     currentCustomerId = custId;
