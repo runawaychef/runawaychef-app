@@ -36,6 +36,7 @@ function showAuthScreen() {
     document.getElementById('loginScreen').classList.add('hidden');
     document.getElementById('appContent').classList.add('app-locked');
     document.getElementById('settingsBtn').classList.add('hidden');
+    document.getElementById('statsBtn').classList.add('hidden');
 }
 
 async function showAuthedApp() {
@@ -85,5 +86,6 @@ async function signOutAccount() {
     localStorage.removeItem('currentEmployee');
     currentEmployee = null;
     document.getElementById('settingsBtn').classList.add('hidden');
+    document.getElementById('statsBtn').classList.add('hidden');
     showAuthScreen();
 }

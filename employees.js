@@ -47,6 +47,7 @@ async function selectEmployee(emp) {
     document.getElementById('loginScreen').classList.add('hidden');
     document.getElementById('appContent').classList.remove('app-locked');
     document.getElementById('settingsBtn').classList.remove('hidden');
+    document.getElementById('statsBtn').classList.remove('hidden');
     await loadAllData();
     refreshFab(); // кнопка "+" не появлялась при первом входе, пока не переключишь вкладку — чиним
     setTimeout(refreshFab, 150); // подстраховка на случай отложенной перерисовки на мобильном
@@ -62,6 +63,7 @@ async function logoutEmployee() {
     document.getElementById('loginScreen').classList.remove('hidden');
     document.getElementById('appContent').classList.add('app-locked');
     document.getElementById('settingsBtn').classList.add('hidden');
+    document.getElementById('statsBtn').classList.add('hidden');
 }
 
 // Панель настроек (шестерёнка) — служебные функции, доступна из любого раздела

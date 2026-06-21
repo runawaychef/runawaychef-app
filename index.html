@@ -126,6 +126,15 @@
         }
         #settingsBtn.hidden { display: none; }
 
+        /* Иконка "Статистика" — та же стилистика, что и шестерёнка, левее неё */
+        #statsBtn {
+            position: fixed; top: calc(6px + env(safe-area-inset-top)); right: 46px;
+            background: white; border: 1px solid #e5e7eb; border-radius: 50%;
+            width: 34px; height: 34px; display: flex; align-items: center; justify-content: center;
+            z-index: 50; box-shadow: 0 1px 3px rgba(0,0,0,0.08); cursor: pointer;
+        }
+        #statsBtn.hidden { display: none; }
+
         /* Плавающая кнопка "+" — создание новой записи в текущем разделе.
            Закреплена внизу справа, видна при прокрутке, контекст (что именно
            создаёт) определяется в JS через refreshFab(). */
@@ -181,6 +190,11 @@
     <div class="spinner"></div>
 </div>
 
+<!-- Статистика: значок графика, доступен из любого раздела -->
+<button id="statsBtn" class="hidden" onclick="showTab('stats')" title="Статистика">
+    <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#4b5563" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><rect x="7" y="13" width="3" height="5"/><rect x="12" y="9" width="3" height="9"/><rect x="17" y="5" width="3" height="13"/></svg>
+</button>
+
 <!-- Шестерёнка: служебные функции (доступна во всех разделах) -->
 <button id="settingsBtn" class="hidden" onclick="openSettingsModal()" title="Настройки">
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#4b5563" stroke-width="1.6"><path stroke-linecap="round" stroke-linejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><circle cx="12" cy="12" r="3"/></svg>
@@ -199,7 +213,7 @@
             <button onclick="showTab('customers')" class="tab btn bg-gray-200 text-gray-800 p-1 rounded-md hover:bg-gray-300 text-sm">Клиенты</button>
             <button onclick="showTab('products')" class="tab btn bg-gray-200 text-gray-800 p-1 rounded-md hover:bg-gray-300 text-sm">Изделия</button>
             <button onclick="showTab('ingredients')" class="tab btn bg-gray-200 text-gray-800 p-1 rounded-md hover:bg-gray-300 text-sm">Ингредиенты</button>
-            <button onclick="showTab('stats')" class="tab btn bg-gray-200 text-gray-800 p-1 rounded-md hover:bg-gray-300 text-sm">Статистика</button>
+            <button onclick="showTab('semiFinished')" class="tab btn bg-gray-200 text-gray-800 p-1 rounded-md hover:bg-gray-300 text-sm">Полуфабрикаты</button>
         </div>
 
         <!-- ===== ИЗДЕЛИЯ ===== -->
@@ -307,9 +321,6 @@
         <!-- ===== ИНГРЕДИЕНТЫ ===== -->
         <div id="ingredients" class="tab-content hidden">
             <div id="ingredientsList">
-                <div class="flex justify-end mb-2">
-                    <button onclick="showTab('semiFinished')" class="btn bg-gray-200 text-gray-700 px-2 py-1 rounded-md hover:bg-gray-300 text-xs">🧪 Полуфабрикаты →</button>
-                </div>
                 <div class="bg-white p-2 rounded-md shadow-md">
                     <h2 class="text-lg font-semibold mb-2 text-gray-800">Список ингредиентов</h2>
                     <p class="text-xs text-gray-400 mb-2">Нажмите на строку, чтобы открыть карточку ингредиента</p>
@@ -1052,8 +1063,8 @@
 <script src="dates.js?v=3"></script>
 <script src="money.js?v=3"></script>
 <script src="supabaseClient.js?v=3"></script>
-<script src="auth.js?v=1"></script>
-<script src="employees.js?v=5"></script>
+<script src="auth.js?v=2"></script>
+<script src="employees.js?v=6"></script>
 <script src="ingredients.js?v=7"></script>
 <script src="semifinished.js?v=5"></script>
 <script src="products.js?v=7"></script>
