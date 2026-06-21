@@ -99,9 +99,16 @@ async function confirmDelete() {
             }
         } else if (deleteType === 'semiFinished') {
             const sf = semiFinished[deleteId];
+            const wasOpenInDetail = sf.id === currentSemiFinishedId;
             const { error } = await db.from('semi_finished').delete().eq('id', sf.id);
             if (error) throw error;
             semiFinished.splice(deleteId, 1);
+            if (wasOpenInDetail) {
+                currentSemiFinishedId = null;
+                document.getElementById('semiFinishedList').classList.remove('hidden');
+                document.getElementById('semiFinishedDetail').classList.remove('active');
+                refreshFab();
+            }
             displaySemiFinished();
             logActivity('semiFinished', `Удалён полуфабрикат «${sf.name}»`);
         } else if (deleteType === 'sfRecipeItem') {

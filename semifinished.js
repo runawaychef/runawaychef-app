@@ -45,7 +45,7 @@ function displaySemiFinished() {
             <td class="border p-0.5 text-xs text-center" onclick="openSemiFinishedDetail(${sf.id})">${sf.batch_size} ${unitLabel}</td>
             <td class="border p-0.5 text-xs text-center" onclick="openSemiFinishedDetail(${sf.id})">${unitCost.toFixed(4)} €/${unitLabel}</td>
             <td class="border p-0.5 text-center">
-                ${svgEdit(`openEditSemiFinishedModal(${i})`)}
+                ${svgEdit(`openSemiFinishedDetail(${sf.id})`)}
                 ${svgDelete(`openDeleteModal(${i},'semiFinished','полуфабрикат «${sf.name}»')`)}
             </td>`;
         tbody.appendChild(row);
@@ -55,48 +55,34 @@ function displaySemiFinished() {
     updateSemiFinishedSelects();
 }
 
-async function addSemiFinished() {
-    const name = document.getElementById('semiFinishedName').value.trim();
-    const batchSize = parseFloat(document.getElementById('semiFinishedBatchSize').value);
-    const unit = document.getElementById('semiFinishedUnit').value;
-    if (!name || isNaN(batchSize) || batchSize <= 0) { showInfo('Заполните все поля корректно!'); return; }
+// Кнопка "+": сразу создаёт черновик полуфабриката и открывает его карточку
+let _draftSemiFinishedIds = new Set();
+
+async function createDraftSemiFinishedAndOpen() {
     showLoading();
     try {
-        const { data, error } = await db.from('semi_finished').insert({ name, batch_size: batchSize, unit, other_costs: 0 }).select().single();
+        const { data, error } = await db.from('semi_finished').insert({ name: '', batch_size: 1, unit: 'g', other_costs: 0 }).select().single();
         if (error) throw error;
-        semiFinished.push({ id: data.id, name: data.name, batch_size: Number(data.batch_size), unit: data.unit, other_costs: Number(data.other_costs || 0), ingredients: [] });
+        const newSf = { id: data.id, name: '', batch_size: 1, unit: 'g', other_costs: 0, recipe_confirmed: false, ingredients: [] };
+        semiFinished.push(newSf);
+        _draftSemiFinishedIds.add(newSf.id);
         displaySemiFinished();
-        logActivity('semiFinished', `Добавлен полуфабрикат «${name}»`);
-        document.getElementById('semiFinishedName').value = '';
-        document.getElementById('semiFinishedBatchSize').value = '';
-    } catch (e) { console.error(e); showInfo('Ошибка сохранения. Проверьте подключение.'); }
+        openSemiFinishedDetail(newSf.id);
+        logActivity('semiFinished', `Создан черновик полуфабриката №${newSf.id}`);
+    } catch (e) { console.error(e); showInfo('Ошибка создания полуфабриката. Проверьте подключение.'); }
     finally { hideLoading(); }
 }
 
-function openEditSemiFinishedModal(i) {
-    editIndex = i;
-    const sf = semiFinished[i];
-    document.getElementById('editSemiFinishedName').value = sf.name;
-    document.getElementById('editSemiFinishedBatchSize').value = sf.batch_size;
-    document.getElementById('editSemiFinishedUnit').value = sf.unit;
-    document.getElementById('editSemiFinishedModal').style.display = 'flex';
-}
-
-async function saveSemiFinishedEdit() {
-    const name = document.getElementById('editSemiFinishedName').value.trim();
-    const batchSize = parseFloat(document.getElementById('editSemiFinishedBatchSize').value);
-    const unit = document.getElementById('editSemiFinishedUnit').value;
-    if (!name || isNaN(batchSize) || batchSize <= 0) { showInfo('Заполните все поля корректно!'); return; }
-    const sf = semiFinished[editIndex];
-    showLoading();
+async function cleanupSemiFinishedDraftIfEmpty(sfId) {
+    if (!_draftSemiFinishedIds.has(sfId)) return;
+    _draftSemiFinishedIds.delete(sfId);
+    const idx = semiFinished.findIndex(s => s.id === sfId);
+    if (idx === -1) return;
+    if (semiFinished[idx].name && semiFinished[idx].name.trim()) return; // название вписали — уже не пустой черновик
     try {
-        const { error } = await db.from('semi_finished').update({ name, batch_size: batchSize, unit }).eq('id', sf.id);
-        if (error) throw error;
-        sf.name = name; sf.batch_size = batchSize; sf.unit = unit;
-        displaySemiFinished(); closeModal();
-        logActivity('semiFinished', `Изменён полуфабрикат «${name}»`);
-    } catch (e) { console.error(e); showInfo('Ошибка сохранения. Проверьте подключение.'); }
-    finally { hideLoading(); }
+        await db.from('semi_finished').delete().eq('id', sfId);
+        semiFinished.splice(idx, 1);
+    } catch (e) { console.error('Не удалось удалить пустой черновик полуфабриката:', e); }
 }
 
 // ==================== ДЕТАЛЬНЫЙ ВИД ПОЛУФАБРИКАТА / РЕЦЕПТУРА ====================
@@ -119,13 +105,25 @@ function openSemiFinishedDetail(sfId) {
     renderSemiFinishedRecipe(sf);
     fillNewSfRecipeIngredientSelect();
     setupCopySfRecipeControl(sf);
+    refreshFab();
 }
 
-function closeSemiFinishedDetail() {
+async function closeSemiFinishedDetail() {
+    const leavingId = currentSemiFinishedId;
     currentSemiFinishedId = null;
     document.getElementById('semiFinishedList').classList.remove('hidden');
     document.getElementById('semiFinishedDetail').classList.remove('active');
+    if (leavingId !== null) await cleanupSemiFinishedDraftIfEmpty(leavingId);
     displaySemiFinished();
+    refreshFab();
+}
+
+// Удаление полуфабриката прямо из его карточки (то же окно подтверждения, что и из списка)
+function deleteCurrentSemiFinished() {
+    const idx = semiFinished.findIndex(s => s.id === currentSemiFinishedId);
+    if (idx === -1) return;
+    const sf = semiFinished[idx];
+    openDeleteModal(idx, 'semiFinished', `полуфабрикат «${sf.name || '(без названия)'}»`);
 }
 
 async function saveSfdHeader() {

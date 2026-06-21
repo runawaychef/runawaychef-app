@@ -387,21 +387,6 @@
                         Назад к ингредиентам
                     </button>
                 </div>
-                <div class="bg-white p-2 rounded-md shadow-md mb-4">
-                    <h2 class="text-lg font-semibold mb-2 text-gray-800">Добавить полуфабрикат</h2>
-                    <p class="text-xs text-gray-400 mb-2">Например: крем, конфитюр, тесто — промежуточный состав из ингредиентов</p>
-                    <div class="grid grid-cols-1 gap-0.5">
-                        <input id="semiFinishedName" type="text" placeholder="Название (например, Вишнёвый конфитюр)" class="border p-0.5 rounded-md focus:outline-none focus:ring-1 focus:ring-gray-300 text-xs">
-                        <input id="semiFinishedBatchSize" type="number" autocomplete="off" inputmode="decimal" step="0.01" min="0.01" placeholder="Размер партии (например 500)" class="border p-0.5 rounded-md focus:outline-none focus:ring-1 focus:ring-gray-300 text-xs">
-                        <select id="semiFinishedUnit" class="border p-0.5 rounded-md focus:outline-none focus:ring-1 focus:ring-gray-300 text-xs">
-                            <option value="g">граммы (г)</option>
-                            <option value="kg">килограммы (кг)</option>
-                            <option value="ml">миллилитры (мл)</option>
-                            <option value="l">литры (л)</option>
-                        </select>
-                        <button onclick="addSemiFinished()" class="btn bg-gray-500 text-white p-0.5 rounded-md hover:bg-gray-600 text-xs">Добавить полуфабрикат</button>
-                    </div>
-                </div>
                 <div class="bg-white p-2 rounded-md shadow-md">
                     <h2 class="text-lg font-semibold mb-2 text-gray-800">Список полуфабрикатов</h2>
                     <p class="text-xs text-gray-400 mb-2">Нажмите на строку, чтобы открыть рецептуру</p>
@@ -426,6 +411,7 @@
                             <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
                             Назад к полуфабрикатам
                         </button>
+                        <button onclick="deleteCurrentSemiFinished()" class="btn text-xs bg-red-50 text-red-600 px-2 py-1 rounded-md hover:bg-red-100">Удалить полуфабрикат</button>
                     </div>
                     <div class="grid grid-cols-2 gap-1 mb-2">
                         <div class="col-span-2">
@@ -802,23 +788,6 @@
             </div>
         </div>
 
-        <!-- Редактировать полуфабрикат -->
-        <div id="editSemiFinishedModal" class="modal">
-            <div class="modal-content">
-                <h2 class="text-base font-semibold mb-2 text-gray-800">Редактировать полуфабрикат</h2>
-                <input id="editSemiFinishedName" type="text" placeholder="Название" class="border p-0.5 rounded-md mb-1 w-full text-xs">
-                <input id="editSemiFinishedBatchSize" type="number" autocomplete="off" inputmode="decimal" step="0.01" min="0.01" placeholder="Размер партии" class="border p-0.5 rounded-md mb-1 w-full text-xs">
-                <select id="editSemiFinishedUnit" class="border p-0.5 rounded-md mb-2 w-full text-xs">
-                    <option value="g">граммы (г)</option>
-                    <option value="kg">килограммы (кг)</option>
-                    <option value="ml">миллилитры (мл)</option>
-                    <option value="l">литры (л)</option>
-                </select>
-                <button onclick="saveSemiFinishedEdit()" class="btn bg-gray-500 text-white p-0.5 rounded-md hover:bg-gray-600 mr-1 text-xs">Сохранить</button>
-                <button onclick="closeModal()" class="btn bg-gray-400 text-white p-0.5 rounded-md hover:bg-gray-500 text-xs">Отмена</button>
-            </div>
-        </div>
-
         <!-- Редактировать позицию рецепта полуфабриката -->
         <div id="editSfRecipeItemModal" class="modal">
             <div class="modal-content">
@@ -1066,13 +1035,13 @@
 <script src="auth.js?v=2"></script>
 <script src="employees.js?v=6"></script>
 <script src="ingredients.js?v=7"></script>
-<script src="semifinished.js?v=5"></script>
+<script src="semifinished.js?v=6"></script>
 <script src="products.js?v=7"></script>
 <script src="customers.js?v=11"></script>
 <script src="orders.js?v=11"></script>
 <script src="stats.js?v=8"></script>
 <script src="history.js?v=3"></script>
-<script src="modals.js?v=6"></script>
+<script src="modals.js?v=7"></script>
 <script src="helpers.js?v=6"></script>
 <script>
 // SUPABASE_URL, SUPABASE_KEY, db перенесены в supabaseClient.js
@@ -1254,13 +1223,15 @@ function refreshFab() {
         document.getElementById('orderDetail')?.classList.contains('active') ||
         document.getElementById('productDetail')?.classList.contains('active') ||
         document.getElementById('customerDetail')?.classList.contains('active') ||
-        document.getElementById('ingredientDetail')?.classList.contains('active');
+        document.getElementById('ingredientDetail')?.classList.contains('active') ||
+        document.getElementById('semiFinishedDetail')?.classList.contains('active');
 
     const actions = {
         orders: createDraftOrderAndOpen,
         customers: createDraftCustomerAndOpen,
         products: createDraftProductAndOpen,
         ingredients: createDraftIngredientAndOpen,
+        semiFinished: createDraftSemiFinishedAndOpen,
     };
 
     if (tabId && actions[tabId] && !isDetailOpen()) {
@@ -1276,12 +1247,15 @@ function refreshFab() {
 }
 
 // Сброс детального вида полуфабриката без повторной перерисовки списка
-function closeSemiFinishedDetailSilent() {
+async function closeSemiFinishedDetailSilent() {
+    const leavingId = currentSemiFinishedId;
     currentSemiFinishedId = null;
     const list = document.getElementById('semiFinishedList');
     const detail = document.getElementById('semiFinishedDetail');
     if (list) list.classList.remove('hidden');
     if (detail) detail.classList.remove('active');
+    if (leavingId !== null) await cleanupSemiFinishedDraftIfEmpty(leavingId);
+    refreshFab();
 }
 
 // Сброс детального вида изделия без повторной перерисовки списка (избегаем двойного displayProducts)
