@@ -205,12 +205,27 @@ async function downloadCustomerReportPdf() {
 
     const el = document.getElementById('customerReportContent');
     showLoading();
+
+    // Снимок делаем не из элемента внутри попапа (с прокруткой/центрированием —
+    // на некоторых мобильных браузерах это вызывает зависание html2canvas),
+    // а из простой скрытой копии прямо в <body>, без сложного позиционирования.
+    const clone = el.cloneNode(true);
+    clone.id = 'customerReportClone';
+    clone.style.cssText = 'position:absolute; top:0; left:-9999px; width:480px; background:white;';
+    document.body.appendChild(clone);
+
+    function withTimeout(promise, ms, label) {
+        return Promise.race([
+            promise,
+            new Promise((_, reject) => setTimeout(() => reject(new Error(`${label}: превышено время ожидания`)), ms))
+        ]);
+    }
+
     try {
         if (typeof html2canvas === 'undefined' || !window.jspdf) {
             throw new Error('Библиотеки для PDF не загрузились (html2canvas/jsPDF). Проверьте интернет и обновите страницу.');
         }
-        await new Promise(r => setTimeout(r, 80)); // даём окну отчёта точно отрисоваться перед снимком
-        const canvas = await html2canvas(el, { scale: 1.5, backgroundColor: '#ffffff' });
+        const canvas = await withTimeout(html2canvas(clone, { scale: 1.5, backgroundColor: '#ffffff' }), 15000, 'Создание снимка отчёта');
         const imgData = canvas.toDataURL('image/png');
         const { jsPDF } = window.jspdf;
         const pdf = new jsPDF('p', 'mm', 'a4');
@@ -235,7 +250,7 @@ async function downloadCustomerReportPdf() {
         console.error(e);
         showInfo('Не удалось сформировать PDF: ' + (e && e.message ? e.message : 'неизвестная ошибка') + '. Проверьте подключение и попробуйте ещё раз.');
     }
-    finally { hideLoading(); }
+    finally { clone.remove(); hideLoading(); }
 }
 
 // ==================== КАРТОЧКА КЛИЕНТА ====================
