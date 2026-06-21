@@ -59,7 +59,7 @@ async function addSemiFinished() {
     const name = document.getElementById('semiFinishedName').value.trim();
     const batchSize = parseFloat(document.getElementById('semiFinishedBatchSize').value);
     const unit = document.getElementById('semiFinishedUnit').value;
-    if (!name || isNaN(batchSize) || batchSize <= 0) { alert('Заполните все поля корректно!'); return; }
+    if (!name || isNaN(batchSize) || batchSize <= 0) { showInfo('Заполните все поля корректно!'); return; }
     showLoading();
     try {
         const { data, error } = await db.from('semi_finished').insert({ name, batch_size: batchSize, unit, other_costs: 0 }).select().single();
@@ -69,7 +69,7 @@ async function addSemiFinished() {
         logActivity('semiFinished', `Добавлен полуфабрикат «${name}»`);
         document.getElementById('semiFinishedName').value = '';
         document.getElementById('semiFinishedBatchSize').value = '';
-    } catch (e) { console.error(e); alert('Ошибка сохранения. Проверьте подключение.'); }
+    } catch (e) { console.error(e); showInfo('Ошибка сохранения. Проверьте подключение.'); }
     finally { hideLoading(); }
 }
 
@@ -86,7 +86,7 @@ async function saveSemiFinishedEdit() {
     const name = document.getElementById('editSemiFinishedName').value.trim();
     const batchSize = parseFloat(document.getElementById('editSemiFinishedBatchSize').value);
     const unit = document.getElementById('editSemiFinishedUnit').value;
-    if (!name || isNaN(batchSize) || batchSize <= 0) { alert('Заполните все поля корректно!'); return; }
+    if (!name || isNaN(batchSize) || batchSize <= 0) { showInfo('Заполните все поля корректно!'); return; }
     const sf = semiFinished[editIndex];
     showLoading();
     try {
@@ -95,7 +95,7 @@ async function saveSemiFinishedEdit() {
         sf.name = name; sf.batch_size = batchSize; sf.unit = unit;
         displaySemiFinished(); closeModal();
         logActivity('semiFinished', `Изменён полуфабрикат «${name}»`);
-    } catch (e) { console.error(e); alert('Ошибка сохранения. Проверьте подключение.'); }
+    } catch (e) { console.error(e); showInfo('Ошибка сохранения. Проверьте подключение.'); }
     finally { hideLoading(); }
 }
 
@@ -135,7 +135,7 @@ async function saveSfdHeader() {
     const batchSize = parseFloat(document.getElementById('sfdBatchSize').value);
     const unit = document.getElementById('sfdUnit').value;
     const otherCosts = parseFloat(document.getElementById('sfdOtherCosts').value) || 0;
-    if (!name || isNaN(batchSize) || batchSize <= 0) { alert('Заполните название и размер партии корректно!'); return; }
+    if (!name || isNaN(batchSize) || batchSize <= 0) { showInfo('Заполните название и размер партии корректно!'); return; }
 
     showLoading();
     try {
@@ -146,7 +146,7 @@ async function saveSfdHeader() {
         sf.name = name; sf.batch_size = batchSize; sf.unit = unit; sf.other_costs = parseFloat(otherCosts.toFixed(2));
         renderSemiFinishedRecipe(sf);
         logActivity('semiFinished', `Изменён полуфабрикат «${sf.name}»`);
-    } catch (e) { console.error(e); alert('Ошибка сохранения. Проверьте подключение.'); }
+    } catch (e) { console.error(e); showInfo('Ошибка сохранения. Проверьте подключение.'); }
     finally { hideLoading(); }
 }
 
@@ -198,7 +198,7 @@ async function addIngredientToSfRecipe() {
     const quantity = parseFloat(document.getElementById('newSfRecipeQty').value);
     const ing = ingredients.find(i => i.name === inputEl.value.trim());
     if (!ing || isNaN(quantity) || quantity <= 0) {
-        alert('Выберите ингредиент из списка и укажите количество!'); return;
+        showInfo('Выберите ингредиент из списка и укажите количество!'); return;
     }
     const ingredientId = ing.id;
 
@@ -215,7 +215,7 @@ async function addIngredientToSfRecipe() {
         logActivity('semiFinished', `В рецепт «${sf.name}» добавлен ингредиент «${ing.name}» (${quantity})`);
         inputEl.value = '';
         document.getElementById('newSfRecipeQty').value = '';
-    } catch (e) { console.error(e); alert('Ошибка сохранения. Проверьте подключение.'); }
+    } catch (e) { console.error(e); showInfo('Ошибка сохранения. Проверьте подключение.'); }
     finally { hideLoading(); }
 }
 
@@ -245,7 +245,7 @@ async function saveSfRecipeItemEdit() {
     const ingredientIdRaw = document.getElementById('editSfRecipeIngredient').value;
     const quantity = parseFloat(document.getElementById('editSfRecipeQty').value);
     if (!ingredientIdRaw || isNaN(quantity) || quantity <= 0) {
-        alert('Заполните все поля корректно!'); return;
+        showInfo('Заполните все поля корректно!'); return;
     }
     const ingredientId = Number(ingredientIdRaw);
     const ri = sf.ingredients[editSfRecipeItemIdx];
@@ -261,7 +261,7 @@ async function saveSfRecipeItemEdit() {
         await resetSfRecipeConfirmed(sf);
         closeModal();
         logActivity('semiFinished', `Изменён ингредиент в рецепте «${sf.name}»`);
-    } catch (e) { console.error(e); alert('Ошибка сохранения. Проверьте подключение.'); }
+    } catch (e) { console.error(e); showInfo('Ошибка сохранения. Проверьте подключение.'); }
     finally { hideLoading(); }
 }
 
@@ -285,7 +285,7 @@ async function toggleSfRecipeConfirmed() {
         sf.recipe_confirmed = checked;
         logActivity('semiFinished', `Рецепт «${sf.name}» отмечен как ${checked ? 'заполненный полностью' : 'неполный'}`);
     } catch (e) {
-        console.error(e); alert('Ошибка сохранения. Проверьте подключение.');
+        console.error(e); showInfo('Ошибка сохранения. Проверьте подключение.');
         document.getElementById('sfdRecipeConfirmed').checked = !checked;
     } finally { hideLoading(); }
 }
@@ -318,13 +318,13 @@ async function copySfRecipeFromByName(sourceName) {
     const src = semiFinished.find(s => s.name === sourceName);
     if (!sf || !src) return;
     const srcItems = src.ingredients || [];
-    if (!srcItems.length) { alert('У выбранного полуфабриката нет рецепта.'); return; }
+    if (!srcItems.length) { showInfo('У выбранного полуфабриката нет рецепта.'); return; }
 
     const existingIds = new Set((sf.ingredients || []).map(i => i.ingredient_id));
     const toCopy = srcItems.filter(ri => !existingIds.has(ri.ingredient_id));
     const skipped = srcItems.length - toCopy.length;
 
-    if (!toCopy.length) { alert(`Все ингредиенты из рецепта «${sourceName}» уже есть в этом рецепте.`); return; }
+    if (!toCopy.length) { showInfo(`Все ингредиенты из рецепта «${sourceName}» уже есть в этом рецепте.`); return; }
 
     let msg = `Скопировать ${toCopy.length} ${toCopy.length === 1 ? 'позицию' : 'позиций'} из рецепта «${sourceName}» в «${sf.name}»?`;
     if (skipped) msg += `\n(${skipped} уже есть в текущем рецепте — будут пропущены)`;
@@ -340,7 +340,7 @@ async function copySfRecipeFromByName(sourceName) {
         renderSemiFinishedRecipe(sf);
         await resetSfRecipeConfirmed(sf);
         logActivity('semiFinished', `В рецепт «${sf.name}» скопировано ${toCopy.length} поз. из рецепта «${sourceName}»`);
-    } catch (e) { console.error(e); alert('Ошибка сохранения. Проверьте подключение.'); }
+    } catch (e) { console.error(e); showInfo('Ошибка сохранения. Проверьте подключение.'); }
     finally { hideLoading(); }
 }
 

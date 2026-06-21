@@ -53,7 +53,7 @@ async function addIngredient() {
     const packageSize  = parseFloat(document.getElementById('ingredientPackageSize').value);
     const unit = document.getElementById('ingredientUnit').value;
     if (!name || isNaN(packagePrice) || isNaN(packageSize) || packageSize <= 0) {
-        alert('Заполните все поля корректно!'); return;
+        showInfo('Заполните все поля корректно!'); return;
     }
     showLoading();
     try {
@@ -68,7 +68,7 @@ async function addIngredient() {
         document.getElementById('ingredientName').value = '';
         document.getElementById('ingredientPackagePrice').value = '';
         document.getElementById('ingredientPackageSize').value = '';
-    } catch (e) { console.error(e); alert('Ошибка сохранения. Проверьте подключение.'); }
+    } catch (e) { console.error(e); showInfo('Ошибка сохранения. Проверьте подключение.'); }
     finally { hideLoading(); }
 }
 
@@ -110,7 +110,7 @@ async function saveIdHeader() {
     const packageSize  = parseFloat(document.getElementById('idPackageSize').value);
     const unit = document.getElementById('idUnit').value;
     if (!name || isNaN(packagePrice) || isNaN(packageSize) || packageSize <= 0) {
-        alert('Заполните все поля корректно!'); return;
+        showInfo('Заполните все поля корректно!'); return;
     }
     showLoading();
     try {
@@ -122,7 +122,7 @@ async function saveIdHeader() {
         ing.package_size = packageSize; ing.unit = unit;
         renderIngredientUnitPrice(ing);
         logActivity('ingredient', `Изменён ингредиент «${name}»`);
-    } catch (e) { console.error(e); alert('Ошибка сохранения. Проверьте подключение.'); }
+    } catch (e) { console.error(e); showInfo('Ошибка сохранения. Проверьте подключение.'); }
     finally { hideLoading(); }
 }
 
@@ -156,7 +156,7 @@ async function confirmQuickAddIngredient() {
     const packageSize  = parseFloat(document.getElementById('qaiSize').value);
     const unit = document.getElementById('qaiUnit').value;
     if (!name || isNaN(packagePrice) || isNaN(packageSize) || packageSize <= 0) {
-        alert('Заполните все поля корректно!'); return;
+        showInfo('Заполните все поля корректно!'); return;
     }
     showLoading();
     try {
@@ -175,6 +175,6 @@ async function confirmQuickAddIngredient() {
         const inputId = _quickAddIngredientContext === 'semiFinished' ? 'newSfRecipeIngredient' : 'newRecipeIngredient';
         const input = document.getElementById(inputId);
         if (input) input.value = newIng.name;
-    } catch (e) { console.error(e); alert('Ошибка сохранения. Проверьте подключение.'); }
+    } catch (e) { console.error(e); showInfo('Ошибка сохранения. Проверьте подключение.'); }
     finally { hideLoading(); }
 }

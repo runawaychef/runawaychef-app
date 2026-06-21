@@ -1102,16 +1102,16 @@
 <script src="money.js?v=3"></script>
 <script src="supabaseClient.js?v=3"></script>
 <script src="auth.js?v=1"></script>
-<script src="employees.js?v=3"></script>
-<script src="ingredients.js?v=5"></script>
-<script src="semifinished.js?v=4"></script>
-<script src="products.js?v=5"></script>
-<script src="customers.js?v=8"></script>
-<script src="orders.js?v=8"></script>
+<script src="employees.js?v=4"></script>
+<script src="ingredients.js?v=6"></script>
+<script src="semifinished.js?v=5"></script>
+<script src="products.js?v=6"></script>
+<script src="customers.js?v=10"></script>
+<script src="orders.js?v=10"></script>
 <script src="stats.js?v=8"></script>
 <script src="history.js?v=3"></script>
-<script src="modals.js?v=5"></script>
-<script src="helpers.js?v=5"></script>
+<script src="modals.js?v=6"></script>
+<script src="helpers.js?v=6"></script>
 <script>
 // SUPABASE_URL, SUPABASE_KEY, db перенесены в supabaseClient.js
 
@@ -1256,6 +1256,17 @@ function showTab(tabId) {
     document.getElementById(tabId).classList.remove('hidden');
     const tabBtn = document.querySelector(`button[onclick="showTab('${tabId}')"]`);
     if (tabBtn) tabBtn.classList.add('active');
+
+    // Закрываем ВСЕ открытые карточки при переключении вкладки (не только
+    // карточку текущего раздела) — иначе, например, открытая карточка клиента
+    // продолжает считаться "активной" после перехода в Изделия, и кнопка "+"
+    // ошибочно остаётся скрытой.
+    if (tabId !== 'orders')      closeOrderDetailSilent();
+    if (tabId !== 'products')    closeProductDetailSilent();
+    if (tabId !== 'customers')   closeCustomerDetailSilent();
+    if (tabId !== 'ingredients') closeIngredientDetailSilent();
+    if (tabId !== 'semiFinished') closeSemiFinishedDetailSilent();
+
     if (tabId === 'orders')    { closeOrderDetail(); displayOrders(); }
     if (tabId === 'products')  { closeProductDetailSilent(); displayProducts(); }
     if (tabId === 'customers') { closeCustomerDetailSilent(); displayCustomers(); }

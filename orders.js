@@ -262,7 +262,7 @@ async function createDraftOrderAndOpen() {
         displayOrders();
         openOrderDetail(newOrder.id);
         logActivity('order', `Создан черновик заказа №${newOrder.id}`, newOrder.id);
-    } catch (e) { console.error(e); alert('Ошибка создания заказа. Проверьте подключение.'); }
+    } catch (e) { console.error(e); showInfo('Ошибка создания заказа. Проверьте подключение.'); }
     finally { hideLoading(); }
 }
 
@@ -307,7 +307,7 @@ async function copyOrder(i) {
         displayOrders();
         openOrderDetail(copy.id);
         logActivity('order', `Скопирован заказ №${o.id} → новый заказ №${copy.id} (клиент «${o.customer}»)`, copy.id);
-    } catch (e) { console.error(e); alert('Ошибка копирования заказа. Проверьте подключение.'); }
+    } catch (e) { console.error(e); showInfo('Ошибка копирования заказа. Проверьте подключение.'); }
     finally { hideLoading(); }
 }
 
@@ -377,6 +377,17 @@ function closeOrderDetail() {
     refreshFab();
 }
 
+// Сброс детального вида заказа без повторной перерисовки списка
+// (используется при переключении на ДРУГУЮ вкладку — список заказов
+// перерисовывать не нужно, раз мы туда не идём).
+function closeOrderDetailSilent() {
+    currentOrderId = null;
+    const list = document.getElementById('ordersList');
+    const detail = document.getElementById('orderDetail');
+    if (list) list.classList.remove('hidden');
+    if (detail) detail.classList.remove('active');
+}
+
 // Удаление заказа прямо из его карточки (переиспользует стандартное окно
 // подтверждения — openDeleteModal/confirmDelete, как и удаление из списка).
 function deleteCurrentOrder() {
@@ -389,7 +400,7 @@ function deleteCurrentOrder() {
 // Переход из карточки заказа в карточку его клиента (раздел "Клиенты")
 function goToCustomerFromOrder() {
     const order = orders.find(o => o.id === currentOrderId);
-    if (!order || !order.customer_id) { alert('У этого заказа не указан клиент.'); return; }
+    if (!order || !order.customer_id) { showInfo('У этого заказа не указан клиент.'); return; }
     showTab('customers');
     openCustomerDetail(order.customer_id);
 }
@@ -415,7 +426,7 @@ async function saveDetailHeader() {
     if (customerName !== (order.customer || '')) {
         const cust = customers.find(c => c.name === customerName);
         if (!cust) {
-            alert(`Клиент «${customerName}» не найден в списке. Выберите клиента из выпадающего списка.`);
+            showInfo(`Клиент «${customerName}» не найден в списке. Выберите клиента из выпадающего списка.`);
             document.getElementById('detailCustomer').value = order.customer || ''; // откатываем поле
             return;
         }
@@ -453,7 +464,7 @@ async function saveDetailHeader() {
         if ((old.employee || '') !== (order.employee || '')) changes.push(`исполнитель «${old.employee || '—'}» → «${order.employee || '—'}»`);
         if (old.notes !== order.notes) changes.push(`комментарий изменён`);
         if (changes.length) logActivity('order', `Изменён заказ №${order.id}: ${changes.join(', ')}`, order.id);
-    } catch (e) { console.error(e); alert('Ошибка сохранения. Проверьте подключение.'); }
+    } catch (e) { console.error(e); showInfo('Ошибка сохранения. Проверьте подключение.'); }
     finally { hideLoading(); }
 }
 
@@ -525,10 +536,10 @@ async function addItemToOrder() {
     const quantity = parseFloat(document.getElementById('newItemQty').value);
     const price    = parseFloat(document.getElementById('newItemPrice').value);
     if (!productName || isNaN(quantity) || quantity <= 0 || isNaN(price)) {
-        alert('Заполните изделие, количество и цену!'); return;
+        showInfo('Заполните изделие, количество и цену!'); return;
     }
     const prod = products.find(p => p.name === productName);
-    if (!prod) { alert('Изделие не найдено!'); return; }
+    if (!prod) { showInfo('Изделие не найдено!'); return; }
 
     showLoading();
     try {
@@ -543,7 +554,7 @@ async function addItemToOrder() {
         document.getElementById('newItemProduct').value = '';
         document.getElementById('newItemQty').value    = '';
         document.getElementById('newItemPrice').value  = '';
-    } catch (e) { console.error(e); alert('Ошибка сохранения. Проверьте подключение.'); }
+    } catch (e) { console.error(e); showInfo('Ошибка сохранения. Проверьте подключение.'); }
     finally { hideLoading(); }
 }
 
@@ -587,10 +598,10 @@ async function saveItemEdit() {
     const quantity = parseFloat(document.getElementById('editItemQty').value);
     const price    = parseFloat(document.getElementById('editItemPrice').value);
     if (!productName || isNaN(quantity) || quantity <= 0 || isNaN(price)) {
-        alert('Заполните все поля корректно!'); return;
+        showInfo('Заполните все поля корректно!'); return;
     }
     const prod = products.find(p => p.name === productName);
-    if (!prod) { alert('Изделие не найдено!'); return; }
+    if (!prod) { showInfo('Изделие не найдено!'); return; }
     const item = order.items[editItemIdx];
     const oldDesc = `«${item.product}» × ${item.quantity}`;
 
@@ -604,7 +615,7 @@ async function saveItemEdit() {
         renderDetailItems(order);
         closeModal();
         logActivity('item', `Изменена позиция в заказе №${order.id}: ${oldDesc} → «${prod.name}» × ${quantity}`, order.id);
-    } catch (e) { console.error(e); alert('Ошибка сохранения. Проверьте подключение.'); }
+    } catch (e) { console.error(e); showInfo('Ошибка сохранения. Проверьте подключение.'); }
     finally { hideLoading(); }
 }
 
@@ -629,9 +640,9 @@ async function saveOrderEdit() {
     const customerName = document.getElementById('editOrderCustomer').value;
     const date     = document.getElementById('editOrderDate').value;
     const status   = document.getElementById('editOrderStatus').value;
-    if (!customerName || !date) { alert('Заполните все поля!'); return; }
+    if (!customerName || !date) { showInfo('Заполните все поля!'); return; }
     const cust = customers.find(c => c.name === customerName);
-    if (!cust) { alert('Клиент не найден!'); return; }
+    if (!cust) { showInfo('Клиент не найден!'); return; }
     const order = orders[editIndex];
     const old = { customer: order.customer, date: order.date, status: order.status };
 
@@ -651,6 +662,6 @@ async function saveOrderEdit() {
         if (old.date !== order.date) changes.push(`дата ${formatDateDMY(old.date)} → ${formatDateDMY(order.date)}`);
         if (old.status !== order.status) changes.push(`статус «${old.status}» → «${order.status}»`);
         if (changes.length) logActivity('order', `Изменён заказ №${order.id}: ${changes.join(', ')}`, order.id);
-    } catch (e) { console.error(e); alert('Ошибка сохранения. Проверьте подключение.'); }
+    } catch (e) { console.error(e); showInfo('Ошибка сохранения. Проверьте подключение.'); }
     finally { hideLoading(); }
 }

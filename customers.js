@@ -49,7 +49,7 @@ async function addCustomer() {
     const contact  = document.getElementById('customerContact').value.trim();
     const discount = parseFloat(document.getElementById('customerDiscount').value) || 0;
     const vatExempt = document.getElementById('customerVatExempt').checked;
-    if (!name || !contact) { alert('Заполните все поля корректно!'); return; }
+    if (!name || !contact) { showInfo('Заполните все поля корректно!'); return; }
     showLoading();
     try {
         const { data, error } = await db.from('customers').insert({ name, contact, discount: parseFloat(discount.toFixed(2)), vat_exempt: vatExempt }).select().single();
@@ -62,7 +62,7 @@ async function addCustomer() {
         document.getElementById('customerContact').value = '';
         document.getElementById('customerDiscount').value = '';
         document.getElementById('customerVatExempt').checked = false;
-    } catch (e) { console.error(e); alert('Ошибка сохранения. Проверьте подключение.'); }
+    } catch (e) { console.error(e); showInfo('Ошибка сохранения. Проверьте подключение.'); }
     finally { hideLoading(); }
 }
 
@@ -77,7 +77,7 @@ async function applyVatExemptToAllOrders() {
     const toUpdate = custOrders.filter(o => !!o.vat_exempt !== !!cust.vat_exempt);
 
     if (!toUpdate.length) {
-        alert('У всех заказов этого клиента НДС-статус уже совпадает с текущим.');
+        await showInfo('У всех заказов этого клиента НДС-статус уже совпадает с текущим.');
         return;
     }
 
@@ -94,8 +94,8 @@ async function applyVatExemptToAllOrders() {
         logActivity('customer', `Применён НДС-статус ${statusLabel} к ${toUpdate.length} заказам клиента «${cust.name}»`);
         renderCustomerStats(cust);
         renderCustomerOrders();
-        alert(`Готово: обновлено заказов — ${toUpdate.length}.`);
-    } catch (e) { console.error(e); alert('Ошибка сохранения. Проверьте подключение.'); }
+        await showInfo(`Готово: обновлено заказов — ${toUpdate.length}.`);
+    } catch (e) { console.error(e); showInfo('Ошибка сохранения. Проверьте подключение.'); }
     finally { hideLoading(); }
 }
 
@@ -142,7 +142,7 @@ async function saveCdHeader() {
     const contact  = document.getElementById('cdContact').value.trim();
     const discount = parseFloat(document.getElementById('cdDiscount').value) || 0;
     const vatExempt = document.getElementById('cdVatExempt').checked;
-    if (!name || !contact) { alert('Заполните имя и контакты!'); return; }
+    if (!name || !contact) { showInfo('Заполните имя и контакты!'); return; }
     const oldName = cust.name;
     showLoading();
     try {
@@ -154,7 +154,7 @@ async function saveCdHeader() {
         logActivity('customer', `Изменён клиент «${oldName}»${oldName !== name ? ` → «${name}»` : ''}`);
         renderCustomerStats(cust);
         renderCustomerOrders();
-    } catch (e) { console.error(e); alert('Ошибка сохранения. Проверьте подключение.'); }
+    } catch (e) { console.error(e); showInfo('Ошибка сохранения. Проверьте подключение.'); }
     finally { hideLoading(); }
 }
 

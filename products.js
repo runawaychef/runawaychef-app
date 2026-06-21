@@ -48,7 +48,7 @@ async function addProduct() {
     const name  = document.getElementById('productName').value.trim();
     const unit  = document.getElementById('productUnit').value;
     const price = parseFloat(document.getElementById('productPrice').value);
-    if (!name || isNaN(price)) { alert('Заполните все поля корректно!'); return; }
+    if (!name || isNaN(price)) { showInfo('Заполните все поля корректно!'); return; }
     showLoading();
     try {
         const { data, error } = await db.from('products').insert({ name, price: parseFloat(price.toFixed(2)), unit }).select().single();
@@ -59,7 +59,7 @@ async function addProduct() {
         logActivity('product', `Добавлено изделие «${name}» (${price.toFixed(2)} € за ${UNIT_PRODUCT_LABELS[unit] || unit})`);
         document.getElementById('productName').value = '';
         document.getElementById('productPrice').value = '';
-    } catch (e) { console.error(e); alert('Ошибка сохранения. Проверьте подключение.'); }
+    } catch (e) { console.error(e); showInfo('Ошибка сохранения. Проверьте подключение.'); }
     finally { hideLoading(); }
 }
 
@@ -73,7 +73,7 @@ function openEditProductModal(i) {
 async function saveProductEdit() {
     const name  = document.getElementById('editProductName').value.trim();
     const price = parseFloat(document.getElementById('editProductPrice').value);
-    if (!name || isNaN(price)) { alert('Заполните все поля корректно!'); return; }
+    if (!name || isNaN(price)) { showInfo('Заполните все поля корректно!'); return; }
     const prod = products[editIndex];
     const oldName = prod.name, oldPrice = prod.price;
     showLoading();
@@ -85,7 +85,7 @@ async function saveProductEdit() {
         orders.forEach(o => o.items.forEach(it => { if (it.product_id === prod.id) it.product = name; }));
         displayProducts(); closeModal();
         logActivity('product', `Изменено изделие «${oldName}» (${oldPrice.toFixed(2)} €) → «${name}» (${price.toFixed(2)} €)`);
-    } catch (e) { console.error(e); alert('Ошибка сохранения. Проверьте подключение.'); }
+    } catch (e) { console.error(e); showInfo('Ошибка сохранения. Проверьте подключение.'); }
     finally { hideLoading(); }
 }
 
@@ -156,7 +156,7 @@ async function savePdHeader() {
     const price = parseFloat(document.getElementById('pdPrice').value);
     const batchSize = parseFloat(document.getElementById('pdBatchSize').value) || 1;
     const otherCosts = parseFloat(document.getElementById('pdOtherCosts').value) || 0;
-    if (!name || isNaN(price)) { alert('Заполните название и цену корректно!'); return; }
+    if (!name || isNaN(price)) { showInfo('Заполните название и цену корректно!'); return; }
 
     showLoading();
     try {
@@ -172,7 +172,7 @@ async function savePdHeader() {
         updatePdUnitUI(unit);
         renderProductRecipe(prod);
         logActivity('product', `Изменено изделие «${prod.name}»${unitChanged ? ` (единица: ${UNIT_PRODUCT_LABELS[unit] || '—'})` : ''}`);
-    } catch (e) { console.error(e); alert('Ошибка сохранения. Проверьте подключение.'); }
+    } catch (e) { console.error(e); showInfo('Ошибка сохранения. Проверьте подключение.'); }
     finally { hideLoading(); }
 }
 
@@ -258,7 +258,7 @@ async function addIngredientToRecipe() {
     const quantity = parseFloat(document.getElementById('newRecipeQty').value);
     const resolved = resolveRecipeIngredientInput(inputEl.value);
     if (!resolved || isNaN(quantity) || quantity <= 0) {
-        alert('Выберите ингредиент/полуфабрикат из списка и укажите количество!'); return;
+        showInfo('Выберите ингредиент/полуфабрикат из списка и укажите количество!'); return;
     }
     const type = resolved.type, selectedId = resolved.id;
     const insertRow = type === 'sf'
@@ -284,7 +284,7 @@ async function addIngredientToRecipe() {
         logActivity('product', `В рецепт «${prod.name}» добавлен «${itemName}» (${quantity})`);
         inputEl.value = '';
         document.getElementById('newRecipeQty').value = '';
-    } catch (e) { console.error(e); alert('Ошибка сохранения. Проверьте подключение.'); }
+    } catch (e) { console.error(e); showInfo('Ошибка сохранения. Проверьте подключение.'); }
     finally { hideLoading(); }
 }
 
@@ -329,7 +329,7 @@ async function saveRecipeItemEdit() {
     const selectedRaw = document.getElementById('editRecipeIngredient').value;
     const quantity = parseFloat(document.getElementById('editRecipeQty').value);
     if (!selectedRaw || isNaN(quantity) || quantity <= 0) {
-        alert('Заполните все поля корректно!'); return;
+        showInfo('Заполните все поля корректно!'); return;
     }
     const [type, idStr] = selectedRaw.split('-');
     const selectedId = Number(idStr);
@@ -352,7 +352,7 @@ async function saveRecipeItemEdit() {
         await resetProductRecipeConfirmed(prod);
         closeModal();
         logActivity('product', `Изменён ингредиент в рецепте «${prod.name}»`);
-    } catch (e) { console.error(e); alert('Ошибка сохранения. Проверьте подключение.'); }
+    } catch (e) { console.error(e); showInfo('Ошибка сохранения. Проверьте подключение.'); }
     finally { hideLoading(); }
 }
 
@@ -387,7 +387,7 @@ async function toggleRecipeConfirmed() {
         prod.recipe_confirmed = checked;
         logActivity('product', `Рецепт «${prod.name}» отмечен как ${checked ? 'заполненный полностью' : 'неполный'}`);
     } catch (e) {
-        console.error(e); alert('Ошибка сохранения. Проверьте подключение.');
+        console.error(e); showInfo('Ошибка сохранения. Проверьте подключение.');
         document.getElementById('pdRecipeConfirmed').checked = !checked; // откатываем чекбокс
     } finally { hideLoading(); }
 }
@@ -427,14 +427,14 @@ async function copyRecipeFromProductByName(sourceName) {
     const src = products.find(p => p.name === sourceName);
     if (!prod || !src) return;
     const srcItems = src.ingredients || [];
-    if (!srcItems.length) { alert('У выбранного изделия нет рецепта.'); return; }
+    if (!srcItems.length) { showInfo('У выбранного изделия нет рецепта.'); return; }
 
     const existingIngIds = new Set((prod.ingredients || []).filter(i => i.ingredient_id).map(i => i.ingredient_id));
     const existingSfIds  = new Set((prod.ingredients || []).filter(i => i.semi_finished_id).map(i => i.semi_finished_id));
     const toCopy = srcItems.filter(ri => ri.semi_finished_id ? !existingSfIds.has(ri.semi_finished_id) : !existingIngIds.has(ri.ingredient_id));
     const skipped = srcItems.length - toCopy.length;
 
-    if (!toCopy.length) { alert(`Все позиции из рецепта «${sourceName}» уже есть в этом рецепте.`); return; }
+    if (!toCopy.length) { showInfo(`Все позиции из рецепта «${sourceName}» уже есть в этом рецепте.`); return; }
 
     let msg = `Скопировать ${toCopy.length} ${toCopy.length === 1 ? 'позицию' : 'позиций'} из рецепта «${sourceName}» в «${prod.name}»?`;
     if (skipped) msg += `\n(${skipped} уже есть в текущем рецепте — будут пропущены)`;
@@ -452,6 +452,6 @@ async function copyRecipeFromProductByName(sourceName) {
         renderProductRecipe(prod);
         await resetProductRecipeConfirmed(prod);
         logActivity('product', `В рецепт «${prod.name}» скопировано ${toCopy.length} поз. из рецепта «${sourceName}»`);
-    } catch (e) { console.error(e); alert('Ошибка сохранения. Проверьте подключение.'); }
+    } catch (e) { console.error(e); showInfo('Ошибка сохранения. Проверьте подключение.'); }
     finally { hideLoading(); }
 }

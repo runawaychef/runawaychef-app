@@ -119,7 +119,7 @@ async function confirmDelete() {
         closeModal();
     } catch (e) {
         console.error(e);
-        alert('Ошибка удаления. Возможно, запись связана с другими данными, либо нет подключения к интернету.');
+        showInfo('Ошибка удаления. Возможно, запись связана с другими данными, либо нет подключения к интернету.');
         closeModal();
     } finally {
         hideLoading();
