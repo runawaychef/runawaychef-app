@@ -145,6 +145,14 @@ function openCustomerReportPreview() {
     const totalSum = rows.reduce((s, [, v]) => s + v.sum, 0);
     const totalQty = rows.reduce((s, [, v]) => s + v.qty, 0);
 
+    // Финансовая сводка по заказам периода: скидка и НДС считаются по каждому
+    // заказу отдельно (у каждого может быть своя скидка/статус НДС) и суммируются.
+    const totalDiscount = custOrders.reduce((s, o) => s + orderDiscountAmount(o), 0);
+    const totalVat = custOrders.reduce((s, o) => s + orderVatAmount(o), 0);
+    const grandTotal = custOrders.reduce((s, o) => s + orderGrandTotal(o), 0);
+    const discountPercents = [...new Set(custOrders.map(o => o.discount || 0).filter(d => d > 0))];
+    const discountLabel = discountPercents.length === 1 ? ` (${discountPercents[0]}%)` : discountPercents.length > 1 ? ' (разная по заказам)' : '';
+
     // Диапазон дат для заголовка
     const dates = custOrders.map(o => o.date).sort();
     const periodLabel = dates.length
@@ -171,7 +179,13 @@ function openCustomerReportPreview() {
                 <td style="text-align:right;padding:4px;">${totalSum.toFixed(2)}</td>
             </tr></tfoot>
             </table>
-            <p style="font-size:10px;color:#9ca3af;margin-top:10px;">Заказов за период: ${custOrders.length}. Сумма — по ценам позиций, без учёта скидки и НДС.</p>
+            <table style="width:100%;border-collapse:collapse;font-size:12px;margin-top:10px;">
+                <tr><td style="padding:2px 4px;color:#6b7280;">Сумма по позициям</td><td style="text-align:right;padding:2px 4px;">${totalSum.toFixed(2)} €</td></tr>
+                ${totalDiscount > 0 ? `<tr><td style="padding:2px 4px;color:#6b7280;">Скидка${discountLabel}</td><td style="text-align:right;padding:2px 4px;color:#dc2626;">−${totalDiscount.toFixed(2)} €</td></tr>` : ''}
+                <tr><td style="padding:2px 4px;color:#6b7280;">НДС (21%)</td><td style="text-align:right;padding:2px 4px;color:#2563eb;">${totalVat.toFixed(2)} €</td></tr>
+                <tr style="font-weight:700;"><td style="padding:4px;border-top:1px solid #e5e7eb;">Итого к оплате</td><td style="text-align:right;padding:4px;border-top:1px solid #e5e7eb;">${grandTotal.toFixed(2)} €</td></tr>
+            </table>
+            <p style="font-size:10px;color:#9ca3af;margin-top:10px;">Заказов за период: ${custOrders.length}. В таблице по изделиям — цены позиций без скидки и НДС, финансовая сводка ниже — уже с их учётом.</p>
         </div>`;
 
     document.getElementById('customerReportContent').innerHTML = html;
@@ -212,6 +226,7 @@ async function downloadCustomerReportPdf() {
             heightLeft -= (pageH - 20);
         }
         pdf.save(filename);
+        await showInfo(`Готово: файл «${filename}» сохранён.`);
     } catch (e) { console.error(e); showInfo('Не удалось сформировать PDF. Проверьте подключение.'); }
     finally { hideLoading(); }
 }
