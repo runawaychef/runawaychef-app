@@ -192,9 +192,16 @@ function openCustomerReportPreview() {
     document.getElementById('customerReportModal').style.display = 'flex';
 }
 
+let _reportPdfInProgress = false;
+
 async function downloadCustomerReportPdf() {
+    if (_reportPdfInProgress) return; // защита от повторных нажатий, пока идёт обработка
+    _reportPdfInProgress = true;
+    const btn = document.getElementById('downloadReportPdfBtn');
+    if (btn) { btn.disabled = true; btn.style.opacity = '0.6'; btn.textContent = 'Формирую PDF...'; }
+
     const cust = customers.find(c => c.id === currentCustomerId);
-    if (!cust) return;
+    if (!cust) { _reportPdfInProgress = false; if (btn) { btn.disabled = false; btn.style.opacity = ''; btn.textContent = '⬇ Скачать PDF'; } return; }
     const { range, custOrders } = getCustomerOrdersForRange(cust);
     const dates = custOrders.map(o => o.date).sort();
     const periodTag = dates.length
@@ -204,7 +211,7 @@ async function downloadCustomerReportPdf() {
     const filename = `${safeName}_${periodTag}.pdf`;
 
     const el = document.getElementById('customerReportContent');
-    showLoading();
+    showLoading('Формируется PDF, подождите — это может занять до 30 секунд...');
 
     // Снимок делаем не из элемента внутри попапа (с прокруткой/центрированием —
     // на некоторых мобильных браузерах это вызывает зависание html2canvas),
@@ -250,7 +257,12 @@ async function downloadCustomerReportPdf() {
         console.error(e);
         showInfo('Не удалось сформировать PDF: ' + (e && e.message ? e.message : 'неизвестная ошибка') + '. Проверьте подключение и попробуйте ещё раз.');
     }
-    finally { clone.remove(); hideLoading(); }
+    finally {
+        clone.remove();
+        hideLoading();
+        _reportPdfInProgress = false;
+        if (btn) { btn.disabled = false; btn.style.opacity = ''; btn.textContent = '⬇ Скачать PDF'; }
+    }
 }
 
 // ==================== КАРТОЧКА КЛИЕНТА ====================

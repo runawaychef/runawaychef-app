@@ -192,7 +192,10 @@
 
 <!-- Индикатор загрузки -->
 <div id="loadingOverlay" class="hidden">
-    <div class="spinner"></div>
+    <div style="text-align:center;">
+        <div class="spinner"></div>
+        <p id="loadingOverlayText" class="text-xs text-gray-600 mt-2" style="display:none;"></p>
+    </div>
 </div>
 
 <!-- Статистика: значок графика, доступен из любого раздела -->
@@ -571,7 +574,7 @@
             <div class="modal-content" style="max-width:480px;">
                 <div id="customerReportContent" style="background:white;"></div>
                 <div class="flex gap-1 mt-3">
-                    <button onclick="downloadCustomerReportPdf()" class="btn bg-gray-700 text-white p-1 rounded-md hover:bg-gray-800 text-xs flex-1">⬇ Скачать PDF</button>
+                    <button id="downloadReportPdfBtn" onclick="downloadCustomerReportPdf()" class="btn bg-gray-700 text-white p-1 rounded-md hover:bg-gray-800 text-xs flex-1">⬇ Скачать PDF</button>
                     <button onclick="closeModal()" class="btn bg-gray-400 text-white p-1 rounded-md hover:bg-gray-500 text-xs flex-1">Закрыть</button>
                 </div>
             </div>
@@ -1060,7 +1063,7 @@
 <script src="ingredients.js?v=7"></script>
 <script src="semifinished.js?v=6"></script>
 <script src="products.js?v=7"></script>
-<script src="customers.js?v=16"></script>
+<script src="customers.js?v=18"></script>
 <script src="orders.js?v=11"></script>
 <script src="stats.js?v=8"></script>
 <script src="history.js?v=3"></script>
@@ -1095,7 +1098,14 @@ let currentIngredientId = null; // id ингредиента, открытого
 
 
 // ==================== ЗАГРУЗКА / ИНДИКАТОР ====================
-function showLoading() { document.getElementById('loadingOverlay').classList.remove('hidden'); }
+function showLoading(message) {
+    document.getElementById('loadingOverlay').classList.remove('hidden');
+    const textEl = document.getElementById('loadingOverlayText');
+    if (textEl) {
+        if (message) { textEl.textContent = message; textEl.style.display = 'block'; }
+        else { textEl.style.display = 'none'; }
+    }
+}
 function hideLoading() { document.getElementById('loadingOverlay').classList.add('hidden'); }
 
 // ==================== ЗАГРУЗКА ВСЕХ ДАННЫХ ====================
