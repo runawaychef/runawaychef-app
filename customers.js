@@ -206,7 +206,7 @@ async function downloadCustomerReportPdf() {
     const el = document.getElementById('customerReportContent');
     showLoading();
     try {
-        const canvas = await html2canvas(el, { scale: 2, backgroundColor: '#ffffff' });
+        const canvas = await html2canvas(el, { scale: 1.5, backgroundColor: '#ffffff' });
         const imgData = canvas.toDataURL('image/png');
         const { jsPDF } = window.jspdf;
         const pdf = new jsPDF('p', 'mm', 'a4');
