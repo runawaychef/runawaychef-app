@@ -934,55 +934,6 @@
             </div>
         </div>
 
-        <!-- Новое изделие (открывается кнопкой "+") -->
-        <div id="addProductModal" class="modal">
-            <div class="modal-content">
-                <h2 class="text-base font-semibold mb-2 text-gray-800">Новое изделие</h2>
-                <input id="productName" type="text" placeholder="Название изделия" class="border p-0.5 rounded-md mb-1 w-full text-xs">
-                <select id="productUnit" class="border p-0.5 rounded-md mb-1 w-full text-xs">
-                    <option value="pcs">Продаётся за штуку (шт)</option>
-                    <option value="kg">Продаётся на вес (кг)</option>
-                </select>
-                <input id="productPrice" type="number" autocomplete="off" inputmode="decimal" step="0.01" placeholder="Продажная цена (€) за шт/кг" class="border p-0.5 rounded-md mb-2 w-full text-xs">
-                <button onclick="addProduct()" class="btn bg-gray-700 text-white p-1 rounded-md hover:bg-gray-800 text-xs mr-1">Создать</button>
-                <button onclick="closeModal()" class="btn bg-gray-400 text-white p-1 rounded-md hover:bg-gray-500 text-xs">Отмена</button>
-            </div>
-        </div>
-
-        <!-- Новый клиент (открывается кнопкой "+") -->
-        <div id="addCustomerModal" class="modal">
-            <div class="modal-content">
-                <h2 class="text-base font-semibold mb-2 text-gray-800">Новый клиент</h2>
-                <input id="customerName" type="text" placeholder="Имя клиента" class="border p-0.5 rounded-md mb-1 w-full text-xs">
-                <input id="customerContact" type="text" placeholder="Контакты" class="border p-0.5 rounded-md mb-1 w-full text-xs">
-                <input id="customerDiscount" type="number" autocomplete="off" inputmode="decimal" step="0.01" placeholder="Скидка (%)" class="border p-0.5 rounded-md mb-1 w-full text-xs">
-                <label class="flex items-center gap-2 text-xs text-gray-700 px-0.5 mb-2">
-                    <input id="customerVatExempt" type="checkbox"> Без НДС
-                </label>
-                <button onclick="addCustomer()" class="btn bg-gray-700 text-white p-1 rounded-md hover:bg-gray-800 text-xs mr-1">Создать</button>
-                <button onclick="closeModal()" class="btn bg-gray-400 text-white p-1 rounded-md hover:bg-gray-500 text-xs">Отмена</button>
-            </div>
-        </div>
-
-        <!-- Новый ингредиент (открывается кнопкой "+") -->
-        <div id="addIngredientModal" class="modal">
-            <div class="modal-content">
-                <h2 class="text-base font-semibold mb-2 text-gray-800">Новый ингредиент</h2>
-                <input id="ingredientName" type="text" placeholder="Название ингредиента" class="border p-0.5 rounded-md mb-1 w-full text-xs">
-                <input id="ingredientPackagePrice" type="number" autocomplete="off" inputmode="decimal" step="0.01" placeholder="Цена за упаковку (€)" class="border p-0.5 rounded-md mb-1 w-full text-xs">
-                <input id="ingredientPackageSize" type="number" autocomplete="off" inputmode="decimal" step="0.01" placeholder="Размер упаковки" class="border p-0.5 rounded-md mb-1 w-full text-xs">
-                <select id="ingredientUnit" class="border p-0.5 rounded-md mb-2 w-full text-xs">
-                    <option value="g">граммы (г)</option>
-                    <option value="kg">килограммы (кг)</option>
-                    <option value="ml">миллилитры (мл)</option>
-                    <option value="l">литры (л)</option>
-                    <option value="pcs">штуки (шт)</option>
-                </select>
-                <button onclick="addIngredient()" class="btn bg-gray-700 text-white p-1 rounded-md hover:bg-gray-800 text-xs mr-1">Создать</button>
-                <button onclick="closeModal()" class="btn bg-gray-400 text-white p-1 rounded-md hover:bg-gray-500 text-xs">Отмена</button>
-            </div>
-        </div>
-
         <!-- Статистика -->
         <div id="stats" class="tab-content hidden">
             <div class="bg-white rounded-md shadow-md p-2 mb-3">
@@ -1103,11 +1054,11 @@
 <script src="supabaseClient.js?v=3"></script>
 <script src="auth.js?v=1"></script>
 <script src="employees.js?v=4"></script>
-<script src="ingredients.js?v=6"></script>
+<script src="ingredients.js?v=7"></script>
 <script src="semifinished.js?v=5"></script>
-<script src="products.js?v=6"></script>
-<script src="customers.js?v=10"></script>
-<script src="orders.js?v=10"></script>
+<script src="products.js?v=7"></script>
+<script src="customers.js?v=11"></script>
+<script src="orders.js?v=11"></script>
 <script src="stats.js?v=8"></script>
 <script src="history.js?v=3"></script>
 <script src="modals.js?v=6"></script>
@@ -1133,6 +1084,7 @@ let editItemIdx    = null; // индекс редактируемой позиц
 let deleteId       = null; // id/индекс записи для удаления
 let deleteType     = null; // тип записи для удаления ('product','customer','order','item','ingredient','recipeItem')
 let currentOrderId   = null; // id заказа, открытого в детальном виде (orders.js)
+let currentTabId = 'orders'; // текущая активная вкладка (по умолчанию совпадает с HTML-разметкой)
 let currentProductId = null; // id изделия, открытого в детальном виде (products.js)
 let currentSemiFinishedId = null; // id полуфабриката, открытого в детальном виде (semifinished.js)
 let currentCustomerId = null; // id клиента, открытого в детальном виде (customers.js)
@@ -1251,6 +1203,7 @@ async function loadAllData() {
 
 // ==================== ТАБЫ ====================
 function showTab(tabId) {
+    currentTabId = tabId;
     document.querySelectorAll('.tab-content').forEach(t => t.classList.add('hidden'));
     document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
     document.getElementById(tabId).classList.remove('hidden');
@@ -1284,9 +1237,7 @@ function showTab(tabId) {
 function refreshFab() {
     const fab = document.getElementById('fabAddBtn');
     if (!fab) return;
-    const activeTabBtn = document.querySelector('.tab.active');
-    const match = activeTabBtn && activeTabBtn.getAttribute('onclick') ? activeTabBtn.getAttribute('onclick').match(/showTab\('(\w+)'\)/) : null;
-    const tabId = match ? match[1] : null;
+    const tabId = currentTabId;
 
     const isDetailOpen = () =>
         document.getElementById('orderDetail')?.classList.contains('active') ||
@@ -1296,9 +1247,9 @@ function refreshFab() {
 
     const actions = {
         orders: createDraftOrderAndOpen,
-        customers: openAddCustomerModal,
-        products: openAddProductModal,
-        ingredients: openAddIngredientModal,
+        customers: createDraftCustomerAndOpen,
+        products: createDraftProductAndOpen,
+        ingredients: createDraftIngredientAndOpen,
     };
 
     if (tabId && actions[tabId] && !isDetailOpen()) {
@@ -1320,32 +1271,38 @@ function closeSemiFinishedDetailSilent() {
 }
 
 // Сброс детального вида изделия без повторной перерисовки списка (избегаем двойного displayProducts)
-function closeProductDetailSilent() {
+async function closeProductDetailSilent() {
+    const leavingId = currentProductId;
     currentProductId = null;
     const list = document.getElementById('productsList');
     const detail = document.getElementById('productDetail');
     if (list) list.classList.remove('hidden');
     if (detail) detail.classList.remove('active');
+    if (leavingId !== null) await cleanupProductDraftIfEmpty(leavingId);
     refreshFab();
 }
 
 // Сброс детального вида клиента без повторной перерисовки списка
-function closeCustomerDetailSilent() {
+async function closeCustomerDetailSilent() {
+    const leavingId = currentCustomerId;
     currentCustomerId = null;
     const list = document.getElementById('customersList');
     const detail = document.getElementById('customerDetail');
     if (list) list.classList.remove('hidden');
     if (detail) detail.classList.remove('active');
+    if (leavingId !== null) await cleanupCustomerDraftIfEmpty(leavingId);
     refreshFab();
 }
 
 // Сброс детального вида ингредиента без повторной перерисовки списка
-function closeIngredientDetailSilent() {
+async function closeIngredientDetailSilent() {
+    const leavingId = currentIngredientId;
     currentIngredientId = null;
     const list = document.getElementById('ingredientsList');
     const detail = document.getElementById('ingredientDetail');
     if (list) list.classList.remove('hidden');
     if (detail) detail.classList.remove('active');
+    if (leavingId !== null) await cleanupIngredientDraftIfEmpty(leavingId);
     refreshFab();
 }
 

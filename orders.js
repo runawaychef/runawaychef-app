@@ -259,6 +259,7 @@ async function createDraftOrderAndOpen() {
             items: []
         };
         orders.push(newOrder);
+        _draftOrderIds.add(newOrder.id);
         displayOrders();
         openOrderDetail(newOrder.id);
         logActivity('order', `Создан черновик заказа №${newOrder.id}`, newOrder.id);
@@ -369,10 +370,30 @@ function onDetailCustomerChange() {
     saveDetailHeader();
 }
 
-function closeOrderDetail() {
+// Черновики заказов, созданные кнопкой "+" в этой сессии и ещё не получившие
+// клиента. Если уйти из карточки, не выбрав клиента — черновик тихо удаляется,
+// чтобы в базе не копились пустые заказы "(удалённый клиент)".
+let _draftOrderIds = new Set();
+
+async function cleanupOrderDraftIfEmpty(orderId) {
+    if (!_draftOrderIds.has(orderId)) return;
+    _draftOrderIds.delete(orderId);
+    const idx = orders.findIndex(o => o.id === orderId);
+    if (idx === -1) return;
+    const order = orders[idx];
+    if (order.customer_id) return; // клиента выбрали — это уже не пустой черновик
+    try {
+        await db.from('orders').delete().eq('id', orderId);
+        orders.splice(idx, 1);
+    } catch (e) { console.error('Не удалось удалить пустой черновик заказа:', e); }
+}
+
+async function closeOrderDetail() {
+    const leavingId = currentOrderId;
     currentOrderId = null;
     document.getElementById('ordersList').classList.remove('hidden');
     document.getElementById('orderDetail').classList.remove('active');
+    if (leavingId !== null) await cleanupOrderDraftIfEmpty(leavingId);
     displayOrders();
     refreshFab();
 }
@@ -380,12 +401,14 @@ function closeOrderDetail() {
 // Сброс детального вида заказа без повторной перерисовки списка
 // (используется при переключении на ДРУГУЮ вкладку — список заказов
 // перерисовывать не нужно, раз мы туда не идём).
-function closeOrderDetailSilent() {
+async function closeOrderDetailSilent() {
+    const leavingId = currentOrderId;
     currentOrderId = null;
     const list = document.getElementById('ordersList');
     const detail = document.getElementById('orderDetail');
     if (list) list.classList.remove('hidden');
     if (detail) detail.classList.remove('active');
+    if (leavingId !== null) await cleanupOrderDraftIfEmpty(leavingId);
 }
 
 // Удаление заказа прямо из его карточки (переиспользует стандартное окно

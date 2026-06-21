@@ -35,35 +35,34 @@ function displayCustomers() {
     updateOrderCustomerFilter();
 }
 
-// Кнопка "+": попап для создания нового клиента
-function openAddCustomerModal() {
-    document.getElementById('customerName').value = '';
-    document.getElementById('customerContact').value = '';
-    document.getElementById('customerDiscount').value = '';
-    document.getElementById('customerVatExempt').checked = false;
-    document.getElementById('addCustomerModal').style.display = 'flex';
-}
+// Кнопка "+": сразу создаёт черновик клиента и открывает его карточку
+let _draftCustomerIds = new Set();
 
-async function addCustomer() {
-    const name     = document.getElementById('customerName').value.trim();
-    const contact  = document.getElementById('customerContact').value.trim();
-    const discount = parseFloat(document.getElementById('customerDiscount').value) || 0;
-    const vatExempt = document.getElementById('customerVatExempt').checked;
-    if (!name || !contact) { showInfo('Заполните все поля корректно!'); return; }
+async function createDraftCustomerAndOpen() {
     showLoading();
     try {
-        const { data, error } = await db.from('customers').insert({ name, contact, discount: parseFloat(discount.toFixed(2)), vat_exempt: vatExempt }).select().single();
+        const { data, error } = await db.from('customers').insert({ name: '', contact: '', discount: 0, vat_exempt: false }).select().single();
         if (error) throw error;
-        customers.push({ id: data.id, name: data.name, contact: data.contact || '', discount: Number(data.discount || 0), vat_exempt: !!data.vat_exempt });
+        const newCust = { id: data.id, name: '', contact: '', discount: 0, vat_exempt: false };
+        customers.push(newCust);
+        _draftCustomerIds.add(newCust.id);
         displayCustomers();
-        closeModal();
-        logActivity('customer', `Добавлен клиент «${name}»`);
-        document.getElementById('customerName').value    = '';
-        document.getElementById('customerContact').value = '';
-        document.getElementById('customerDiscount').value = '';
-        document.getElementById('customerVatExempt').checked = false;
-    } catch (e) { console.error(e); showInfo('Ошибка сохранения. Проверьте подключение.'); }
+        openCustomerDetail(newCust.id);
+        logActivity('customer', `Создан черновик клиента №${newCust.id}`);
+    } catch (e) { console.error(e); showInfo('Ошибка создания клиента. Проверьте подключение.'); }
     finally { hideLoading(); }
+}
+
+async function cleanupCustomerDraftIfEmpty(custId) {
+    if (!_draftCustomerIds.has(custId)) return;
+    _draftCustomerIds.delete(custId);
+    const idx = customers.findIndex(c => c.id === custId);
+    if (idx === -1) return;
+    if (customers[idx].name && customers[idx].name.trim()) return; // имя вписали — это уже не пустой черновик
+    try {
+        await db.from('customers').delete().eq('id', custId);
+        customers.splice(idx, 1);
+    } catch (e) { console.error('Не удалось удалить пустой черновик клиента:', e); }
 }
 
 // Массово проставляет текущий НДС-статус клиента во ВСЕХ его существующих заказах.
@@ -119,10 +118,12 @@ function openCustomerDetail(custId) {
     refreshFab();
 }
 
-function closeCustomerDetail() {
+async function closeCustomerDetail() {
+    const leavingId = currentCustomerId;
     currentCustomerId = null;
     document.getElementById('customersList').classList.remove('hidden');
     document.getElementById('customerDetail').classList.remove('active');
+    if (leavingId !== null) await cleanupCustomerDraftIfEmpty(leavingId);
     displayCustomers();
     refreshFab();
 }

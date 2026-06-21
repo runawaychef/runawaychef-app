@@ -39,37 +39,36 @@ function displayIngredients() {
 }
 
 // Кнопка "+": попап для создания нового ингредиента
-function openAddIngredientModal() {
-    document.getElementById('ingredientName').value = '';
-    document.getElementById('ingredientPackagePrice').value = '';
-    document.getElementById('ingredientPackageSize').value = '';
-    document.getElementById('ingredientUnit').value = 'g';
-    document.getElementById('addIngredientModal').style.display = 'flex';
-}
+// Кнопка "+": сразу создаёт черновик ингредиента и открывает его карточку
+let _draftIngredientIds = new Set();
 
-async function addIngredient() {
-    const name = document.getElementById('ingredientName').value.trim();
-    const packagePrice = parseFloat(document.getElementById('ingredientPackagePrice').value);
-    const packageSize  = parseFloat(document.getElementById('ingredientPackageSize').value);
-    const unit = document.getElementById('ingredientUnit').value;
-    if (!name || isNaN(packagePrice) || isNaN(packageSize) || packageSize <= 0) {
-        showInfo('Заполните все поля корректно!'); return;
-    }
+async function createDraftIngredientAndOpen() {
     showLoading();
     try {
         const { data, error } = await db.from('ingredients').insert({
-            name, package_price: parseFloat(packagePrice.toFixed(2)), package_size: packageSize, unit
+            name: '', package_price: 0, package_size: 1, unit: 'g'
         }).select().single();
         if (error) throw error;
-        ingredients.push({ id: data.id, name: data.name, package_price: Number(data.package_price), package_size: Number(data.package_size), unit: data.unit });
+        const newIng = { id: data.id, name: '', package_price: 0, package_size: 1, unit: 'g' };
+        ingredients.push(newIng);
+        _draftIngredientIds.add(newIng.id);
         displayIngredients();
-        closeModal();
-        logActivity('ingredient', `Добавлен ингредиент «${name}»`);
-        document.getElementById('ingredientName').value = '';
-        document.getElementById('ingredientPackagePrice').value = '';
-        document.getElementById('ingredientPackageSize').value = '';
-    } catch (e) { console.error(e); showInfo('Ошибка сохранения. Проверьте подключение.'); }
+        openIngredientDetail(newIng.id);
+        logActivity('ingredient', `Создан черновик ингредиента №${newIng.id}`);
+    } catch (e) { console.error(e); showInfo('Ошибка создания ингредиента. Проверьте подключение.'); }
     finally { hideLoading(); }
+}
+
+async function cleanupIngredientDraftIfEmpty(ingId) {
+    if (!_draftIngredientIds.has(ingId)) return;
+    _draftIngredientIds.delete(ingId);
+    const idx = ingredients.findIndex(i => i.id === ingId);
+    if (idx === -1) return;
+    if (ingredients[idx].name && ingredients[idx].name.trim()) return; // название вписали — уже не пустой черновик
+    try {
+        await db.from('ingredients').delete().eq('id', ingId);
+        ingredients.splice(idx, 1);
+    } catch (e) { console.error('Не удалось удалить пустой черновик ингредиента:', e); }
 }
 
 // ==================== КАРТОЧКА ИНГРЕДИЕНТА ====================
@@ -89,10 +88,12 @@ function openIngredientDetail(ingId) {
     refreshFab();
 }
 
-function closeIngredientDetail() {
+async function closeIngredientDetail() {
+    const leavingId = currentIngredientId;
     currentIngredientId = null;
     document.getElementById('ingredientsList').classList.remove('hidden');
     document.getElementById('ingredientDetail').classList.remove('active');
+    if (leavingId !== null) await cleanupIngredientDraftIfEmpty(leavingId);
     displayIngredients();
     refreshFab();
 }

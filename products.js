@@ -25,7 +25,7 @@ function displayProducts() {
             <td class="border p-0.5 text-xs text-center ${hasUnit ? '' : 'text-red-600 font-semibold'}" onclick="openProductDetail(${p.id})">${unitLabel}</td>
             <td class="border p-0.5 text-xs" onclick="openProductDetail(${p.id})">${p.price.toFixed(2)}</td>
             <td class="border p-0.5 text-center">
-                ${svgEdit(`openEditProductModal(${i})`)}
+                ${svgEdit(`openProductDetail(${p.id})`)}
                 ${svgDelete(`openDeleteModal(${i},'product','изделие «${p.name}»')`)}
                 ${svgCopy(`copyProduct(${i})`)}
             </td>`;
@@ -37,30 +37,34 @@ function displayProducts() {
 }
 
 // Кнопка "+": попап для создания нового изделия
-function openAddProductModal() {
-    document.getElementById('productName').value = '';
-    document.getElementById('productUnit').value = 'pcs';
-    document.getElementById('productPrice').value = '';
-    document.getElementById('addProductModal').style.display = 'flex';
-}
+// Кнопка "+": сразу создаёт черновик изделия и открывает его карточку
+let _draftProductIds = new Set();
 
-async function addProduct() {
-    const name  = document.getElementById('productName').value.trim();
-    const unit  = document.getElementById('productUnit').value;
-    const price = parseFloat(document.getElementById('productPrice').value);
-    if (!name || isNaN(price)) { showInfo('Заполните все поля корректно!'); return; }
+async function createDraftProductAndOpen() {
     showLoading();
     try {
-        const { data, error } = await db.from('products').insert({ name, price: parseFloat(price.toFixed(2)), unit }).select().single();
+        const { data, error } = await db.from('products').insert({ name: '', price: 0, unit: 'pcs' }).select().single();
         if (error) throw error;
-        products.push({ id: data.id, name: data.name, price: Number(data.price), batch_size: Number(data.batch_size || 1), other_costs: Number(data.other_costs || 0), unit: data.unit || '', recipe_confirmed: false, ingredients: [] });
+        const newProd = { id: data.id, name: '', price: 0, batch_size: 1, other_costs: 0, unit: 'pcs', recipe_confirmed: false, ingredients: [] };
+        products.push(newProd);
+        _draftProductIds.add(newProd.id);
         displayProducts();
-        closeModal();
-        logActivity('product', `Добавлено изделие «${name}» (${price.toFixed(2)} € за ${UNIT_PRODUCT_LABELS[unit] || unit})`);
-        document.getElementById('productName').value = '';
-        document.getElementById('productPrice').value = '';
-    } catch (e) { console.error(e); showInfo('Ошибка сохранения. Проверьте подключение.'); }
+        openProductDetail(newProd.id);
+        logActivity('product', `Создан черновик изделия №${newProd.id}`);
+    } catch (e) { console.error(e); showInfo('Ошибка создания изделия. Проверьте подключение.'); }
     finally { hideLoading(); }
+}
+
+async function cleanupProductDraftIfEmpty(prodId) {
+    if (!_draftProductIds.has(prodId)) return;
+    _draftProductIds.delete(prodId);
+    const idx = products.findIndex(p => p.id === prodId);
+    if (idx === -1) return;
+    if (products[idx].name && products[idx].name.trim()) return; // название вписали — уже не пустой черновик
+    try {
+        await db.from('products').delete().eq('id', prodId);
+        products.splice(idx, 1);
+    } catch (e) { console.error('Не удалось удалить пустой черновик изделия:', e); }
 }
 
 function openEditProductModal(i) {
@@ -89,11 +93,29 @@ async function saveProductEdit() {
     finally { hideLoading(); }
 }
 
-function copyProduct(i) {
-    document.getElementById('productName').value  = products[i].name;
-    document.getElementById('productUnit').value  = products[i].unit || 'pcs';
-    document.getElementById('productPrice').value = products[i].price.toFixed(2);
-    document.getElementById('productName').focus();
+// Копирует изделие (название/цена/единица/партия/доп.расходы — без рецепта,
+// для рецепта есть отдельная функция "Скопировать рецепт" внутри карточки)
+// и сразу открывает карточку копии для донастройки.
+async function copyProduct(i) {
+    const src = products[i];
+    showLoading();
+    try {
+        const { data, error } = await db.from('products').insert({
+            name: src.name + ' (копия)', price: src.price, unit: src.unit || 'pcs',
+            batch_size: src.batch_size || 1, other_costs: src.other_costs || 0
+        }).select().single();
+        if (error) throw error;
+        const newProd = {
+            id: data.id, name: data.name, price: Number(data.price),
+            batch_size: Number(data.batch_size || 1), other_costs: Number(data.other_costs || 0),
+            unit: data.unit || '', recipe_confirmed: false, ingredients: []
+        };
+        products.push(newProd);
+        displayProducts();
+        openProductDetail(newProd.id);
+        logActivity('product', `Скопировано изделие «${src.name}» → «${newProd.name}»`);
+    } catch (e) { console.error(e); showInfo('Ошибка копирования. Проверьте подключение.'); }
+    finally { hideLoading(); }
 }
 
 // ==================== ДЕТАЛЬНЫЙ ВИД ИЗДЕЛИЯ / РЕЦЕПТУРА ====================
@@ -132,10 +154,12 @@ function updatePdUnitUI(unit) {
     if (hint) hint.textContent = unit ? `(за ${UNIT_PRODUCT_LABELS[unit]})` : '';
 }
 
-function closeProductDetail() {
+async function closeProductDetail() {
+    const leavingId = currentProductId;
     currentProductId = null;
     document.getElementById('productsList').classList.remove('hidden');
     document.getElementById('productDetail').classList.remove('active');
+    if (leavingId !== null) await cleanupProductDraftIfEmpty(leavingId);
     displayProducts();
     refreshFab();
 }
