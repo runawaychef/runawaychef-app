@@ -206,6 +206,10 @@ async function downloadCustomerReportPdf() {
     const el = document.getElementById('customerReportContent');
     showLoading();
     try {
+        if (typeof html2canvas === 'undefined' || !window.jspdf) {
+            throw new Error('Библиотеки для PDF не загрузились (html2canvas/jsPDF). Проверьте интернет и обновите страницу.');
+        }
+        await new Promise(r => setTimeout(r, 80)); // даём окну отчёта точно отрисоваться перед снимком
         const canvas = await html2canvas(el, { scale: 1.5, backgroundColor: '#ffffff' });
         const imgData = canvas.toDataURL('image/png');
         const { jsPDF } = window.jspdf;
@@ -227,7 +231,10 @@ async function downloadCustomerReportPdf() {
         }
         pdf.save(filename);
         await showInfo(`Готово: файл «${filename}» сохранён.`);
-    } catch (e) { console.error(e); showInfo('Не удалось сформировать PDF. Проверьте подключение.'); }
+    } catch (e) {
+        console.error(e);
+        showInfo('Не удалось сформировать PDF: ' + (e && e.message ? e.message : 'неизвестная ошибка') + '. Проверьте подключение и попробуйте ещё раз.');
+    }
     finally { hideLoading(); }
 }
 
