@@ -4,6 +4,31 @@
 // Обычный скрипт (без модулей) — функции доступны глобально, как раньше.
 // Зависит от: products/customers (главный скрипт).
 
+// Простое уведомление (замена системного alert()) — одна кнопка "ОК".
+// Переиспользует confirmModal, временно пряча кнопку "Отмена".
+function showInfo(message) {
+    return new Promise((resolve) => {
+        const modal = document.getElementById('confirmModal');
+        const msgEl = document.getElementById('confirmMessage');
+        const okBtn = document.getElementById('confirmOkBtn');
+        const cancelBtn = document.getElementById('confirmCancelBtn');
+        if (!modal || !msgEl || !okBtn || !cancelBtn) { window.alert(message); resolve(); return; }
+
+        msgEl.textContent = message;
+        cancelBtn.classList.add('hidden');
+        modal.style.display = 'flex';
+
+        function cleanup() {
+            modal.style.display = 'none';
+            cancelBtn.classList.remove('hidden');
+            okBtn.removeEventListener('click', onOk);
+            resolve();
+        }
+        function onOk() { cleanup(); }
+        okBtn.addEventListener('click', onOk);
+    });
+}
+
 // Окно подтверждения в стиле приложения (замена системного confirm(),
 // которое на Android/Chrome всегда показывает адрес сайта в заголовке —
 // это выглядит как "чужое"/системное окно, а не часть приложения).
@@ -123,12 +148,24 @@ function updateProductSelects() {
 }
 
 function updateCustomerSelects() {
+    // Топ-6 клиентов по количеству заказов, остальные по алфавиту
+    const orderCount = {};
+    (orders || []).forEach(o => {
+        if (o.customer_id) orderCount[o.customer_id] = (orderCount[o.customer_id] || 0) + 1;
+    });
+    const byPopularityThenAlpha = () => {
+        const sorted = customers.slice().sort((a, b) => (orderCount[b.id] || 0) - (orderCount[a.id] || 0));
+        const top = sorted.slice(0, 6);
+        const rest = sorted.slice(6).sort((a, b) => (a.name||"").localeCompare(b.name||""));
+        return [...top, ...rest].map(c => c.name);
+    };
+
     setupSearchDropdown('detailCustomer', 'detailCustomerDropdown',
-        () => customers.slice().sort((a,b)=>(a.name||"").localeCompare(b.name||"")).map(c => c.name),
+        byPopularityThenAlpha,
         () => onDetailCustomerChange());
 
     setupSearchDropdown('editOrderCustomer', 'editOrderCustomerDropdown',
-        () => customers.slice().sort((a,b)=>(a.name||"").localeCompare(b.name||"")).map(c => c.name));
+        byPopularityThenAlpha);
 }
 
 // Подставляет текущее значение клиента в поле детального просмотра заказа
