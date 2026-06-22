@@ -1133,15 +1133,15 @@ async function loadAllData() {
     showLoading();
     try {
         const [pRes, cRes, oRes, oiRes, eRes, ingRes, piRes, sfRes, sfiRes] = await Promise.all([
-            db.from('products').select('id, name, price, batch_size, other_costs, unit, recipe_confirmed').order('name'),
-            db.from('customers').select('id, name, contact, discount, vat_exempt').order('name'),
-            db.from('orders').select('id, customer_id, order_date, status, discount, vat_exempt, employee_id, notes'),
-            db.from('order_items').select('id, order_id, product_id, quantity, price, item_cost'),
-            db.from('employees').select('id, name').order('name'),
-            db.from('ingredients').select('id, name, package_price, package_size, unit').order('name'),
-            db.from('product_ingredients').select('id, product_id, ingredient_id, semi_finished_id, quantity'),
-            db.from('semi_finished').select('id, name, batch_size, unit, other_costs, recipe_confirmed').order('name'),
-            db.from('semi_finished_ingredients').select('id, semi_finished_id, ingredient_id, quantity')
+            db.from('products').select('id, name, price, batch_size, other_costs, unit, recipe_confirmed').order('name').limit(5000),
+            db.from('customers').select('id, name, contact, discount, vat_exempt').order('name').limit(5000),
+            db.from('orders').select('id, customer_id, order_date, status, discount, vat_exempt, employee_id, notes').limit(10000),
+            db.from('order_items').select('id, order_id, product_id, quantity, price, item_cost').limit(10000),
+            db.from('employees').select('id, name').order('name').limit(1000),
+            db.from('ingredients').select('id, name, package_price, package_size, unit').order('name').limit(5000),
+            db.from('product_ingredients').select('id, product_id, ingredient_id, semi_finished_id, quantity').limit(10000),
+            db.from('semi_finished').select('id, name, batch_size, unit, other_costs, recipe_confirmed').order('name').limit(5000),
+            db.from('semi_finished_ingredients').select('id, semi_finished_id, ingredient_id, quantity').limit(10000)
         ]);
         if (pRes.error) throw pRes.error;
         if (cRes.error) throw cRes.error;
