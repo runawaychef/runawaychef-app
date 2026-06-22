@@ -664,70 +664,62 @@ async function openOrderCostBreakdown() {
     if (!order) return;
     showLoading('Загружаю детализацию...');
     try {
-        // Подгружаем снимок рецептов с ценами для всех позиций этого заказа
         const orderItemIds = (order.items || []).map(it => it.id);
-        if (!orderItemIds.length) {
-            hideLoading();
-            await showInfo('В заказе нет позиций.');
-            return;
-        }
+        if (!orderItemIds.length) { hideLoading(); await showInfo('В заказе нет позиций.'); return; }
+
         const { data, error } = await db
             .from('order_item_ingredients')
-            .select('order_item_id, ingredient_name, quantity, unit, unit_price, total_cost')
-            .in('order_item_id', orderItemIds)
-            .order('order_item_id');
+            .select('ingredient_name, quantity, unit, unit_price, total_cost')
+            .in('order_item_id', orderItemIds);
         if (error) throw error;
 
-        // Группируем по позиции заказа
-        const byItem = {};
-        (data || []).forEach(row => {
-            if (!byItem[row.order_item_id]) byItem[row.order_item_id] = [];
-            byItem[row.order_item_id].push(row);
-        });
-
+        // Объединяем одинаковые ингредиенты по всему заказу
         const UNIT_LABELS = { g: 'г', kg: 'кг', ml: 'мл', l: 'л', pcs: 'шт' };
-        let html = '';
-        let grandCost = 0;
-
-        (order.items || []).forEach(item => {
-            const rows = byItem[item.id] || [];
-            const itemTotalCost = item.item_cost != null
-                ? Number(item.item_cost)
-                : rows.reduce((s, r) => s + Number(r.total_cost), 0);
-            grandCost += itemTotalCost;
-
-            html += `<div class="mb-3 border-b pb-2">
-                <div class="flex justify-between items-baseline mb-1">
-                    <span class="text-xs font-semibold text-gray-800">${escapeHtml(item.product)} × ${item.quantity}</span>
-                    <span class="text-xs font-semibold text-gray-800">${itemTotalCost.toFixed(2)} €</span>
-                </div>`;
-
-            if (rows.length) {
-                html += '<table class="w-full" style="font-size:10px;color:#6b7280;">';
-                rows.forEach(r => {
-                    const unitLabel = UNIT_LABELS[r.unit] || r.unit;
-                    html += `<tr>
-                        <td class="py-0.5">${escapeHtml(r.ingredient_name)}</td>
-                        <td class="text-right py-0.5 px-1">${Number(r.quantity).toFixed(2)} ${unitLabel}/шт</td>
-                        <td class="text-right py-0.5 px-1">${Number(r.unit_price).toFixed(4)} €/${unitLabel}</td>
-                        <td class="text-right py-0.5">${Number(r.total_cost).toFixed(4)} €</td>
-                    </tr>`;
-                });
-                html += '</table>';
-            } else {
-                html += '<p style="font-size:10px;color:#9ca3af;">Детализация недоступна</p>';
+        const merged = {}; // key = ingredient_name
+        (data || []).forEach(row => {
+            const key = row.ingredient_name;
+            if (!merged[key]) {
+                merged[key] = { name: row.ingredient_name, qty: 0, unit: row.unit, unit_price: Number(row.unit_price), total: 0 };
             }
-            html += '</div>';
+            merged[key].qty   += Number(row.quantity);
+            merged[key].total += Number(row.total_cost);
         });
 
-        html += `<div class="flex justify-between items-baseline pt-1">
-            <span class="text-xs font-semibold text-gray-700">Итого себестоимость</span>
-            <span class="text-xs font-semibold text-gray-700">${grandCost.toFixed(2)} €</span>
-        </div>`;
+        const rows = Object.values(merged).sort((a, b) => b.total - a.total);
+        const grandCost = order.items.reduce((s, it) => s + (it.item_cost != null ? Number(it.item_cost) : 0), 0);
+        const grandIngCost = rows.reduce((s, r) => s + r.total, 0);
+
+        if (!rows.length) {
+            hideLoading();
+            await showInfo('Детализация недоступна — рецепты не содержат прямых ингредиентов.');
+            return;
+        }
+
+        let html = '<table class="w-full stats-table" style="table-layout:fixed;">';
+        html += '<thead><tr class="bg-gray-100"><th class="p-1 text-left" style="width:40%;">Ингредиент</th><th class="p-1 text-right" style="width:20%;">Кол-во</th><th class="p-1 text-right" style="width:20%;">Цена/ед.</th><th class="p-1 text-right" style="width:20%;">Сумма</th></tr></thead><tbody>';
+        rows.forEach(r => {
+            const unitLabel = UNIT_LABELS[r.unit] || r.unit;
+            html += `<tr class="border-b">
+                <td class="p-1" style="word-break:break-word;">${escapeHtml(r.name)}</td>
+                <td class="p-1 text-right whitespace-nowrap">${r.qty.toFixed(2)} ${unitLabel}</td>
+                <td class="p-1 text-right whitespace-nowrap">${r.unit_price.toFixed(4)} €</td>
+                <td class="p-1 text-right whitespace-nowrap">${r.total.toFixed(4)} €</td>
+            </tr>`;
+        });
+        html += `</tbody><tfoot><tr class="bg-gray-50 font-semibold">
+            <td class="p-1" colspan="3">Итого себестоимость</td>
+            <td class="p-1 text-right">${grandCost > 0 ? grandCost.toFixed(2) : grandIngCost.toFixed(2)} €</td>
+        </tr></tfoot></table>`;
 
         document.getElementById('orderCostBreakdownSubtitle').textContent =
             `Заказ №${order.id} · ${formatDateDMY(order.date)} · ${escapeHtml(order.customer || '(без клиента)')}`;
-        document.getElementById('orderCostBreakdownContent').innerHTML = html;
+        const content = document.getElementById('orderCostBreakdownContent');
+        content.innerHTML = html;
+        content.style.cssText = 'max-height:60vh; overflow-y:auto; touch-action:pan-y; overscroll-behavior:contain;';
+        // Запрет pan-x для таблицы внутри (иначе глобальное правило блокирует вертикальный скролл)
+        const table = content.querySelector('table');
+        if (table) table.style.touchAction = 'pan-y';
+
         document.getElementById('orderCostBreakdownModal').style.display = 'flex';
     } catch (e) {
         console.error(e);
