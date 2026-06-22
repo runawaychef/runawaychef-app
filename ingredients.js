@@ -114,7 +114,7 @@ async function saveIdHeader() {
     if (!name || isNaN(packagePrice) || isNaN(packageSize) || packageSize <= 0) {
         showInfo('Заполните все поля корректно!'); return;
     }
-    const priceChanged = packagePrice !== ing.package_price || packageSize !== ing.package_size;
+    const priceChanged = parseFloat(packagePrice.toFixed(2)) !== parseFloat(ing.package_price.toFixed(2)) || parseFloat(packageSize.toFixed(4)) !== parseFloat(ing.package_size.toFixed(4));
     showLoading();
     try {
         const { error } = await db.from('ingredients').update({
@@ -122,16 +122,16 @@ async function saveIdHeader() {
         }).eq('id', ing.id);
         if (error) throw error;
 
-        // Если цена или размер упаковки изменились — добавляем запись в историю цен
+        // Если цена или размер упаковки изменились — добавляем запись в историю цен.
+        // Если за сегодня уже есть запись (upsert по ingredient_id + valid_from) — обновляем её.
         if (priceChanged) {
             const today = new Date().toISOString().slice(0, 10);
-            await db.from('ingredient_price_history').insert({
+            await db.from('ingredient_price_history').upsert({
                 ingredient_id: ing.id,
                 package_price: parseFloat(packagePrice.toFixed(2)),
                 package_size: packageSize,
                 valid_from: today
-            });
-            // Перезагружаем историю цен для этого ингредиента
+            }, { onConflict: 'ingredient_id,valid_from' });
             await loadIngredientPriceHistory(ing.id);
         }
 
