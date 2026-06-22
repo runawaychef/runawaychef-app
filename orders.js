@@ -576,6 +576,10 @@ async function addItemToOrder() {
         }).select().single();
         if (error) throw error;
         order.items.push({ id: data.id, product_id: prod.id, product: prod.name, quantity: Number(data.quantity), price: Number(data.price), item_cost: itemCost });
+
+        // Фиксируем снимок рецепта с ценами на момент создания позиции
+        await saveOrderItemIngredients(data.id, prod, Number(data.quantity));
+
         renderDetailItems(order);
         logActivity('item', `Добавлена позиция в заказ №${order.id}: «${prod.name}» × ${quantity}`, order.id);
         // Сбросить поля
@@ -654,7 +658,109 @@ function deleteItem(itemIdx) {
     openDeleteModal(itemIdx, 'item', `позицию «${item.product}»`);
 }
 
-// ==================== МОДАЛЬНЫЕ ОКНА ЗАКАЗА (из списка) ====================
+// ==================== ДЕТАЛИЗАЦИЯ СЕБЕСТОИМОСТИ ЗАКАЗА ====================
+async function openOrderCostBreakdown() {
+    const order = orders.find(o => o.id === currentOrderId);
+    if (!order) return;
+    showLoading('Загружаю детализацию...');
+    try {
+        // Подгружаем снимок рецептов с ценами для всех позиций этого заказа
+        const orderItemIds = (order.items || []).map(it => it.id);
+        if (!orderItemIds.length) {
+            hideLoading();
+            await showInfo('В заказе нет позиций.');
+            return;
+        }
+        const { data, error } = await db
+            .from('order_item_ingredients')
+            .select('order_item_id, ingredient_name, quantity, unit, unit_price, total_cost')
+            .in('order_item_id', orderItemIds)
+            .order('order_item_id');
+        if (error) throw error;
+
+        // Группируем по позиции заказа
+        const byItem = {};
+        (data || []).forEach(row => {
+            if (!byItem[row.order_item_id]) byItem[row.order_item_id] = [];
+            byItem[row.order_item_id].push(row);
+        });
+
+        const UNIT_LABELS = { g: 'г', kg: 'кг', ml: 'мл', l: 'л', pcs: 'шт' };
+        let html = '';
+        let grandCost = 0;
+
+        (order.items || []).forEach(item => {
+            const rows = byItem[item.id] || [];
+            const itemTotalCost = item.item_cost != null
+                ? Number(item.item_cost)
+                : rows.reduce((s, r) => s + Number(r.total_cost), 0);
+            grandCost += itemTotalCost;
+
+            html += `<div class="mb-3 border-b pb-2">
+                <div class="flex justify-between items-baseline mb-1">
+                    <span class="text-xs font-semibold text-gray-800">${escapeHtml(item.product)} × ${item.quantity}</span>
+                    <span class="text-xs font-semibold text-gray-800">${itemTotalCost.toFixed(2)} €</span>
+                </div>`;
+
+            if (rows.length) {
+                html += '<table class="w-full" style="font-size:10px;color:#6b7280;">';
+                rows.forEach(r => {
+                    const unitLabel = UNIT_LABELS[r.unit] || r.unit;
+                    html += `<tr>
+                        <td class="py-0.5">${escapeHtml(r.ingredient_name)}</td>
+                        <td class="text-right py-0.5 px-1">${Number(r.quantity).toFixed(2)} ${unitLabel}/шт</td>
+                        <td class="text-right py-0.5 px-1">${Number(r.unit_price).toFixed(4)} €/${unitLabel}</td>
+                        <td class="text-right py-0.5">${Number(r.total_cost).toFixed(4)} €</td>
+                    </tr>`;
+                });
+                html += '</table>';
+            } else {
+                html += '<p style="font-size:10px;color:#9ca3af;">Детализация недоступна</p>';
+            }
+            html += '</div>';
+        });
+
+        html += `<div class="flex justify-between items-baseline pt-1">
+            <span class="text-xs font-semibold text-gray-700">Итого себестоимость</span>
+            <span class="text-xs font-semibold text-gray-700">${grandCost.toFixed(2)} €</span>
+        </div>`;
+
+        document.getElementById('orderCostBreakdownSubtitle').textContent =
+            `Заказ №${order.id} · ${formatDateDMY(order.date)} · ${escapeHtml(order.customer || '(без клиента)')}`;
+        document.getElementById('orderCostBreakdownContent').innerHTML = html;
+        document.getElementById('orderCostBreakdownModal').style.display = 'flex';
+    } catch (e) {
+        console.error(e);
+        await showInfo('Ошибка загрузки детализации. Проверьте подключение.');
+    } finally { hideLoading(); }
+}
+
+// Сохраняет снимок рецепта изделия с текущими ценами ингредиентов
+// для конкретной позиции заказа — используется при создании позиции.
+async function saveOrderItemIngredients(orderItemId, prod, itemQty) {
+    if (!prod || !prod.ingredients || !prod.ingredients.length) return;
+    const rows = [];
+    prod.ingredients.forEach(pi => {
+        if (pi.semi_finished_id) return; // полуфабрикаты пока не детализируем
+        const ing = ingredients.find(i => i.id === pi.ingredient_id);
+        if (!ing) return;
+        const unitPrice = ing.package_size ? ing.package_price / ing.package_size : 0;
+        rows.push({
+            order_item_id:    orderItemId,
+            ingredient_id:    ing.id,
+            ingredient_name:  ing.name,
+            quantity:         Number(pi.quantity),
+            unit:             ing.unit,
+            unit_price:       parseFloat(unitPrice.toFixed(6)),
+            total_cost:       parseFloat((unitPrice * pi.quantity * itemQty).toFixed(4))
+        });
+    });
+    if (!rows.length) return;
+    try {
+        await db.from('order_item_ingredients').insert(rows);
+    } catch (e) { console.error('Не удалось сохранить снимок рецепта:', e); }
+}
+
 function openEditOrderModal(i) {
     editIndex = i;
     const o = orders[i];
