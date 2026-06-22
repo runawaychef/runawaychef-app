@@ -85,6 +85,7 @@ function openIngredientDetail(ingId) {
     document.getElementById('idPackageSize').value = ing.package_size;
     document.getElementById('idUnit').value = ing.unit;
     renderIngredientUnitPrice(ing);
+    loadIngredientPriceHistory(ingId); // загружаем историю цен асинхронно
     refreshFab();
 }
 
@@ -113,16 +114,31 @@ async function saveIdHeader() {
     if (!name || isNaN(packagePrice) || isNaN(packageSize) || packageSize <= 0) {
         showInfo('Заполните все поля корректно!'); return;
     }
+    const priceChanged = packagePrice !== ing.package_price || packageSize !== ing.package_size;
     showLoading();
     try {
         const { error } = await db.from('ingredients').update({
             name, package_price: parseFloat(packagePrice.toFixed(2)), package_size: packageSize, unit
         }).eq('id', ing.id);
         if (error) throw error;
+
+        // Если цена или размер упаковки изменились — добавляем запись в историю цен
+        if (priceChanged) {
+            const today = new Date().toISOString().slice(0, 10);
+            await db.from('ingredient_price_history').insert({
+                ingredient_id: ing.id,
+                package_price: parseFloat(packagePrice.toFixed(2)),
+                package_size: packageSize,
+                valid_from: today
+            });
+            // Перезагружаем историю цен для этого ингредиента
+            await loadIngredientPriceHistory(ing.id);
+        }
+
         ing.name = name; ing.package_price = parseFloat(packagePrice.toFixed(2));
         ing.package_size = packageSize; ing.unit = unit;
         renderIngredientUnitPrice(ing);
-        logActivity('ingredient', `Изменён ингредиент «${name}»`);
+        logActivity('ingredient', `Изменён ингредиент «${name}»${priceChanged ? ' (новая цена)' : ''}`);
     } catch (e) { console.error(e); showInfo('Ошибка сохранения. Проверьте подключение.'); }
     finally { hideLoading(); }
 }
@@ -133,6 +149,42 @@ function deleteCurrentIngredient() {
     if (idx === -1) return;
     const ing = ingredients[idx];
     openDeleteModal(idx, 'ingredient', `ингредиент «${ing.name}»`);
+}
+
+// ==================== ИСТОРИЯ ЦЕН ИНГРЕДИЕНТА ====================
+let _ingredientPriceHistory = {}; // { ingredient_id: [{package_price, package_size, valid_from}] }
+
+async function loadIngredientPriceHistory(ingredientId) {
+    try {
+        const { data, error } = await db.from('ingredient_price_history')
+            .select('package_price, package_size, valid_from')
+            .eq('ingredient_id', ingredientId)
+            .order('valid_from', { ascending: false });
+        if (error) throw error;
+        _ingredientPriceHistory[ingredientId] = data || [];
+        renderIngredientPriceHistory(ingredientId);
+    } catch (e) { console.error('Ошибка загрузки истории цен:', e); }
+}
+
+function renderIngredientPriceHistory(ingredientId) {
+    const container = document.getElementById('idPriceHistory');
+    if (!container) return;
+    const history = _ingredientPriceHistory[ingredientId] || [];
+    if (!history.length) { container.innerHTML = '<p class="text-xs text-gray-400">История цен недоступна</p>'; return; }
+    const ing = ingredients.find(i => i.id === ingredientId);
+    const unitLabel = ing ? (UNIT_LABELS[ing.unit] || ing.unit) : '';
+    let html = '<table class="w-full text-xs"><thead><tr class="bg-gray-100"><th class="p-0.5 text-left">С даты</th><th class="p-0.5 text-right">Цена упак.</th><th class="p-0.5 text-right">Цена за ед.</th></tr></thead><tbody>';
+    history.forEach((h, i) => {
+        const unitPrice = h.package_size ? (h.package_price / h.package_size).toFixed(4) : '—';
+        const isCurrent = i === 0;
+        html += `<tr class="${isCurrent ? 'bg-indigo-50 font-semibold' : 'border-b'}">
+            <td class="p-0.5">${formatDateDMY(h.valid_from)}${isCurrent ? ' <span class="text-indigo-600">(текущая)</span>' : ''}</td>
+            <td class="p-0.5 text-right">${Number(h.package_price).toFixed(2)} €</td>
+            <td class="p-0.5 text-right">${unitPrice} €/${unitLabel}</td>
+        </tr>`;
+    });
+    html += '</tbody></table>';
+    container.innerHTML = html;
 }
 
 // ==================== БЫСТРОЕ СОЗДАНИЕ ИЗ КАРТОЧКИ РЕЦЕПТА ====================

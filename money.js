@@ -65,9 +65,11 @@ function productProfitPct(prod) {
     return productProfit(prod) / prod.price * 100;
 }
 
-// Себестоимость одной позиции заказа (кол-во × себестоимость единицы изделия)
-// product ищется по имени, как и в остальной логике заказов
+// Себестоимость одной позиции заказа.
+// Если item_cost зафиксирован при создании позиции — используем его.
+// Иначе считаем по текущим ценам (для старых заказов без item_cost).
 function orderItemCost(item) {
+    if (item.item_cost != null) return Number(item.item_cost);
     const prod = products.find(p => p.id === item.product_id);
     if (!prod) return 0;
     return productUnitCost(prod) * item.quantity;

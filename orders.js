@@ -292,16 +292,18 @@ async function copyOrder(i) {
             items: []
         };
 
-        // Копируем позиции
+        // Копируем позиции, фиксируем item_cost по текущим ценам
         if (o.items.length) {
-            const rows = o.items.map(it => ({
-                order_id: copy.id, product_id: it.product_id, quantity: it.quantity, price: it.price
-            }));
+            const rows = o.items.map(it => {
+                const prod = products.find(p => p.id === it.product_id);
+                const itemCost = prod ? parseFloat((productUnitCost(prod) * it.quantity).toFixed(4)) : null;
+                return { order_id: copy.id, product_id: it.product_id, quantity: it.quantity, price: it.price, item_cost: itemCost };
+            });
             const { data: itemsData, error: itemsErr } = await db.from('order_items').insert(rows).select();
             if (itemsErr) throw itemsErr;
             copy.items = (itemsData || []).map(it => {
                 const prod = products.find(p => p.id === it.product_id);
-                return { id: it.id, product_id: it.product_id, product: prod ? prod.name : it.product_id, quantity: Number(it.quantity), price: Number(it.price) };
+                return { id: it.id, product_id: it.product_id, product: prod ? prod.name : it.product_id, quantity: Number(it.quantity), price: Number(it.price), item_cost: it.item_cost != null ? Number(it.item_cost) : null };
             });
         }
 
@@ -564,14 +566,16 @@ async function addItemToOrder() {
     }
     const prod = products.find(p => p.name === productName);
     if (!prod) { showInfo('Изделие не найдено!'); return; }
+    const itemCost = parseFloat((productUnitCost(prod) * quantity).toFixed(4));
 
     showLoading();
     try {
         const { data, error } = await db.from('order_items').insert({
-            order_id: order.id, product_id: prod.id, quantity, price: parseFloat(price.toFixed(2))
+            order_id: order.id, product_id: prod.id, quantity, price: parseFloat(price.toFixed(2)),
+            item_cost: itemCost
         }).select().single();
         if (error) throw error;
-        order.items.push({ id: data.id, product_id: prod.id, product: prod.name, quantity: Number(data.quantity), price: Number(data.price) });
+        order.items.push({ id: data.id, product_id: prod.id, product: prod.name, quantity: Number(data.quantity), price: Number(data.price), item_cost: itemCost });
         renderDetailItems(order);
         logActivity('item', `Добавлена позиция в заказ №${order.id}: «${prod.name}» × ${quantity}`, order.id);
         // Сбросить поля
