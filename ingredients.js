@@ -171,7 +171,7 @@ let _ingredientPriceHistory = {}; // { ingredient_id: [{package_price, package_s
 async function loadIngredientPriceHistory(ingredientId) {
     try {
         const { data, error } = await db.from('ingredient_price_history')
-            .select('package_price, package_size, valid_from')
+            .select('id, package_price, package_size, valid_from')
             .eq('ingredient_id', ingredientId)
             .order('valid_from', { ascending: false });
         if (error) throw error;

@@ -1,4 +1,4 @@
-const CACHE_NAME = 'runwaychef-cache-v30';
+const CACHE_NAME = 'runwaychef-cache-v31';
 const ASSETS = [
   './index.html',
   './manifest.json',
