@@ -922,9 +922,12 @@
         <div id="orderCostBreakdownModal" class="modal">
             <div class="modal-content" style="max-width:480px;">
                 <h2 class="text-base font-semibold mb-1 text-gray-800">Детализация себестоимости</h2>
-                <p id="orderCostBreakdownSubtitle" class="text-xs text-gray-500 mb-3"></p>
+                <p id="orderCostBreakdownSubtitle" class="text-xs text-gray-500 mb-2"></p>
                 <div id="orderCostBreakdownContent" style="max-height:60vh;overflow-y:auto;"></div>
-                <button onclick="closeModal()" class="btn bg-gray-400 text-white p-1 rounded-md hover:bg-gray-500 w-full text-xs mt-3">Закрыть</button>
+                <div class="flex gap-1 mt-3">
+                    <button onclick="recalcOrderCostBreakdown()" class="btn bg-indigo-50 text-indigo-700 p-1 rounded-md hover:bg-indigo-100 flex-1 text-xs">↻ Пересчитать по актуальному рецепту</button>
+                    <button onclick="closeModal()" class="btn bg-gray-400 text-white p-1 rounded-md hover:bg-gray-500 text-xs" style="width:80px;">Закрыть</button>
+                </div>
             </div>
         </div>
 
@@ -1081,7 +1084,7 @@
 <script src="semifinished.js?v=6"></script>
 <script src="products.js?v=7"></script>
 <script src="customers.js?v=18"></script>
-<script src="orders.js?v=15"></script>
+<script src="orders.js?v=16"></script>
 <script src="stats.js?v=8"></script>
 <script src="history.js?v=3"></script>
 <script src="modals.js?v=7"></script>

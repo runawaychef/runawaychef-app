@@ -753,6 +753,51 @@ async function saveOrderItemIngredients(orderItemId, prod, itemQty) {
     } catch (e) { console.error('Не удалось сохранить снимок рецепта:', e); }
 }
 
+// Пересчитывает снимок рецепта для текущего заказа по актуальному рецепту и ценам.
+async function recalcOrderCostBreakdown() {
+    const order = orders.find(o => o.id === currentOrderId);
+    if (!order) return;
+    const ok = await showConfirm(
+        'Пересчитать детализацию по актуальному рецепту и текущим ценам?\n\nСтарый снимок будет удалён и заменён новым.'
+    );
+    if (!ok) return;
+
+    showLoading('Пересчитываю...');
+    try {
+        const orderItemIds = (order.items || []).map(it => it.id);
+
+        // Удаляем старый снимок
+        const { error: delErr } = await db
+            .from('order_item_ingredients').delete().in('order_item_id', orderItemIds);
+        if (delErr) throw delErr;
+
+        // Сохраняем новый снимок по актуальному рецепту и текущим ценам
+        for (const item of order.items) {
+            const prod = products.find(p => p.id === item.product_id);
+            if (prod) await saveOrderItemIngredients(item.id, prod, item.quantity);
+        }
+
+        // Также пересчитываем item_cost
+        for (const item of order.items) {
+            const prod = products.find(p => p.id === item.product_id);
+            if (prod) {
+                const newCost = parseFloat((productUnitCost(prod) * item.quantity).toFixed(4));
+                const { error } = await db.from('order_items').update({ item_cost: newCost }).eq('id', item.id);
+                if (!error) item.item_cost = newCost;
+            }
+        }
+
+        renderDetailItems(order);
+        hideLoading();
+        await openOrderCostBreakdown(); // перезагружаем детализацию
+        logActivity('order', `Пересчитана себестоимость заказа №${order.id} по актуальному рецепту`);
+    } catch (e) {
+        console.error(e);
+        hideLoading();
+        await showInfo('Ошибка пересчёта. Проверьте подключение.');
+    }
+}
+
 function openEditOrderModal(i) {
     editIndex = i;
     const o = orders[i];
