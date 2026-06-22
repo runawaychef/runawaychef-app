@@ -71,3 +71,51 @@ function openSettingsModal() {
     document.getElementById('settingsCurrentEmployee').textContent = currentEmployee ? currentEmployee.name : '—';
     document.getElementById('settingsModal').style.display = 'flex';
 }
+
+// Фиксирует item_cost для всех позиций заказов, у которых он ещё не зафиксирован.
+// Запускается один раз из настроек чтобы «заморозить» себестоимость старых заказов
+// по текущим ценам ингредиентов — после этого изменение цен не будет влиять на историю.
+async function fixateAllItemCosts() {
+    const ok = await showConfirm(
+        'Зафиксировать себестоимость всех существующих заказов по текущим ценам ингредиентов?\n\nПосле этого изменение цен не будет пересчитывать старые заказы.\n\nЭто действие необратимо.'
+    );
+    if (!ok) return;
+    closeModal();
+
+    // Собираем все позиции без зафиксированной себестоимости
+    const toFix = [];
+    orders.forEach(o => {
+        (o.items || []).forEach(it => {
+            if (it.item_cost == null) {
+                const prod = products.find(p => p.id === it.product_id);
+                if (prod) {
+                    const cost = parseFloat((productUnitCost(prod) * it.quantity).toFixed(4));
+                    toFix.push({ id: it.id, item_cost: cost, item: it });
+                }
+            }
+        });
+    });
+
+    if (!toFix.length) {
+        await showInfo('Все позиции уже зафиксированы — ничего делать не нужно.');
+        return;
+    }
+
+    showLoading('Фиксирую себестоимость... Это может занять несколько секунд.');
+    let fixed = 0;
+    try {
+        // Обновляем батчами по 50 записей
+        for (let i = 0; i < toFix.length; i += 50) {
+            const batch = toFix.slice(i, i + 50);
+            for (const rec of batch) {
+                const { error } = await db.from('order_items').update({ item_cost: rec.item_cost }).eq('id', rec.id);
+                if (!error) { rec.item.item_cost = rec.item_cost; fixed++; }
+            }
+        }
+        logActivity('system', `Зафиксирована себестоимость ${fixed} позиций заказов`);
+        await showInfo(`Готово: зафиксировано ${fixed} позиций из ${toFix.length}.`);
+    } catch (e) {
+        console.error(e);
+        await showInfo(`Ошибка: зафиксировано ${fixed} из ${toFix.length}. Попробуйте ещё раз.`);
+    } finally { hideLoading(); }
+}
