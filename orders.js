@@ -86,10 +86,11 @@ function displayOrders() {
         else if (order.status === 'в работе') flagClass += ' flag-yellow';
         else if (order.status === 'выполнен') flagClass += ' flag-green';
 
+        const isMerged = order.notes && order.notes.includes('⚠ объединён, требует проверки');
         const row = document.createElement('tr');
-        row.className = 'order-row';
+        row.className = 'order-row' + (isMerged ? ' bg-red-50' : '');
         row.innerHTML = `
-            <td class="border p-0.5 text-xs whitespace-nowrap" onclick="openOrderDetail(${order.id})">${formatDateDMY(order.date)}</td>
+            <td class="border p-0.5 text-xs whitespace-nowrap${isMerged ? ' text-red-700 font-semibold' : ''}" onclick="openOrderDetail(${order.id})">${formatDateDMY(order.date)}${isMerged ? ' ⚠' : ''}</td>
             <td class="border p-0.5 text-xs" onclick="openOrderDetail(${order.id})">${escapeHtml(order.customer)}</td>
             <td class="border p-0.5 text-xs text-center" onclick="openOrderDetail(${order.id})">${itemsCount}</td>
             <td class="border p-0.5 text-xs font-medium" onclick="openOrderDetail(${order.id})">${total}</td>
@@ -343,6 +344,13 @@ function openOrderDetail(orderId) {
     document.getElementById('detailNotes').value = order.notes || '';
     fillDetailEmployeeSelect(order.employee_id);
 
+    // Показываем кнопку "Проверен" только для объединённых заказов
+    const checkedBtn = document.getElementById('markCheckedBtn');
+    if (checkedBtn) {
+        const isMerged = order.notes && order.notes.includes('⚠ объединён, требует проверки');
+        checkedBtn.classList.toggle('hidden', !isMerged);
+    }
+
     renderDetailItems(order);
     updateProductSelects();
     refreshFab();
@@ -384,7 +392,8 @@ async function cleanupOrderDraftIfEmpty(orderId) {
     const idx = orders.findIndex(o => o.id === orderId);
     if (idx === -1) return;
     const order = orders[idx];
-    if (order.customer_id) return; // клиента выбрали — это уже не пустой черновик
+    // Не удаляем если выбран клиент ИЛИ уже добавлены позиции
+    if (order.customer_id || (order.items && order.items.length > 0)) return;
     try {
         await db.from('orders').delete().eq('id', orderId);
         orders.splice(idx, 1);
@@ -412,6 +421,27 @@ async function closeOrderDetailSilent() {
     if (list) list.classList.remove('hidden');
     if (detail) detail.classList.remove('active');
     if (leavingId !== null) await cleanupOrderDraftIfEmpty(leavingId);
+}
+
+// Снимает пометку "⚠ объединён, требует проверки" после того как заказ проверен
+async function markOrderChecked() {
+    const order = orders.find(o => o.id === currentOrderId);
+    if (!order) return;
+    const newNotes = (order.notes || '')
+        .replace(' | ⚠ объединён, требует проверки', '')
+        .replace('⚠ объединён, требует проверки', '')
+        .trim();
+    showLoading();
+    try {
+        const { error } = await db.from('orders').update({ notes: newNotes }).eq('id', order.id);
+        if (error) throw error;
+        order.notes = newNotes;
+        document.getElementById('detailNotes').value = newNotes;
+        document.getElementById('markCheckedBtn').classList.add('hidden');
+        displayOrders(); // убираем красную подсветку в списке
+        logActivity('order', `Заказ №${order.id} проверен после объединения`);
+    } catch (e) { console.error(e); showInfo('Ошибка сохранения. Проверьте подключение.'); }
+    finally { hideLoading(); }
 }
 
 // Удаление заказа прямо из его карточки (переиспользует стандартное окно

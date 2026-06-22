@@ -700,6 +700,7 @@
                         </button>
                         <span id="detailOrderId" class="text-xs text-gray-400"></span>
                         <div class="flex gap-1">
+                            <button id="markCheckedBtn" onclick="markOrderChecked()" class="btn text-xs bg-green-50 text-green-700 px-2 py-1 rounded-md hover:bg-green-100 hidden">✓ Проверен</button>
                             <button onclick="goToCustomerFromOrder()" class="btn text-xs bg-indigo-50 text-indigo-700 px-2 py-1 rounded-md hover:bg-indigo-100">Карточка клиента</button>
                             <button onclick="deleteCurrentOrder()" class="btn text-xs bg-red-50 text-red-600 px-2 py-1 rounded-md hover:bg-red-100">Удалить заказ</button>
                         </div>
@@ -1084,7 +1085,7 @@
 <script src="semifinished.js?v=6"></script>
 <script src="products.js?v=7"></script>
 <script src="customers.js?v=18"></script>
-<script src="orders.js?v=16"></script>
+<script src="orders.js?v=17"></script>
 <script src="stats.js?v=8"></script>
 <script src="history.js?v=3"></script>
 <script src="modals.js?v=7"></script>
