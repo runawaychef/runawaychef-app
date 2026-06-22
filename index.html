@@ -1190,6 +1190,7 @@ async function loadAllData() {
         employees.forEach(e => employeeById[e.id] = e);
 
         const itemsByOrder = {};
+        console.log('DEBUG: order_items загружено:', (oiRes.data || []).length, 'записей');
         (oiRes.data || []).forEach(it => {
             if (!itemsByOrder[it.order_id]) itemsByOrder[it.order_id] = [];
             const prod = productById[it.product_id];
@@ -1202,6 +1203,8 @@ async function loadAllData() {
                 item_cost: it.item_cost != null ? Number(it.item_cost) : null
             });
         });
+        console.log('DEBUG: orders загружено:', (oRes.data || []).length, 'записей');
+        console.log('DEBUG: itemsByOrder для заказа 1030:', itemsByOrder[1030]);
 
         orders = (oRes.data || []).map(o => {
             const cust = customerById[o.customer_id];
