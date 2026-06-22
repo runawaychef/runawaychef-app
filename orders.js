@@ -29,7 +29,7 @@ function displayOrders() {
         const weekLabel = `${formatDateDMY(monday.toISOString().slice(0,10))} – ${formatDateDMY(sunday.toISOString().slice(0,10))}`;
         const weekRow = document.createElement('tr');
         weekRow.innerHTML = `<td colspan="6" class="bg-gray-200 text-gray-700 text-xs font-medium p-1">
-            Неделя ${weekLabel} — ${weekTotals.qty} шт., ${weekTotals.sum.toFixed(2)} €
+            Неделя ${weekLabel} — ${weekTotals.count} зак., ${weekTotals.qty} шт., ${weekTotals.sum.toFixed(2)} €
         </td>`;
         tbody.appendChild(weekRow);
     }
@@ -44,7 +44,7 @@ function displayOrders() {
         const monthLabel = `${MONTH_NAMES_RU[m - 1]} ${y}`;
         const monthRow = document.createElement('tr');
         monthRow.innerHTML = `<td colspan="6" class="bg-gray-700 text-white text-xs font-semibold p-1.5">
-            Итого за ${monthLabel} — ${monthTotals.qty} шт., ${monthTotals.sum.toFixed(2)} €
+            Итого за ${monthLabel} — ${monthTotals.count} зак., ${monthTotals.qty} шт., ${monthTotals.sum.toFixed(2)} €
         </td>`;
         tbody.appendChild(monthRow);
     }
@@ -113,14 +113,15 @@ function displayOrders() {
 
 // Считает сумму (с НДС) и общее кол-во изделий по подмножеству заказов, отобранных predicate
 function calcGroupTotals(allOrders, predicate) {
-    let sum = 0, qty = 0;
+    let sum = 0, qty = 0, count = 0;
     allOrders.forEach(o => {
         if (predicate(o)) {
             sum += orderGrandTotal(o);
             qty += (o.items || []).reduce((s, it) => s + Number(it.quantity || 0), 0);
+            count++;
         }
     });
-    return { sum, qty };
+    return { sum, qty, count };
 }
 
 // ---- Фильтры списка заказов ----
