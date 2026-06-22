@@ -391,7 +391,10 @@
                 </div>
 
                 <div class="bg-white p-2 rounded-md shadow-md mb-3">
-                    <h3 class="text-xs font-semibold text-gray-700 mb-2 uppercase tracking-wide">История цен</h3>
+                    <div class="flex justify-between items-center mb-2">
+                        <h3 class="text-xs font-semibold text-gray-700 uppercase tracking-wide">История цен</h3>
+                        <button onclick="openAddPriceHistoryModal()" class="btn text-xs bg-gray-200 text-gray-700 px-2 py-0.5 rounded-md hover:bg-gray-300">+ Добавить</button>
+                    </div>
                     <div id="idPriceHistory"><p class="text-xs text-gray-400">Загрузка...</p></div>
                 </div>
             </div>
@@ -932,6 +935,24 @@
             </div>
         </div>
 
+        <!-- Редактирование/добавление записи истории цен ингредиента -->
+        <div id="priceHistoryModal" class="modal">
+            <div class="modal-content">
+                <h2 class="text-base font-semibold mb-3 text-gray-800" id="priceHistoryModalTitle">Запись истории цен</h2>
+                <input type="hidden" id="priceHistoryRecordId">
+                <label class="text-xs text-gray-500">Дата (с какого числа действует цена)</label>
+                <input id="priceHistoryDate" type="date" class="border p-0.5 rounded-md mb-2 w-full text-xs">
+                <label class="text-xs text-gray-500">Цена за упаковку (€)</label>
+                <input id="priceHistoryPrice" type="number" autocomplete="off" inputmode="decimal" step="0.01" class="border p-0.5 rounded-md mb-2 w-full text-xs">
+                <label class="text-xs text-gray-500">Размер упаковки</label>
+                <input id="priceHistorySize" type="number" autocomplete="off" inputmode="decimal" step="0.01" class="border p-0.5 rounded-md mb-3 w-full text-xs">
+                <div class="flex gap-1">
+                    <button onclick="savePriceHistoryRecord()" class="btn bg-gray-700 text-white p-1 rounded-md hover:bg-gray-800 text-xs flex-1">Сохранить</button>
+                    <button onclick="closeModal()" class="btn bg-gray-400 text-white p-1 rounded-md hover:bg-gray-500 text-xs flex-1">Отмена</button>
+                </div>
+            </div>
+        </div>
+
         <!-- Быстрое создание нового ингредиента прямо из карточки рецепта -->
         <div id="quickAddIngredientModal" class="modal">
             <div class="modal-content">
@@ -1081,7 +1102,7 @@
 <script src="supabaseClient.js?v=3"></script>
 <script src="auth.js?v=2"></script>
 <script src="employees.js?v=7"></script>
-<script src="ingredients.js?v=9"></script>
+<script src="ingredients.js?v=11"></script>
 <script src="semifinished.js?v=6"></script>
 <script src="products.js?v=7"></script>
 <script src="customers.js?v=18"></script>

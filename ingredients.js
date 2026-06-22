@@ -126,12 +126,26 @@ async function saveIdHeader() {
         // Если за сегодня уже есть запись (upsert по ingredient_id + valid_from) — обновляем её.
         if (priceChanged) {
             const today = new Date().toISOString().slice(0, 10);
-            await db.from('ingredient_price_history').upsert({
-                ingredient_id: ing.id,
-                package_price: parseFloat(packagePrice.toFixed(2)),
-                package_size: packageSize,
-                valid_from: today
-            }, { onConflict: 'ingredient_id,valid_from' });
+            // Проверяем есть ли уже запись за сегодня для этого ингредиента
+            const { data: existing } = await db.from('ingredient_price_history')
+                .select('id')
+                .eq('ingredient_id', ing.id)
+                .eq('valid_from', today)
+                .single();
+            if (existing) {
+                // Запись за сегодня уже есть — обновляем её
+                await db.from('ingredient_price_history')
+                    .update({ package_price: parseFloat(packagePrice.toFixed(2)), package_size: packageSize })
+                    .eq('id', existing.id);
+            } else {
+                // Записи за сегодня нет — добавляем новую строку в историю
+                await db.from('ingredient_price_history').insert({
+                    ingredient_id: ing.id,
+                    package_price: parseFloat(packagePrice.toFixed(2)),
+                    package_size: packageSize,
+                    valid_from: today
+                });
+            }
             await loadIngredientPriceHistory(ing.id);
         }
 
@@ -170,10 +184,10 @@ function renderIngredientPriceHistory(ingredientId) {
     const container = document.getElementById('idPriceHistory');
     if (!container) return;
     const history = _ingredientPriceHistory[ingredientId] || [];
-    if (!history.length) { container.innerHTML = '<p class="text-xs text-gray-400">История цен недоступна</p>'; return; }
+    if (!history.length) { container.innerHTML = '<p class="text-xs text-gray-400">История цен пуста</p>'; return; }
     const ing = ingredients.find(i => i.id === ingredientId);
     const unitLabel = ing ? (UNIT_LABELS[ing.unit] || ing.unit) : '';
-    let html = '<table class="w-full text-xs"><thead><tr class="bg-gray-100"><th class="p-0.5 text-left">С даты</th><th class="p-0.5 text-right">Цена упак.</th><th class="p-0.5 text-right">Цена за ед.</th></tr></thead><tbody>';
+    let html = '<table class="w-full text-xs"><thead><tr class="bg-gray-100"><th class="p-0.5 text-left">С даты</th><th class="p-0.5 text-right">Цена упак.</th><th class="p-0.5 text-right">Цена за ед.</th><th class="p-0.5 w-12"></th></tr></thead><tbody>';
     history.forEach((h, i) => {
         const unitPrice = h.package_size ? (h.package_price / h.package_size).toFixed(4) : '—';
         const isCurrent = i === 0;
@@ -181,10 +195,84 @@ function renderIngredientPriceHistory(ingredientId) {
             <td class="p-0.5">${formatDateDMY(h.valid_from)}${isCurrent ? ' <span class="text-indigo-600">(текущая)</span>' : ''}</td>
             <td class="p-0.5 text-right">${Number(h.package_price).toFixed(2)} €</td>
             <td class="p-0.5 text-right">${unitPrice} €/${unitLabel}</td>
+            <td class="p-0.5 text-center whitespace-nowrap">
+                <button onclick="openEditPriceHistoryModal(${h.id},'${h.valid_from}',${h.package_price},${h.package_size})" class="text-gray-400 hover:text-indigo-600 mr-1">✏️</button>
+                <button onclick="deletePriceHistoryRecord(${h.id})" class="text-gray-400 hover:text-red-600">🗑</button>
+            </td>
         </tr>`;
     });
     html += '</tbody></table>';
     container.innerHTML = html;
+}
+
+// Открыть модалку для добавления новой записи истории цен
+function openAddPriceHistoryModal() {
+    const ing = ingredients.find(i => i.id === currentIngredientId);
+    if (!ing) return;
+    document.getElementById('priceHistoryModalTitle').textContent = 'Добавить запись цены';
+    document.getElementById('priceHistoryRecordId').value = '';
+    document.getElementById('priceHistoryDate').value = new Date().toISOString().slice(0, 10);
+    document.getElementById('priceHistoryPrice').value = ing.package_price.toFixed(2);
+    document.getElementById('priceHistorySize').value = ing.package_size;
+    document.getElementById('priceHistoryModal').style.display = 'flex';
+}
+
+// Открыть модалку для редактирования существующей записи
+function openEditPriceHistoryModal(id, validFrom, price, size) {
+    document.getElementById('priceHistoryModalTitle').textContent = 'Редактировать запись цены';
+    document.getElementById('priceHistoryRecordId').value = id;
+    document.getElementById('priceHistoryDate').value = validFrom;
+    document.getElementById('priceHistoryPrice').value = Number(price).toFixed(2);
+    document.getElementById('priceHistorySize').value = size;
+    document.getElementById('priceHistoryModal').style.display = 'flex';
+}
+
+// Сохранить запись (создать новую или обновить существующую)
+async function savePriceHistoryRecord() {
+    const recordId = document.getElementById('priceHistoryRecordId').value;
+    const validFrom = document.getElementById('priceHistoryDate').value;
+    const price = parseFloat(document.getElementById('priceHistoryPrice').value);
+    const size = parseFloat(document.getElementById('priceHistorySize').value);
+    if (!validFrom || isNaN(price) || isNaN(size) || size <= 0) {
+        showInfo('Заполните все поля корректно!'); return;
+    }
+    showLoading();
+    try {
+        if (recordId) {
+            // Обновляем существующую запись
+            const { error } = await db.from('ingredient_price_history').update({
+                valid_from: validFrom,
+                package_price: parseFloat(price.toFixed(2)),
+                package_size: size
+            }).eq('id', Number(recordId));
+            if (error) throw error;
+        } else {
+            // Создаём новую запись
+            const { error } = await db.from('ingredient_price_history').insert({
+                ingredient_id: currentIngredientId,
+                valid_from: validFrom,
+                package_price: parseFloat(price.toFixed(2)),
+                package_size: size
+            });
+            if (error) throw error;
+        }
+        closeModal();
+        await loadIngredientPriceHistory(currentIngredientId);
+    } catch (e) { console.error(e); showInfo('Ошибка сохранения: ' + (e.message || '')); }
+    finally { hideLoading(); }
+}
+
+// Удалить запись из истории цен
+async function deletePriceHistoryRecord(id) {
+    const ok = await showConfirm('Удалить эту запись из истории цен?');
+    if (!ok) return;
+    showLoading();
+    try {
+        const { error } = await db.from('ingredient_price_history').delete().eq('id', id);
+        if (error) throw error;
+        await loadIngredientPriceHistory(currentIngredientId);
+    } catch (e) { console.error(e); showInfo('Ошибка удаления.'); }
+    finally { hideLoading(); }
 }
 
 // ==================== БЫСТРОЕ СОЗДАНИЕ ИЗ КАРТОЧКИ РЕЦЕПТА ====================
