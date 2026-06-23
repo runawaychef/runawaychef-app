@@ -32,11 +32,12 @@ function displayOrders() {
         }));
         const productLines = Object.entries(byProduct)
             .sort((a, b) => b[1] - a[1])
-            .map(([name, qty]) => `<div class="pl-2 text-indigo-600">· ${name} — ${qty} шт.</div>`)
+            .map(([name, qty]) => `<div class="pl-2 text-gray-500">· ${name} — ${qty} шт.</div>`)
             .join('');
 
-        return `<div class="mb-2">
-            <span class="font-semibold">${label}:</span> ${dayOrders.length} зак. · ${totalQty} шт. · ${totalSum.toFixed(2)} € · ${statusLabel}
+        return `<div class="mb-2 last:mb-0">
+            <div class="font-semibold text-indigo-700 mb-0.5">${label}</div>
+            <div class="text-gray-700">${dayOrders.length} зак. · ${totalQty} шт. · ${totalSum.toFixed(2)} € · ${statusLabel}</div>
             ${productLines}
         </div>`;
     }
