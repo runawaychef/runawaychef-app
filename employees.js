@@ -49,9 +49,13 @@ async function selectEmployee(emp) {
     document.getElementById('settingsBtn').classList.remove('hidden');
     document.getElementById('statsBtn').classList.remove('hidden');
     await loadAllData();
-    refreshFab(); // кнопка "+" не появлялась при первом входе, пока не переключишь вкладку — чиним
-    setTimeout(refreshFab, 150); // подстраховка на случай отложенной перерисовки на мобильном
+    refreshFab();
+    setTimeout(refreshFab, 150);
     logActivity('auth', `Вход: ${emp.name}`);
+
+    // Обновляем информационный блок каждую минуту — чтобы при смене даты
+    // «Сегодня/Завтра/Послезавтра» автоматически пересчитывались без перезагрузки
+    setInterval(() => { displayOrders(); }, 60000);
 }
 
 async function logoutEmployee() {
