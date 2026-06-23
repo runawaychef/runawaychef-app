@@ -141,8 +141,12 @@ async function saveIdNewPrice() {
                 valid_from: validFrom
             });
         }
+        // Обновляем локальный объект — чтобы список сразу показывал новую цену
+        ing.package_price = parseFloat(packagePrice.toFixed(2));
+        ing.package_size  = packageSize;
         renderIngredientUnitPrice(ing);
         await loadIngredientPriceHistory(ing.id);
+        displayIngredients(); // обновляем список
         logActivity('ingredient', `Обновлена цена ингредиента «${ing.name}» с ${validFrom}`);
         await showInfo('Цена сохранена.');
     } catch (e) { console.error(e); showInfo('Ошибка сохранения. Проверьте подключение.'); }
