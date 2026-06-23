@@ -11,9 +11,9 @@
 
 function displayOrders() {
     // Блок "На сегодня и завтра"
-    const today = new Date().toISOString().slice(0, 10);
-    const tomorrow = new Date(Date.now() + 86400000).toISOString().slice(0, 10);
-    const dayAfter  = new Date(Date.now() + 86400000 * 2).toISOString().slice(0, 10);
+    const today    = getLocalDateStr(0);
+    const tomorrow = getLocalDateStr(1);
+    const dayAfter = getLocalDateStr(2);
     const summaryEl = document.getElementById('todaySummary');
     const contentEl = document.getElementById('todaySummaryContent');
 
@@ -290,7 +290,7 @@ document.addEventListener('click', function(e) {
 // дата — сегодня, статус — "принят") и открывает его карточку.
 // Клиента и остальное можно дозаполнить уже внутри карточки.
 async function createDraftOrderAndOpen() {
-    const today = new Date().toISOString().split('T')[0];
+    const today = getLocalDateStr(0);
     const employeeId = currentEmployee ? currentEmployee.id : null;
     showLoading();
     try {

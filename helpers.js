@@ -4,6 +4,18 @@
 // Обычный скрипт (без модулей) — функции доступны глобально, как раньше.
 // Зависит от: products/customers (главный скрипт).
 
+// Возвращает текущую дату в локальном часовом поясе в формате YYYY-MM-DD.
+// Важно: НЕ использовать toISOString() — она возвращает UTC, что в Литве
+// (UTC+3) даёт неверный день в ночное время (с 00:00 до 03:00).
+function getLocalDateStr(offsetDays) {
+    const d = new Date();
+    if (offsetDays) d.setDate(d.getDate() + offsetDays);
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
+}
+
 // Простое уведомление (замена системного alert()) — одна кнопка "ОК".
 // Переиспользует confirmModal, временно пряча кнопку "Отмена".
 function showInfo(message) {
