@@ -53,9 +53,18 @@ async function selectEmployee(emp) {
     setTimeout(refreshFab, 150);
     logActivity('auth', `Вход: ${emp.name}`);
 
-    // Обновляем информационный блок каждую минуту — чтобы при смене даты
-    // «Сегодня/Завтра/Послезавтра» автоматически пересчитывались без перезагрузки
-    setInterval(() => { displayOrders(); }, 60000);
+    // Обновляем информационный блок каждую минуту.
+    // Если дата изменилась (перевалило за полночь) — перезагружаем все данные.
+    let _lastKnownDate = new Date().toISOString().slice(0, 10);
+    setInterval(() => {
+        const currentDate = new Date().toISOString().slice(0, 10);
+        if (currentDate !== _lastKnownDate) {
+            _lastKnownDate = currentDate;
+            loadAllData(); // дата изменилась — обновляем данные полностью
+        } else {
+            displayOrders(); // дата та же — просто перерисовываем блок
+        }
+    }, 60000);
 }
 
 async function logoutEmployee() {
