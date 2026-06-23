@@ -278,6 +278,7 @@ function openCustomerDetail(custId) {
     document.getElementById('cdContact').value = cust.contact;
     document.getElementById('cdDiscount').value = cust.discount.toFixed(2);
     document.getElementById('cdVatExempt').checked = !!cust.vat_exempt;
+    document.getElementById('cdNotes').value = cust.notes || '';
     document.getElementById('cdDateRange').value = 'all';
 
     renderCustomerStats(cust);
@@ -310,14 +311,14 @@ async function saveCdHeader() {
     const contact  = document.getElementById('cdContact').value.trim();
     const discount = parseFloat(document.getElementById('cdDiscount').value) || 0;
     const vatExempt = document.getElementById('cdVatExempt').checked;
+    const notes    = document.getElementById('cdNotes').value.trim();
     if (!name || !contact) { showInfo('Заполните имя и контакты!'); return; }
     const oldName = cust.name;
     showLoading();
     try {
-        const { error } = await db.from('customers').update({ name, contact, discount: parseFloat(discount.toFixed(2)), vat_exempt: vatExempt }).eq('id', cust.id);
+        const { error } = await db.from('customers').update({ name, contact, discount: parseFloat(discount.toFixed(2)), vat_exempt: vatExempt, notes }).eq('id', cust.id);
         if (error) throw error;
-        cust.name = name; cust.contact = contact; cust.discount = parseFloat(discount.toFixed(2)); cust.vat_exempt = vatExempt;
-        // Обновить имя клиента в кэше заказов
+        cust.name = name; cust.contact = contact; cust.discount = parseFloat(discount.toFixed(2)); cust.vat_exempt = vatExempt; cust.notes = notes;
         orders.forEach(o => { if (o.customer_id === cust.id) o.customer = name; });
         logActivity('customer', `Изменён клиент «${oldName}»${oldName !== name ? ` → «${name}»` : ''}`);
         renderCustomerStats(cust);

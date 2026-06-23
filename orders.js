@@ -10,6 +10,49 @@
 // ---- Список заказов ----
 
 function displayOrders() {
+    // Блок "На сегодня и завтра"
+    const today = new Date().toISOString().slice(0, 10);
+    const tomorrow = new Date(Date.now() + 86400000).toISOString().slice(0, 10);
+    const summaryEl = document.getElementById('todaySummary');
+    const contentEl = document.getElementById('todaySummaryContent');
+
+    function buildDaySummary(dayOrders, label) {
+        if (!dayOrders.length) return '';
+        const totalSum = dayOrders.reduce((s, o) => s + orderGrandTotal(o), 0);
+        const totalQty = dayOrders.reduce((s, o) => s + (o.items || []).reduce((q, it) => q + Number(it.quantity || 0), 0), 0);
+        const pending = dayOrders.filter(o => o.status !== 'выполнен').length;
+        const statusLabel = pending
+            ? `<span class="text-red-600">${pending} не выполн.</span>`
+            : `<span class="text-green-700">все выполнены ✓</span>`;
+
+        // Разбивка по изделиям
+        const byProduct = {};
+        dayOrders.forEach(o => (o.items || []).forEach(it => {
+            byProduct[it.product] = (byProduct[it.product] || 0) + Number(it.quantity || 0);
+        }));
+        const productLines = Object.entries(byProduct)
+            .sort((a, b) => b[1] - a[1])
+            .map(([name, qty]) => `<div class="pl-2 text-indigo-600">· ${name} — ${qty} шт.</div>`)
+            .join('');
+
+        return `<div class="mb-2">
+            <span class="font-semibold">${label}:</span> ${dayOrders.length} зак. · ${totalQty} шт. · ${totalSum.toFixed(2)} € · ${statusLabel}
+            ${productLines}
+        </div>`;
+    }
+
+    if (summaryEl && contentEl) {
+        const todayOrders    = orders.filter(o => o.date === today);
+        const tomorrowOrders = orders.filter(o => o.date === tomorrow);
+        if (todayOrders.length || tomorrowOrders.length) {
+            contentEl.innerHTML =
+                buildDaySummary(todayOrders, '📋 Сегодня') +
+                buildDaySummary(tomorrowOrders, '📋 Завтра');
+            summaryEl.classList.remove('hidden');
+        } else {
+            summaryEl.classList.add('hidden');
+        }
+    }
     const filteredOrders = getFilteredOrdersForList();
     const sorted = [...filteredOrders].sort((a, b) => new Date(b.date) - new Date(a.date));
     const tbody = document.getElementById('orderTableBody');
