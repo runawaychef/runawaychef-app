@@ -13,6 +13,7 @@ function displayOrders() {
     // Блок "На сегодня и завтра"
     const today = new Date().toISOString().slice(0, 10);
     const tomorrow = new Date(Date.now() + 86400000).toISOString().slice(0, 10);
+    const dayAfter  = new Date(Date.now() + 86400000 * 2).toISOString().slice(0, 10);
     const summaryEl = document.getElementById('todaySummary');
     const contentEl = document.getElementById('todaySummaryContent');
 
@@ -45,10 +46,12 @@ function displayOrders() {
     if (summaryEl && contentEl) {
         const todayOrders    = orders.filter(o => o.date === today);
         const tomorrowOrders = orders.filter(o => o.date === tomorrow);
-        if (todayOrders.length || tomorrowOrders.length) {
+        const dayAfterOrders = orders.filter(o => o.date === dayAfter);
+        if (todayOrders.length || tomorrowOrders.length || dayAfterOrders.length) {
             contentEl.innerHTML =
                 buildDaySummary(todayOrders, '📋 Сегодня') +
-                buildDaySummary(tomorrowOrders, '📋 Завтра');
+                buildDaySummary(tomorrowOrders, '📋 Завтра') +
+                buildDaySummary(dayAfterOrders, '📋 Послезавтра');
             summaryEl.classList.remove('hidden');
         } else {
             summaryEl.classList.add('hidden');
