@@ -804,27 +804,64 @@ async function openOrderCostBreakdown() {
     } finally { hideLoading(); }
 }
 
+// Рекурсивно собирает список ингредиентов изделия (раскрывая полуфабрикаты).
+// qty_factor — множитель из родительского рецепта (с учётом размера партии п/ф).
+function collectIngredients(recipeItems, itemQty, qtyFactor, result) {
+    recipeItems.forEach(ri => {
+        if (ri.semi_finished_id) {
+            // Полуфабрикат — раскрываем рекурсивно
+            const sf = semiFinished.find(s => s.id === ri.semi_finished_id);
+            if (!sf || !sf.ingredients || !sf.ingredients.length) return;
+            // Сколько единиц п/ф используется на партию изделия
+            const sfUnitsUsed = Number(ri.quantity) * itemQty * qtyFactor;
+            // Масштаб: ri.quantity / sf.batch_size (сколько партий п/ф нужно)
+            const sfFactor = Number(ri.quantity) / Number(sf.batch_size || 1);
+            collectIngredients(sf.ingredients, itemQty, qtyFactor * sfFactor, result);
+        } else if (ri.ingredient_id) {
+            // Прямой ингредиент
+            const ing = ingredients.find(i => i.id === ri.ingredient_id);
+            if (!ing) return;
+            const unitPrice = ing.package_size ? ing.package_price / ing.package_size : 0;
+            const totalQty  = Number(ri.quantity) * itemQty * qtyFactor;
+            // Если ингредиент уже есть (через другой п/ф) — суммируем
+            const existing = result.find(r => r.ingredient_id === ing.id);
+            if (existing) {
+                existing.quantity   += totalQty;
+                existing.total_cost += unitPrice * totalQty;
+            } else {
+                result.push({
+                    ingredient_id:    ing.id,
+                    ingredient_name:  ing.name,
+                    quantity:         totalQty,
+                    unit:             ing.unit,
+                    unit_price:       parseFloat(unitPrice.toFixed(6)),
+                    total_cost:       parseFloat((unitPrice * totalQty).toFixed(4))
+                });
+            }
+        }
+    });
+}
+
 // Сохраняет снимок рецепта изделия с текущими ценами ингредиентов
 // для конкретной позиции заказа — используется при создании позиции.
+// Полуфабрикаты раскрываются рекурсивно до уровня прямых ингредиентов.
 async function saveOrderItemIngredients(orderItemId, prod, itemQty) {
     if (!prod || !prod.ingredients || !prod.ingredients.length) return;
-    const rows = [];
-    prod.ingredients.forEach(pi => {
-        if (pi.semi_finished_id) return; // полуфабрикаты пока не детализируем
-        const ing = ingredients.find(i => i.id === pi.ingredient_id);
-        if (!ing) return;
-        const unitPrice = ing.package_size ? ing.package_price / ing.package_size : 0;
-        rows.push({
-            order_item_id:    orderItemId,
-            ingredient_id:    ing.id,
-            ingredient_name:  ing.name,
-            quantity:         Number(pi.quantity),
-            unit:             ing.unit,
-            unit_price:       parseFloat(unitPrice.toFixed(6)),
-            total_cost:       parseFloat((unitPrice * pi.quantity * itemQty).toFixed(4))
-        });
-    });
-    if (!rows.length) return;
+    const result = [];
+    // qtyFactor = 1 / batch_size изделия (чтобы пересчитать с партии на штуку)
+    const qtyFactor = 1 / Number(prod.batch_size || 1);
+    collectIngredients(prod.ingredients, itemQty, qtyFactor, result);
+
+    if (!result.length) return;
+    const rows = result.map(r => ({
+        order_item_id:    orderItemId,
+        ingredient_id:    r.ingredient_id,
+        ingredient_name:  r.ingredient_name,
+        quantity:         parseFloat(r.quantity.toFixed(4)),
+        unit:             r.unit,
+        unit_price:       r.unit_price,
+        total_cost:       parseFloat(r.total_cost.toFixed(4))
+    }));
     try {
         await db.from('order_item_ingredients').insert(rows);
     } catch (e) { console.error('Не удалось сохранить снимок рецепта:', e); }
