@@ -80,13 +80,73 @@ function openIngredientDetail(ingId) {
     document.getElementById('ingredientsList').classList.add('hidden');
     document.getElementById('ingredientDetail').classList.add('active');
 
+    // Блок 1: название и единица
     document.getElementById('idName').value = ing.name;
+    document.getElementById('idUnit').value = ing.unit;
+
+    // Блок 2: форма новой цены — заполняем текущими значениями как подсказка
+    document.getElementById('idNewPriceDate').value = new Date().toISOString().slice(0, 10);
     document.getElementById('idPackagePrice').value = ing.package_price.toFixed(2);
     document.getElementById('idPackageSize').value = ing.package_size;
-    document.getElementById('idUnit').value = ing.unit;
     renderIngredientUnitPrice(ing);
-    loadIngredientPriceHistory(ingId); // загружаем историю цен асинхронно
+    loadIngredientPriceHistory(ingId);
     refreshFab();
+}
+
+// Обновляет превью цены за единицу при изменении полей новой цены
+function renderIngredientUnitPricePreview() {
+    const price = parseFloat(document.getElementById('idPackagePrice').value) || 0;
+    const size = parseFloat(document.getElementById('idPackageSize').value) || 0;
+    const ing = ingredients.find(i => i.id === currentIngredientId);
+    const unit = ing ? ing.unit : 'g';
+    const unitLabel = UNIT_LABELS[unit] || unit;
+    const unitPrice = size > 0 ? (price / size).toFixed(4) : '0.0000';
+    const el = document.getElementById('idUnitPrice');
+    if (el) el.textContent = `${unitPrice} €/${unitLabel}`;
+}
+
+// Сохраняет новую цену: обновляет ingredients + добавляет запись в историю
+async function saveIdNewPrice() {
+    const ing = ingredients.find(i => i.id === currentIngredientId);
+    if (!ing) return;
+    const packagePrice = parseFloat(document.getElementById('idPackagePrice').value);
+    const packageSize  = parseFloat(document.getElementById('idPackageSize').value);
+    const validFrom    = document.getElementById('idNewPriceDate').value;
+    if (!validFrom || isNaN(packagePrice) || isNaN(packageSize) || packageSize <= 0) {
+        showInfo('Заполните все поля корректно!'); return;
+    }
+    showLoading();
+    try {
+        // Обновляем текущую цену в таблице ingredients
+        const { error } = await db.from('ingredients').update({
+            package_price: parseFloat(packagePrice.toFixed(2)),
+            package_size: packageSize
+        }).eq('id', ing.id);
+        if (error) throw error;
+        ing.package_price = parseFloat(packagePrice.toFixed(2));
+        ing.package_size = packageSize;
+
+        // Добавляем или обновляем запись в истории цен
+        const { data: existing } = await db.from('ingredient_price_history')
+            .select('id').eq('ingredient_id', ing.id).eq('valid_from', validFrom).single();
+        if (existing) {
+            await db.from('ingredient_price_history')
+                .update({ package_price: parseFloat(packagePrice.toFixed(2)), package_size: packageSize })
+                .eq('id', existing.id);
+        } else {
+            await db.from('ingredient_price_history').insert({
+                ingredient_id: ing.id,
+                package_price: parseFloat(packagePrice.toFixed(2)),
+                package_size: packageSize,
+                valid_from: validFrom
+            });
+        }
+        renderIngredientUnitPrice(ing);
+        await loadIngredientPriceHistory(ing.id);
+        logActivity('ingredient', `Обновлена цена ингредиента «${ing.name}» с ${validFrom}`);
+        await showInfo('Цена сохранена.');
+    } catch (e) { console.error(e); showInfo('Ошибка сохранения. Проверьте подключение.'); }
+    finally { hideLoading(); }
 }
 
 async function closeIngredientDetail() {
@@ -108,53 +168,16 @@ async function saveIdHeader() {
     const ing = ingredients.find(i => i.id === currentIngredientId);
     if (!ing) return;
     const name = document.getElementById('idName').value.trim();
-    const packagePrice = parseFloat(document.getElementById('idPackagePrice').value);
-    const packageSize  = parseFloat(document.getElementById('idPackageSize').value);
     const unit = document.getElementById('idUnit').value;
-    if (!name || isNaN(packagePrice) || isNaN(packageSize) || packageSize <= 0) {
-        showInfo('Заполните все поля корректно!'); return;
-    }
-    const priceChanged = parseFloat(packagePrice.toFixed(2)) !== parseFloat(ing.package_price.toFixed(2)) || parseFloat(packageSize.toFixed(4)) !== parseFloat(ing.package_size.toFixed(4));
-    showLoading();
+    if (!name) return;
     try {
-        const { error } = await db.from('ingredients').update({
-            name, package_price: parseFloat(packagePrice.toFixed(2)), package_size: packageSize, unit
-        }).eq('id', ing.id);
+        const { error } = await db.from('ingredients').update({ name, unit }).eq('id', ing.id);
         if (error) throw error;
-
-        // Если цена или размер упаковки изменились — добавляем запись в историю цен.
-        // Если за сегодня уже есть запись (upsert по ingredient_id + valid_from) — обновляем её.
-        if (priceChanged) {
-            const today = new Date().toISOString().slice(0, 10);
-            // Проверяем есть ли уже запись за сегодня для этого ингредиента
-            const { data: existing } = await db.from('ingredient_price_history')
-                .select('id')
-                .eq('ingredient_id', ing.id)
-                .eq('valid_from', today)
-                .single();
-            if (existing) {
-                // Запись за сегодня уже есть — обновляем её
-                await db.from('ingredient_price_history')
-                    .update({ package_price: parseFloat(packagePrice.toFixed(2)), package_size: packageSize })
-                    .eq('id', existing.id);
-            } else {
-                // Записи за сегодня нет — добавляем новую строку в историю
-                await db.from('ingredient_price_history').insert({
-                    ingredient_id: ing.id,
-                    package_price: parseFloat(packagePrice.toFixed(2)),
-                    package_size: packageSize,
-                    valid_from: today
-                });
-            }
-            await loadIngredientPriceHistory(ing.id);
-        }
-
-        ing.name = name; ing.package_price = parseFloat(packagePrice.toFixed(2));
-        ing.package_size = packageSize; ing.unit = unit;
+        ing.name = name;
+        ing.unit = unit;
         renderIngredientUnitPrice(ing);
-        logActivity('ingredient', `Изменён ингредиент «${name}»${priceChanged ? ' (новая цена)' : ''}`);
-    } catch (e) { console.error(e); showInfo('Ошибка сохранения. Проверьте подключение.'); }
-    finally { hideLoading(); }
+        logActivity('ingredient', `Изменён ингредиент «${name}»`);
+    } catch (e) { console.error(e); }
 }
 
 // Удаление ингредиента прямо из его карточки

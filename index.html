@@ -353,6 +353,7 @@
 
             <!-- Карточка ингредиента -->
             <div id="ingredientDetail">
+                <!-- Блок 1: Навигация + название + единица измерения -->
                 <div class="bg-white p-2 rounded-md shadow-md mb-3">
                     <div class="flex items-center justify-between mb-2">
                         <button onclick="closeIngredientDetail()" class="btn text-xs bg-gray-200 text-gray-700 px-2 py-1 rounded-md hover:bg-gray-300 flex items-center gap-1">
@@ -361,18 +362,10 @@
                         </button>
                         <button onclick="deleteCurrentIngredient()" class="btn text-xs bg-red-50 text-red-600 px-2 py-1 rounded-md hover:bg-red-100">Удалить ингредиент</button>
                     </div>
-                    <div class="grid grid-cols-2 gap-1 mb-2">
+                    <div class="grid grid-cols-2 gap-1">
                         <div class="col-span-2">
                             <label class="text-xs text-gray-500">Название</label>
                             <input id="idName" type="text" onblur="saveIdHeader()" class="border p-0.5 rounded-md text-xs w-full">
-                        </div>
-                        <div>
-                            <label class="text-xs text-gray-500">Цена за упаковку (€)</label>
-                            <input id="idPackagePrice" type="number" autocomplete="off" inputmode="decimal" step="0.01" onchange="saveIdHeader()" class="border p-0.5 rounded-md text-xs w-full">
-                        </div>
-                        <div>
-                            <label class="text-xs text-gray-500">Размер упаковки</label>
-                            <input id="idPackageSize" type="number" autocomplete="off" inputmode="decimal" step="0.01" min="0.01" onchange="saveIdHeader()" class="border p-0.5 rounded-md text-xs w-full">
                         </div>
                         <div class="col-span-2">
                             <label class="text-xs text-gray-500">Единица измерения</label>
@@ -385,16 +378,34 @@
                             </select>
                         </div>
                     </div>
-                    <div class="text-right text-xs text-gray-600 border-t pt-1">
-                        Цена за единицу: <span id="idUnitPrice" class="font-semibold text-gray-900">0.0000 €</span>
-                    </div>
                 </div>
 
+                <!-- Блок 2: Форма добавления новой цены -->
                 <div class="bg-white p-2 rounded-md shadow-md mb-3">
-                    <div class="flex justify-between items-center mb-2">
-                        <h3 class="text-xs font-semibold text-gray-700 uppercase tracking-wide">История цен</h3>
-                        <button onclick="openAddPriceHistoryModal()" class="btn text-xs bg-gray-200 text-gray-700 px-2 py-0.5 rounded-md hover:bg-gray-300">+ Добавить</button>
+                    <h3 class="text-xs font-semibold text-gray-700 uppercase tracking-wide mb-2">Новая цена</h3>
+                    <div class="grid grid-cols-2 gap-1 mb-2">
+                        <div>
+                            <label class="text-xs text-gray-500">Дата</label>
+                            <input id="idNewPriceDate" type="date" class="border p-0.5 rounded-md text-xs w-full">
+                        </div>
+                        <div>
+                            <label class="text-xs text-gray-500">Цена за упаковку (€)</label>
+                            <input id="idPackagePrice" type="number" autocomplete="off" inputmode="decimal" step="0.01" onchange="renderIngredientUnitPricePreview()" class="border p-0.5 rounded-md text-xs w-full">
+                        </div>
+                        <div>
+                            <label class="text-xs text-gray-500">Размер упаковки</label>
+                            <input id="idPackageSize" type="number" autocomplete="off" inputmode="decimal" step="0.01" min="0.01" onchange="renderIngredientUnitPricePreview()" class="border p-0.5 rounded-md text-xs w-full">
+                        </div>
+                        <div class="flex items-end">
+                            <span class="text-xs text-gray-500">Цена за ед.: <span id="idUnitPrice" class="font-semibold text-gray-900">0.0000 €</span></span>
+                        </div>
                     </div>
+                    <button onclick="saveIdNewPrice()" class="btn bg-gray-700 text-white p-1 rounded-md hover:bg-gray-800 text-xs w-full">Сохранить цену</button>
+                </div>
+
+                <!-- Блок 3: История цен -->
+                <div class="bg-white p-2 rounded-md shadow-md mb-3">
+                    <h3 class="text-xs font-semibold text-gray-700 uppercase tracking-wide mb-2">История цен</h3>
                     <div id="idPriceHistory"><p class="text-xs text-gray-400">Загрузка...</p></div>
                 </div>
             </div>
@@ -1102,7 +1113,7 @@
 <script src="supabaseClient.js?v=3"></script>
 <script src="auth.js?v=2"></script>
 <script src="employees.js?v=7"></script>
-<script src="ingredients.js?v=12"></script>
+<script src="ingredients.js?v=13"></script>
 <script src="semifinished.js?v=6"></script>
 <script src="products.js?v=7"></script>
 <script src="customers.js?v=18"></script>
