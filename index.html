@@ -409,7 +409,14 @@
                     <button onclick="saveIdNewPrice()" class="btn bg-gray-700 text-white p-1 rounded-md hover:bg-gray-800 text-xs w-full">Сохранить цену</button>
                 </div>
 
-                <!-- Блок 3: История цен -->
+                <!-- Блок 3: График изменения цены -->
+                <div class="bg-white p-2 rounded-md shadow-md mb-3">
+                    <h3 class="text-xs font-semibold text-gray-700 uppercase tracking-wide mb-2">Динамика цены</h3>
+                    <canvas id="ingredientPriceChart" style="max-height:180px;"></canvas>
+                    <p id="ingredientPriceChartEmpty" class="text-xs text-gray-400 hidden">Недостаточно данных — нужно минимум 2 записи</p>
+                </div>
+
+                <!-- Блок 4: История цен -->
                 <div class="bg-white p-2 rounded-md shadow-md mb-3">
                     <h3 class="text-xs font-semibold text-gray-700 uppercase tracking-wide mb-2">История цен</h3>
                     <div id="idPriceHistory"><p class="text-xs text-gray-400">Загрузка...</p></div>
@@ -1134,7 +1141,7 @@
 <script src="supabaseClient.js?v=3"></script>
 <script src="auth.js?v=2"></script>
 <script src="employees.js?v=7"></script>
-<script src="ingredients.js?v=14"></script>
+<script src="ingredients.js?v=15"></script>
 <script src="semifinished.js?v=6"></script>
 <script src="products.js?v=7"></script>
 <script src="customers.js?v=19"></script>

@@ -203,8 +203,72 @@ async function loadIngredientPriceHistory(ingredientId) {
             .order('valid_from', { ascending: false });
         if (error) throw error;
         _ingredientPriceHistory[ingredientId] = data || [];
+        renderIngredientPriceChart(ingredientId);
         renderIngredientPriceHistory(ingredientId);
     } catch (e) { console.error('Ошибка загрузки истории цен:', e); }
+}
+
+let _ingredientPriceChartInstance = null;
+
+function renderIngredientPriceChart(ingredientId) {
+    const canvas = document.getElementById('ingredientPriceChart');
+    const emptyEl = document.getElementById('ingredientPriceChartEmpty');
+    if (!canvas || !emptyEl) return;
+
+    const history = (_ingredientPriceHistory[ingredientId] || []).slice().reverse(); // от старых к новым
+    const ing = ingredients.find(i => i.id === ingredientId);
+    const unitLabel = ing ? (UNIT_LABELS[ing.unit] || ing.unit) : '';
+
+    if (history.length < 2) {
+        canvas.style.display = 'none';
+        emptyEl.classList.remove('hidden');
+        return;
+    }
+
+    canvas.style.display = 'block';
+    emptyEl.classList.add('hidden');
+
+    const labels = history.map(h => formatDateDMY(h.valid_from));
+    const data   = history.map(h => parseFloat((h.package_price / h.package_size).toFixed(6)));
+
+    // Уничтожаем предыдущий экземпляр чтобы не накапливались
+    if (_ingredientPriceChartInstance) { _ingredientPriceChartInstance.destroy(); _ingredientPriceChartInstance = null; }
+
+    const ctx = canvas.getContext('2d');
+    _ingredientPriceChartInstance = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels,
+            datasets: [{
+                label: `Цена (€/${unitLabel})`,
+                data,
+                borderColor: '#4f46e5',
+                backgroundColor: 'rgba(79,70,229,0.08)',
+                pointBackgroundColor: '#4f46e5',
+                pointRadius: 5,
+                fill: true,
+                tension: 0.3
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    callbacks: {
+                        label: ctx => `${ctx.parsed.y.toFixed(6)} €/${unitLabel}`
+                    }
+                }
+            },
+            scales: {
+                x: { ticks: { font: { size: 10 } } },
+                y: {
+                    ticks: { font: { size: 10 }, callback: v => v.toFixed(4) },
+                    beginAtZero: false
+                }
+            }
+        }
+    });
 }
 
 function renderIngredientPriceHistory(ingredientId) {
