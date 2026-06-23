@@ -127,8 +127,9 @@ async function saveIdNewPrice() {
         ing.package_size = packageSize;
 
         // Добавляем или обновляем запись в истории цен
-        const { data: existing } = await db.from('ingredient_price_history')
-            .select('id').eq('ingredient_id', ing.id).eq('valid_from', validFrom).single();
+        const { data: existingArr } = await db.from('ingredient_price_history')
+            .select('id').eq('ingredient_id', ing.id).eq('valid_from', validFrom).limit(1);
+        const existing = existingArr && existingArr.length > 0 ? existingArr[0] : null;
         if (existing) {
             await db.from('ingredient_price_history')
                 .update({ package_price: parseFloat(packagePrice.toFixed(2)), package_size: packageSize })
