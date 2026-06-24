@@ -38,7 +38,7 @@
         .modal-content { background: white; padding: 14px; border-radius: 6px; max-width: 380px; width: 100%; margin: auto; }
         .tab { cursor: pointer; }
         .tab.active { background: #4b5563; color: white; }
-        table { overflow-x: auto; touch-action: pan-x; }
+        table { overflow-x: auto; touch-action: pan-y; overscroll-behavior: contain; }
         /* Внутри вертикально прокручиваемого блока "Сумма по клиентам" таблице
            нужно разрешить именно вертикальный свайп, иначе побеждает общее
            правило выше (pan-x) и смахивание не работает, хотя ползунок виден. */
