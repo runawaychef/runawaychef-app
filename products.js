@@ -119,6 +119,128 @@ async function copyProduct(i) {
 }
 
 // ==================== ДЕТАЛЬНЫЙ ВИД ИЗДЕЛИЯ / РЕЦЕПТУРА ====================
+
+let _productCostChartInstance = null;
+
+// Строит график динамики себестоимости изделия.
+// Алгоритм: собирает все уникальные даты из истории цен ингредиентов рецепта,
+// для каждой даты находит актуальную цену каждого ингредиента (последняя запись
+// в истории с valid_from <= этой дате) и считает полную себестоимость.
+async function renderProductCostChart(prod) {
+    const canvas  = document.getElementById('productCostChart');
+    const emptyEl = document.getElementById('productCostChartEmpty');
+    if (!canvas || !emptyEl) return;
+
+    // Собираем id всех прямых ингредиентов рецепта
+    const recipeItems = (prod.ingredients || []).filter(ri => ri.ingredient_id && !ri.semi_finished_id);
+    if (!recipeItems.length) {
+        canvas.style.display = 'none';
+        emptyEl.classList.remove('hidden');
+        return;
+    }
+    const ingIds = [...new Set(recipeItems.map(ri => ri.ingredient_id))];
+
+    // Загружаем историю цен всех ингредиентов рецепта
+    const { data: histData, error } = await db
+        .from('ingredient_price_history')
+        .select('ingredient_id, package_price, package_size, valid_from')
+        .in('ingredient_id', ingIds)
+        .order('valid_from', { ascending: true });
+    if (error || !histData || !histData.length) {
+        canvas.style.display = 'none';
+        emptyEl.classList.remove('hidden');
+        return;
+    }
+
+    // Группируем историю по ингредиенту
+    const histByIng = {};
+    histData.forEach(h => {
+        if (!histByIng[h.ingredient_id]) histByIng[h.ingredient_id] = [];
+        histByIng[h.ingredient_id].push(h);
+    });
+
+    // Функция: цена за единицу ингредиента на конкретную дату
+    function unitPriceAtDate(ingId, dateStr) {
+        const hist = histByIng[ingId] || [];
+        // Берём последнюю запись с valid_from <= dateStr
+        const applicable = hist.filter(h => h.valid_from <= dateStr);
+        if (!applicable.length) return null;
+        const last = applicable[applicable.length - 1];
+        return last.package_size ? last.package_price / last.package_size : 0;
+    }
+
+    // Функция: себестоимость единицы изделия на конкретную дату
+    function costAtDate(dateStr) {
+        let batchCost = 0;
+        for (const ri of recipeItems) {
+            const up = unitPriceAtDate(ri.ingredient_id, dateStr);
+            if (up === null) return null; // нет данных для этого ингредиента на эту дату
+            batchCost += up * Number(ri.quantity);
+        }
+        batchCost += Number(prod.other_costs || 0);
+        return batchCost / Number(prod.batch_size || 1);
+    }
+
+    // Собираем все уникальные даты из истории
+    const allDates = [...new Set(histData.map(h => h.valid_from))].sort();
+
+    // Считаем себестоимость на каждую дату
+    const points = [];
+    allDates.forEach(d => {
+        const cost = costAtDate(d);
+        if (cost !== null) points.push({ date: d, cost });
+    });
+
+    if (points.length < 2) {
+        canvas.style.display = 'none';
+        emptyEl.classList.remove('hidden');
+        return;
+    }
+
+    canvas.style.display = 'block';
+    emptyEl.classList.add('hidden');
+
+    const labels = points.map(p => formatDateDMY(p.date));
+    const data   = points.map(p => parseFloat(p.cost.toFixed(4)));
+
+    if (_productCostChartInstance) { _productCostChartInstance.destroy(); _productCostChartInstance = null; }
+
+    const ctx = canvas.getContext('2d');
+    _productCostChartInstance = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels,
+            datasets: [{
+                label: 'Себестоимость 1 шт (€)',
+                data,
+                borderColor: '#059669',
+                backgroundColor: 'rgba(5,150,105,0.08)',
+                pointBackgroundColor: '#059669',
+                pointRadius: 5,
+                fill: true,
+                tension: 0.3
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    callbacks: {
+                        label: ctx => `Себест.: ${ctx.parsed.y.toFixed(4)} €`
+                    }
+                }
+            },
+            scales: {
+                x: { ticks: { font: { size: 10 } } },
+                y: {
+                    ticks: { font: { size: 10 }, callback: v => v.toFixed(2) + ' €' },
+                    beginAtZero: false
+                }
+            }
+        }
+    });
+}
 // Зависит дополнительно от: ingredients (ingredients.js), ingredientUnitPrice (money.js),
 // productBatchCost/productUnitCost/productProfit (money.js).
 // currentProductId объявлен в index.html (общее состояние).
@@ -144,6 +266,7 @@ function openProductDetail(productId) {
     renderProductRecipe(prod);
     fillNewRecipeIngredientSelect();
     setupCopyRecipeControl(prod);
+    renderProductCostChart(prod);
     refreshFab();
 }
 
