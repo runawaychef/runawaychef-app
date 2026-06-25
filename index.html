@@ -495,7 +495,10 @@
                 <div class="bg-white p-2 rounded-md shadow-md">
                     <div class="flex items-center justify-between mb-2">
                         <h2 class="text-lg font-semibold text-gray-800">Полуфабрикаты</h2>
-                        <button onclick="showTab('ingredients')" class="btn text-xs bg-gray-200 text-gray-700 px-2 py-1 rounded-md hover:bg-gray-300">← Склад</button>
+                        <div class="flex gap-1">
+                            <button onclick="openSfInventarizationModal()" class="btn text-xs bg-indigo-50 text-indigo-700 px-2 py-1 rounded-md hover:bg-indigo-100">📋 Инвентаризация</button>
+                            <button onclick="showTab('ingredients')" class="btn text-xs bg-gray-200 text-gray-700 px-2 py-1 rounded-md hover:bg-gray-300">← Склад</button>
+                        </div>
                     </div>
                     <p class="text-xs text-gray-400 mb-2">Нажмите на строку, чтобы открыть рецептуру</p>
                     <p id="semiFinishedRecipeWarning" class="text-xs text-red-600 bg-red-50 border border-red-200 rounded-md p-1.5 mb-2 hidden">⚠ У некоторых полуфабрикатов не подтверждён рецепт. Откройте их и проверьте.</p>
@@ -583,6 +586,22 @@
                         <div>Себестоимость партии: <span id="sfdBatchCost" class="font-medium text-gray-800">0.00 €</span></div>
                         <div>Себестоимость за единицу: <span id="sfdUnitCost" class="font-semibold text-gray-900">0.0000 €</span></div>
                     </div>
+                </div>
+
+                <!-- Блок склада полуфабриката -->
+                <div class="bg-white p-2 rounded-md shadow-md mb-3">
+                    <h3 class="text-xs font-semibold text-gray-700 uppercase tracking-wide mb-2">Склад</h3>
+                    <div class="flex items-center justify-between mb-3 border-b pb-2">
+                        <div>
+                            <span class="text-xs text-gray-500">Остаток:</span>
+                            <span id="sfBalanceValue" class="text-lg font-bold text-gray-800 ml-1">—</span>
+                            <span id="sfBalanceUnit" class="text-xs text-gray-500 ml-1"></span>
+                        </div>
+                        <div id="sfDaysLeft" class="text-xs text-gray-500"></div>
+                    </div>
+                    <button onclick="produceSfBatch()" class="btn bg-indigo-50 text-indigo-700 px-2 py-1 rounded-md hover:bg-indigo-100 text-xs w-full mb-1">🍳 Произвести партию (списать ингредиенты)</button>
+                    <button onclick="openSfWriteOffModal()" class="btn bg-red-50 text-red-600 p-1 rounded-md hover:bg-red-100 text-xs w-full">— Списать (корректировка)</button>
+                    <div id="sfStockHistory" class="mt-2"></div>
                 </div>
             </div>
         </div>
@@ -1053,6 +1072,35 @@
             </div>
         </div>
 
+        <!-- Модалка списания полуфабриката -->
+        <div id="sfWriteOffModal" class="modal">
+            <div class="modal-content" style="max-width:480px;">
+                <h2 class="text-base font-semibold mb-3 text-gray-800">Списание п/ф (корректировка)</h2>
+                <p id="sfWriteOffName" class="text-xs text-gray-500 mb-3"></p>
+                <label class="text-xs text-gray-500">Количество (<span id="sfWriteOffUnit"></span>)</label>
+                <input id="sfWriteOffQty" type="number" inputmode="decimal" step="0.01" min="0.01" class="border p-0.5 rounded-md mb-2 w-full text-xs">
+                <label class="text-xs text-gray-500">Причина (необязательно)</label>
+                <input id="sfWriteOffNote" type="text" class="border p-0.5 rounded-md mb-3 w-full text-xs" placeholder="Например: испортилось">
+                <div class="flex gap-1">
+                    <button onclick="saveSfWriteOff()" class="btn bg-red-500 text-white p-1 rounded-md hover:bg-red-600 text-xs flex-1">Списать</button>
+                    <button onclick="closeModal()" class="btn bg-gray-400 text-white p-1 rounded-md hover:bg-gray-500 text-xs flex-1">Отмена</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Модалка инвентаризации полуфабрикатов -->
+        <div id="sfInventarizationModal" class="modal">
+            <div class="modal-content" style="max-width:480px;">
+                <h2 class="text-base font-semibold mb-1 text-gray-800">📋 Инвентаризация п/ф</h2>
+                <p class="text-xs text-gray-500 mb-3">Введите фактическое количество. Пустые поля — пропускаются.</p>
+                <div id="sfInventarizationContent" style="max-height:60vh;overflow-y:auto;touch-action:pan-y;overscroll-behavior:contain;"></div>
+                <div class="flex gap-1 mt-3">
+                    <button onclick="saveSfInventarization()" class="btn bg-gray-700 text-white p-1 rounded-md hover:bg-gray-800 text-xs flex-1">Сохранить</button>
+                    <button onclick="closeModal()" class="btn bg-gray-400 text-white p-1 rounded-md hover:bg-gray-500 text-xs" style="width:80px;">Отмена</button>
+                </div>
+            </div>
+        </div>
+
         <!-- Модалка инвентаризации -->
         <div id="inventarizationModal" class="modal">
             <div class="modal-content" style="max-width:480px;">
@@ -1290,9 +1338,9 @@
 <script src="supabaseClient.js?v=3"></script>
 <script src="auth.js?v=3"></script>
 <script src="employees.js?v=12"></script>
-    <script src="inventory.js?v=5"></script>
+    <script src="inventory.js?v=6"></script>
 <script src="ingredients.js?v=22"></script>
-<script src="semifinished.js?v=6"></script>
+<script src="semifinished.js?v=7"></script>
 <script src="products.js?v=9"></script>
 <script src="customers.js?v=19"></script>
 <script src="orders.js?v=26"></script>

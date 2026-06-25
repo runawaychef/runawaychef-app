@@ -31,27 +31,34 @@ async function loadInventory() {
     try {
         const { data, error } = await db
             .from('inventory')
-            .select('ingredient_id, type, quantity')
+            .select('ingredient_id, semi_finished_id, type, quantity')
             .limit(50000);
         if (error) throw error;
 
-        // Считаем баланс по каждому ингредиенту
         const cache = {};
         (data || []).forEach(row => {
-            if (!cache[row.ingredient_id]) cache[row.ingredient_id] = { in: 0, out: 0 };
-            if (row.type === 'приход') cache[row.ingredient_id].in  += Number(row.quantity);
-            if (row.type === 'расход') cache[row.ingredient_id].out += Number(row.quantity);
-            if (row.type === 'сторно') cache[row.ingredient_id].out -= Number(row.quantity); // возврат
+            const key = row.semi_finished_id ? `sf_${row.semi_finished_id}` : `ing_${row.ingredient_id}`;
+            if (!cache[key]) cache[key] = { in: 0, out: 0 };
+            if (row.type === 'приход')  cache[key].in  += Number(row.quantity);
+            if (row.type === 'расход')  cache[key].out += Number(row.quantity);
+            if (row.type === 'сторно')  cache[key].out -= Number(row.quantity);
         });
         _inventoryCache = cache;
         updateInventoryAlertDot();
     } catch (e) { console.error('Ошибка загрузки склада:', e); }
 }
 
-// Возвращает текущий остаток ингредиента
+// Остаток ингредиента
 function getIngredientBalance(ingId) {
-    const c = _inventoryCache[ingId];
-    if (!c) return null; // нет данных
+    const c = _inventoryCache[`ing_${ingId}`];
+    if (!c) return null;
+    return parseFloat((c.in - c.out).toFixed(4));
+}
+
+// Остаток полуфабриката
+function getSemiFinishedBalance(sfId) {
+    const c = _inventoryCache[`sf_${sfId}`];
+    if (!c) return null;
     return parseFloat((c.in - c.out).toFixed(4));
 }
 
@@ -330,61 +337,58 @@ async function saveInventoryAdd() {
 
 // Вызывается при добавлении позиции в заказ
 async function writeOffInventoryForItem(prod, itemQty, orderId) {
-    // Списываем только для заказов начиная с даты начала учёта склада
     const order = orders.find(o => o.id === orderId);
     if (!order || order.date < _inventoryStartDate) return;
     if (!prod || !prod.ingredients || !prod.ingredients.length) return;
     const rows = [];
     const qtyFactor = 1 / Number(prod.batch_size || 1);
 
-    function collectForWriteOff(recipeItems, factor) {
-        recipeItems.forEach(ri => {
-            if (ri.semi_finished_id) {
-                const sf = semiFinished.find(s => s.id === ri.semi_finished_id);
-                if (!sf || !sf.ingredients) return;
-                const sfFactor = Number(ri.quantity) / Number(sf.batch_size || 1);
-                collectForWriteOff(sf.ingredients, factor * sfFactor);
-            } else if (ri.ingredient_id) {
-                const totalQty = Number(ri.quantity) * itemQty * factor;
-                const existing = rows.find(r => r.ingredient_id === ri.ingredient_id);
-                if (existing) { existing.quantity += totalQty; }
-                else { rows.push({ ingredient_id: ri.ingredient_id, quantity: totalQty }); }
-            }
-        });
-    }
+    prod.ingredients.forEach(ri => {
+        if (ri.semi_finished_id) {
+            // Списываем п/ф как единицу склада
+            const totalQty = Number(ri.quantity) * itemQty * qtyFactor;
+            const existing = rows.find(r => r.semi_finished_id === ri.semi_finished_id);
+            if (existing) { existing.quantity += totalQty; }
+            else { rows.push({ semi_finished_id: ri.semi_finished_id, quantity: totalQty }); }
+        } else if (ri.ingredient_id) {
+            // Списываем прямой ингредиент
+            const totalQty = Number(ri.quantity) * itemQty * qtyFactor;
+            const existing = rows.find(r => r.ingredient_id === ri.ingredient_id);
+            if (existing) { existing.quantity += totalQty; }
+            else { rows.push({ ingredient_id: ri.ingredient_id, quantity: totalQty }); }
+        }
+    });
 
-    collectForWriteOff(prod.ingredients, qtyFactor);
     if (!rows.length) return;
-
     try {
         await db.from('inventory').insert(rows.map(r => ({
-            ingredient_id: r.ingredient_id,
-            type: 'расход',
+            ingredient_id:    r.ingredient_id || null,
+            semi_finished_id: r.semi_finished_id || null,
+            type:     'расход',
             quantity: parseFloat(r.quantity.toFixed(4)),
             order_id: orderId,
-            notes: `Заказ #${orderId}`
+            notes:    `Заказ #${orderId}`
         })));
         await loadInventory();
     } catch (e) { console.error('Ошибка списания со склада:', e); }
 }
 
-// Сторнирование при удалении позиции или заказа
+// Сторнирование при удалении заказа
 async function reverseInventoryForOrder(orderId) {
     try {
-        // Получаем все расходы по этому заказу
         const { data, error } = await db.from('inventory')
-            .select('id, ingredient_id, quantity')
+            .select('id, ingredient_id, semi_finished_id, quantity')
             .eq('order_id', orderId)
             .eq('type', 'расход');
         if (error || !data || !data.length) return;
 
-        // Создаём сторно-записи
         await db.from('inventory').insert(data.map(r => ({
-            ingredient_id: r.ingredient_id,
-            type: 'сторно',
+            ingredient_id:    r.ingredient_id || null,
+            semi_finished_id: r.semi_finished_id || null,
+            type:     'сторно',
             quantity: r.quantity,
             order_id: orderId,
-            notes: `Сторно заказа #${orderId}`
+            notes:    `Сторно заказа #${orderId}`
         })));
         await loadInventory();
     } catch (e) { console.error('Ошибка сторнирования:', e); }
