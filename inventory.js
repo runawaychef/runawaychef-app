@@ -125,29 +125,34 @@ function updateInventoryAlertDot() {
         return (balance / daily) < STOCK_LOW_DAYS;
     });
 
-    // 2. Проверяем принятые заказы — хватит ли ингредиентов
+    // 2. Проверяем принятые заказы — хватит ли ингредиентов и п/ф
     const today = getLocalDateStr(0);
     const pendingOrders = (orders || []).filter(o => o.status !== 'выполнен' && o.date >= today);
     let hasShortage = false;
-    if (!hasLowTracked) {
-        const needed = {}; // ingredient_id -> нужно
-        pendingOrders.forEach(o => {
-            (o.items || []).forEach(item => {
-                const prod = products.find(p => p.id === item.product_id);
-                if (!prod || !prod.ingredients) return;
-                const factor = 1 / Number(prod.batch_size || 1);
-                prod.ingredients.forEach(ri => {
-                    if (!ri.ingredient_id) return;
-                    const qty = Number(ri.quantity) * Number(item.quantity) * factor;
+    const needed = {};
+    const neededSf = {};
+    pendingOrders.forEach(o => {
+        (o.items || []).forEach(item => {
+            const prod = products.find(p => p.id === item.product_id);
+            if (!prod || !prod.ingredients) return;
+            const factor = 1 / Number(prod.batch_size || 1);
+            prod.ingredients.forEach(ri => {
+                const qty = Number(ri.quantity) * Number(item.quantity) * factor;
+                if (ri.ingredient_id) {
                     needed[ri.ingredient_id] = (needed[ri.ingredient_id] || 0) + qty;
-                });
+                } else if (ri.semi_finished_id) {
+                    neededSf[ri.semi_finished_id] = (neededSf[ri.semi_finished_id] || 0) + qty;
+                }
             });
         });
-        hasShortage = Object.entries(needed).some(([ingId, qty]) => {
-            const balance = getIngredientBalance(Number(ingId));
-            return balance !== null && balance < qty;
-        });
-    }
+    });
+    hasShortage = Object.entries(needed).some(([ingId, qty]) => {
+        const balance = getIngredientBalance(Number(ingId));
+        return balance !== null && balance < qty;
+    }) || Object.entries(neededSf).some(([sfId, qty]) => {
+        const balance = getSemiFinishedBalance(Number(sfId));
+        return balance !== null && balance < qty;
+    });
 
     dot.classList.toggle('hidden', !hasLowTracked && !hasLowTrackedSf && !hasShortage);
 }
