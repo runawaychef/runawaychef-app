@@ -656,6 +656,7 @@ async function addItemToOrder() {
 
         // Фиксируем снимок рецепта с ценами на момент создания позиции
         await saveOrderItemIngredients(data.id, prod, Number(data.quantity));
+        await writeOffInventoryForItem(prod, Number(data.quantity), order.id);
 
         renderDetailItems(order);
         logActivity('item', `Добавлена позиция в заказ №${order.id}: «${prod.name}» × ${quantity}`, order.id);

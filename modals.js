@@ -50,6 +50,8 @@ async function confirmDelete() {
         } else if (deleteType === 'order') {
             const order = orders[deleteId];
             const wasOpenInDetail = order.id === currentOrderId;
+            // Сторнируем списание со склада перед удалением заказа
+            await reverseInventoryForOrder(order.id);
             // order_items удалятся автоматически (on delete cascade)
             const { error } = await db.from('orders').delete().eq('id', order.id);
             if (error) throw error;

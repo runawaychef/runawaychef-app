@@ -48,7 +48,9 @@ async function selectEmployee(emp) {
     document.getElementById('appContent').classList.remove('app-locked');
     document.getElementById('settingsBtn').classList.remove('hidden');
     document.getElementById('statsBtn').classList.remove('hidden');
+    document.getElementById('inventoryBtn').classList.remove('hidden');
     await loadAllData();
+    await loadInventory();
     refreshFab();
     setTimeout(refreshFab, 150);
     logActivity('auth', `Вход: ${emp.name}`);

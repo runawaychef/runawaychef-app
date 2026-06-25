@@ -45,7 +45,7 @@
         #statsCustomerTableScroll table { touch-action: pan-y; }
         td, th { font-size: 13px; font-family: inherit; }
         .flag { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin: 0; vertical-align: middle; }
-        .flag-red { background-color: #ef4444; }
+        .flag-red { background-color: #f97316; }
         .flag-yellow { background-color: #facc15; }
         .flag-green { background-color: #22c55e; }
         svg { cursor: pointer; }
@@ -141,6 +141,20 @@
         }
         #statsBtn.hidden { display: none; }
 
+        /* Иконка "Склад" — корзина, левее статистики */
+        #inventoryBtn {
+            position: fixed; top: calc(6px + env(safe-area-inset-top)); right: 86px;
+            background: white; border: 1px solid #e5e7eb; border-radius: 50%;
+            width: 34px; height: 34px; display: flex; align-items: center; justify-content: center;
+            z-index: 50; box-shadow: 0 1px 3px rgba(0,0,0,0.08); cursor: pointer;
+        }
+        #inventoryBtn.hidden { display: none; }
+
+        @keyframes pulse-dot {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.6; transform: scale(1.4); }
+        }
+
         /* Плавающая кнопка "+" — создание новой записи в текущем разделе.
            Закреплена внизу справа, видна при прокрутке, контекст (что именно
            создаёт) определяется в JS через refreshFab(). */
@@ -198,6 +212,15 @@
         <p id="loadingOverlayText" class="text-xs text-gray-600 mt-2" style="display:none;"></p>
     </div>
 </div>
+
+<!-- Склад: корзина, доступна из любого раздела -->
+<button id="inventoryBtn" class="hidden" onclick="openInventoryModal()" title="Склад" style="position:relative;">
+    <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#4b5563" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/>
+        <path d="M1 1h4l2.68 13.39a2 2 0 001.98 1.61h9.72a2 2 0 001.98-1.61L23 6H6"/>
+    </svg>
+    <span id="inventoryAlertDot" class="hidden" style="position:absolute;top:-2px;right:-2px;width:10px;height:10px;background:#ef4444;border-radius:50%;animation:pulse-dot 1.5s infinite;"></span>
+</button>
 
 <!-- Статистика: значок графика, доступен из любого раздела -->
 <button id="statsBtn" class="hidden" onclick="showTab('stats')" title="Статистика">
@@ -981,6 +1004,32 @@
             </div>
         </div>
 
+        <!-- Модалка склада -->
+        <div id="inventoryModal" class="modal">
+            <div class="modal-content" style="max-width:480px;">
+                <h2 class="text-base font-semibold mb-1 text-gray-800">🛒 Склад ингредиентов</h2>
+                <p class="text-xs text-gray-500 mb-3">Остатки на складе и рекомендации к закупке</p>
+                <div id="inventoryContent" style="max-height:65vh;overflow-y:auto;touch-action:pan-y;overscroll-behavior:contain;"></div>
+                <button onclick="closeModal()" class="btn bg-gray-400 text-white p-1 rounded-md hover:bg-gray-500 w-full text-xs mt-3">Закрыть</button>
+            </div>
+        </div>
+
+        <!-- Модалка пополнения склада -->
+        <div id="inventoryAddModal" class="modal">
+            <div class="modal-content" style="max-width:480px;">
+                <h2 class="text-base font-semibold mb-3 text-gray-800" id="inventoryAddTitle">Пополнить склад</h2>
+                <input type="hidden" id="inventoryAddIngId">
+                <label class="text-xs text-gray-500">Количество (<span id="inventoryAddUnit"></span>)</label>
+                <input id="inventoryAddQty" type="number" inputmode="decimal" step="0.01" class="border p-0.5 rounded-md mb-2 w-full text-xs">
+                <label class="text-xs text-gray-500">Заметка (необязательно)</label>
+                <input id="inventoryAddNotes" type="text" class="border p-0.5 rounded-md mb-3 w-full text-xs" placeholder="Например: купил в Maxima">
+                <div class="flex gap-1">
+                    <button onclick="saveInventoryAdd()" class="btn bg-gray-700 text-white p-1 rounded-md hover:bg-gray-800 text-xs flex-1">Сохранить</button>
+                    <button onclick="closeModal()" class="btn bg-gray-400 text-white p-1 rounded-md hover:bg-gray-500 text-xs flex-1">Отмена</button>
+                </div>
+            </div>
+        </div>
+
         <!-- Редактирование/добавление записи истории цен ингредиента -->
         <div id="priceHistoryModal" class="modal">
             <div class="modal-content">
@@ -1148,15 +1197,16 @@
 <script src="money.js?v=4"></script>
 <script src="supabaseClient.js?v=3"></script>
 <script src="auth.js?v=2"></script>
-<script src="employees.js?v=9"></script>
+<script src="employees.js?v=10"></script>
+    <script src="inventory.js?v=1"></script>
 <script src="ingredients.js?v=16"></script>
 <script src="semifinished.js?v=6"></script>
 <script src="products.js?v=8"></script>
 <script src="customers.js?v=19"></script>
-<script src="orders.js?v=24"></script>
+<script src="orders.js?v=25"></script>
 <script src="stats.js?v=8"></script>
 <script src="history.js?v=3"></script>
-<script src="modals.js?v=7"></script>
+<script src="modals.js?v=8"></script>
 <script src="helpers.js?v=8"></script>
 <script>
 // SUPABASE_URL, SUPABASE_KEY, db перенесены в supabaseClient.js
