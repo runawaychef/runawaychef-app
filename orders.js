@@ -494,6 +494,97 @@ async function markOrderChecked() {
 
 // Удаление заказа прямо из его карточки (переиспользует стандартное окно
 // подтверждения — openDeleteModal/confirmDelete, как и удаление из списка).
+// ==================== КОРЗИНА УДАЛЁННЫХ ЗАКАЗОВ ====================
+
+async function openOrdersTrash() {
+    closeModal();
+    showLoading('Загружаю корзину...');
+    try {
+        // Автоочистка — физически удаляем заказы старше 30 дней
+        const cutoff = new Date();
+        cutoff.setDate(cutoff.getDate() - 30);
+        await db.from('orders')
+            .delete()
+            .not('deleted_at', 'is', null)
+            .lt('deleted_at', cutoff.toISOString());
+
+        // Загружаем оставшиеся удалённые заказы
+        const { data, error } = await db.from('orders')
+            .select('id, customer_id, order_date, status, notes, deleted_at')
+            .not('deleted_at', 'is', null)
+            .order('deleted_at', { ascending: false });
+
+        hideLoading();
+
+        if (error) throw error;
+
+        const content = document.getElementById('ordersTrashContent');
+        if (!data || !data.length) {
+            content.innerHTML = '<p class="text-xs text-gray-400 text-center py-4">Корзина пуста</p>';
+        } else {
+            let html = '<table class="w-full text-xs"><thead><tr class="bg-gray-100"><th class="p-1 text-left">Дата заказа</th><th class="p-1 text-left">Клиент</th><th class="p-1 text-left">Удалён</th></tr></thead><tbody>';
+            data.forEach(o => {
+                const cust = customers.find(c => c.id === o.customer_id);
+                const custName = cust ? cust.name : '(неизвестно)';
+                const deletedDate = new Date(o.deleted_at).toLocaleDateString('ru-LT');
+                const orderDate = formatDateDMY(o.order_date || o.date);
+                html += `<tr class="border-b cursor-pointer hover:bg-gray-50 active:bg-gray-100"
+                    onclick="openTrashOrderActions(${o.id}, '${escapeHtml(custName)}', '${orderDate}')">
+                    <td class="p-1">${orderDate}</td>
+                    <td class="p-1">${escapeHtml(custName)}</td>
+                    <td class="p-1 text-gray-400">${deletedDate}</td>
+                </tr>`;
+            });
+            html += '</tbody></table>';
+            content.innerHTML = html;
+        }
+        document.getElementById('ordersTrashModal').style.display = 'flex';
+    } catch(e) {
+        hideLoading();
+        console.error(e);
+        showInfo('Ошибка загрузки корзины.');
+    }
+}
+
+async function openTrashOrderActions(orderId, custName, orderDate) {
+    const ok = await showConfirm(
+        `Заказ №${orderId} · ${custName} · ${orderDate}\n\nВосстановить этот заказ?`
+    );
+    if (ok) {
+        await restoreOrder(orderId);
+    } else {
+        const del = await showConfirm('Удалить заказ навсегда?');
+        if (del) await permanentDeleteOrder(orderId);
+    }
+}
+
+async function restoreOrder(orderId) {
+    showLoading();
+    try {
+        const { error } = await db.from('orders')
+            .update({ deleted_at: null })
+            .eq('id', orderId);
+        if (error) throw error;
+        closeModal();
+        await loadAllData();
+        logActivity('order', `Заказ №${orderId} восстановлен из корзины`);
+        await showInfo(`Заказ №${orderId} восстановлен.`);
+    } catch(e) { console.error(e); showInfo('Ошибка восстановления.'); }
+    finally { hideLoading(); }
+}
+
+async function permanentDeleteOrder(orderId) {
+    showLoading();
+    try {
+        const { error } = await db.from('orders').delete().eq('id', orderId);
+        if (error) throw error;
+        closeModal();
+        logActivity('order', `Заказ №${orderId} удалён окончательно`);
+        await showInfo(`Заказ №${orderId} удалён окончательно.`);
+    } catch(e) { console.error(e); showInfo('Ошибка удаления.'); }
+    finally { hideLoading(); }
+}
+
 function deleteCurrentOrder() {
     const idx = orders.findIndex(o => o.id === currentOrderId);
     if (idx === -1) return;

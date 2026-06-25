@@ -1034,6 +1034,7 @@
                     <button onclick="openHistoryScreen()" class="btn bg-gray-500 text-white px-2 py-1.5 rounded-md hover:bg-gray-600 text-xs text-left">📋 Журнал действий</button>
                     <button onclick="loadAllData()" class="btn bg-gray-500 text-white px-2 py-1.5 rounded-md hover:bg-gray-600 text-xs text-left">↻ Обновить данные</button>
                     <button onclick="fixateAllItemCosts()" class="btn bg-indigo-600 text-white px-2 py-1.5 rounded-md hover:bg-indigo-700 text-xs text-left">💰 Зафиксировать себестоимость всех заказов</button>
+                    <button onclick="openOrdersTrash()" class="btn bg-red-50 text-red-600 px-2 py-1.5 rounded-md hover:bg-red-100 text-xs text-left">🗑 Корзина удалённых заказов</button>
                 </div>
 
                 <div class="flex flex-col gap-1 mb-3 border-t pt-2">
@@ -1102,6 +1103,16 @@
                     <button onclick="saveSfInventarization()" class="btn bg-gray-700 text-white p-1 rounded-md hover:bg-gray-800 text-xs flex-1">Сохранить</button>
                     <button onclick="closeModal()" class="btn bg-gray-400 text-white p-1 rounded-md hover:bg-gray-500 text-xs" style="width:80px;">Отмена</button>
                 </div>
+            </div>
+        </div>
+
+        <!-- Корзина удалённых заказов -->
+        <div id="ordersTrashModal" class="modal">
+            <div class="modal-content" style="max-width:480px;">
+                <h2 class="text-base font-semibold mb-1 text-gray-800">🗑 Корзина</h2>
+                <p class="text-xs text-gray-500 mb-3">Удалённые заказы хранятся 30 дней. Нажмите на заказ для восстановления или окончательного удаления.</p>
+                <div id="ordersTrashContent" style="max-height:65vh;overflow-y:auto;touch-action:pan-y;overscroll-behavior:contain;"></div>
+                <button onclick="closeModal()" class="btn bg-gray-400 text-white p-1 rounded-md hover:bg-gray-500 w-full text-xs mt-3">Закрыть</button>
             </div>
         </div>
 
@@ -1347,10 +1358,10 @@
 <script src="semifinished.js?v=9"></script>
 <script src="products.js?v=9"></script>
 <script src="customers.js?v=20"></script>
-<script src="orders.js?v=27"></script>
+<script src="orders.js?v=28"></script>
 <script src="stats.js?v=8"></script>
 <script src="history.js?v=3"></script>
-<script src="modals.js?v=8"></script>
+<script src="modals.js?v=9"></script>
 <script src="helpers.js?v=8"></script>
 <script>
 // SUPABASE_URL, SUPABASE_KEY, db перенесены в supabaseClient.js
@@ -1398,7 +1409,7 @@ async function loadAllData() {
         const [pRes, cRes, oRes, oiRes, eRes, ingRes, piRes, sfRes, sfiRes] = await Promise.all([
             db.from('products').select('id, name, price, batch_size, other_costs, unit, recipe_confirmed, track_stock').order('name').limit(5000),
             db.from('customers').select('id, name, contact, discount, vat_exempt, notes').order('name').limit(5000),
-            db.from('orders').select('id, customer_id, order_date, status, discount, vat_exempt, employee_id, notes').range(0, 9999),
+            db.from('orders').select('id, customer_id, order_date, status, discount, vat_exempt, employee_id, notes').is('deleted_at', null).range(0, 9999),
             db.from('order_items').select('id, order_id, product_id, quantity, price, item_cost').range(0, 9999),
             db.from('employees').select('id, name').order('name').limit(1000),
             db.from('ingredients').select('id, name, package_price, package_size, unit').order('name').limit(5000),

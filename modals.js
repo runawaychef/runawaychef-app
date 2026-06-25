@@ -50,20 +50,21 @@ async function confirmDelete() {
         } else if (deleteType === 'order') {
             const order = orders[deleteId];
             const wasOpenInDetail = order.id === currentOrderId;
-            // Сторнируем списание со склада перед удалением заказа
+            // Сторнируем списание со склада
             await reverseInventoryForOrder(order.id);
-            // order_items удалятся автоматически (on delete cascade)
-            const { error } = await db.from('orders').delete().eq('id', order.id);
+            // Soft delete — помечаем как удалённый, не удаляем физически
+            const { error } = await db.from('orders')
+                .update({ deleted_at: new Date().toISOString() })
+                .eq('id', order.id);
             if (error) throw error;
             orders.splice(deleteId, 1);
             if (wasOpenInDetail) {
-                // Удалили заказ прямо из его карточки — возвращаемся к списку
                 currentOrderId = null;
                 document.getElementById('ordersList').classList.remove('hidden');
                 document.getElementById('orderDetail').classList.remove('active');
             }
             displayOrders();
-            logActivity('order', `Удалён заказ №${order.id} (клиент «${order.customer}»)`);
+            logActivity('order', `Заказ №${order.id} (клиент «${order.customer}») перемещён в корзину`);
         } else if (deleteType === 'item') {
             const order = orders.find(o => o.id === currentOrderId);
             if (order) {
