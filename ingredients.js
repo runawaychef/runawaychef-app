@@ -95,6 +95,9 @@ function openIngredientDetail(ingId) {
     document.getElementById('idNewPriceDate').value = new Date().toISOString().slice(0, 10);
     document.getElementById('idPackagePrice').value = ing.package_price.toFixed(2);
     document.getElementById('idPackageSize').value = ing.package_size;
+    document.getElementById('idStockQty').value = '';
+    const qtyUnitEl = document.getElementById('ingQtyUnit');
+    if (qtyUnitEl) qtyUnitEl.textContent = UNIT_LABELS[ing.unit] || ing.unit;
     renderIngredientUnitPrice(ing);
     loadIngredientPriceHistory(ingId);
     renderIngredientStockBlock(ing);
@@ -113,7 +116,71 @@ function renderIngredientUnitPricePreview() {
     if (el) el.textContent = `${unitPrice} €/${unitLabel}`;
 }
 
-// Сохраняет новую цену: обновляет ingredients + добавляет запись в историю
+// Сохраняет пополнение склада и при необходимости обновляет цену.
+// Вызывается из объединённого блока «Склад» в карточке ингредиента.
+async function saveStockAndPrice() {
+    const ing = ingredients.find(i => i.id === currentIngredientId);
+    if (!ing) return;
+    const packagePrice = parseFloat(document.getElementById('idPackagePrice').value);
+    const packageSize  = parseFloat(document.getElementById('idPackageSize').value);
+    const validFrom    = document.getElementById('idNewPriceDate').value;
+    const stockQty     = parseFloat(document.getElementById('idStockQty').value) || 0;
+
+    if (!validFrom || isNaN(packagePrice) || isNaN(packageSize) || packageSize <= 0) {
+        showInfo('Заполните дату, цену и размер упаковки!'); return;
+    }
+
+    showLoading();
+    try {
+        // Обновляем текущую цену в таблице ingredients
+        const { error } = await db.from('ingredients').update({
+            package_price: parseFloat(packagePrice.toFixed(2)),
+            package_size: packageSize
+        }).eq('id', ing.id);
+        if (error) throw error;
+        ing.package_price = parseFloat(packagePrice.toFixed(2));
+        ing.package_size  = packageSize;
+
+        // Добавляем или обновляем запись в истории цен
+        const { data: existingArr } = await db.from('ingredient_price_history')
+            .select('id').eq('ingredient_id', ing.id).eq('valid_from', validFrom).limit(1);
+        const existing = existingArr && existingArr.length > 0 ? existingArr[0] : null;
+        if (existing) {
+            await db.from('ingredient_price_history')
+                .update({ package_price: parseFloat(packagePrice.toFixed(2)), package_size: packageSize })
+                .eq('id', existing.id);
+        } else {
+            await db.from('ingredient_price_history').insert({
+                ingredient_id: ing.id,
+                package_price: parseFloat(packagePrice.toFixed(2)),
+                package_size:  packageSize,
+                valid_from:    validFrom
+            });
+        }
+
+        // Если указано количество — добавляем приход на склад
+        if (stockQty > 0) {
+            await db.from('inventory').insert({
+                ingredient_id: ing.id,
+                type:          'приход',
+                quantity:      parseFloat(stockQty.toFixed(4)),
+                notes:         `Закупка ${validFrom}`
+            });
+            await loadInventory();
+        }
+
+        renderIngredientUnitPrice(ing);
+        await loadIngredientPriceHistory(ing.id);
+        await renderIngredientStockBlock(ing);
+        displayIngredients();
+        logActivity('ingredient', `Обновлён склад/цена: «${ing.name}»${stockQty > 0 ? ` +${stockQty}` : ''}`);
+        document.getElementById('idStockQty').value = '';
+    } catch (e) { console.error(e); showInfo('Ошибка сохранения.'); }
+    finally { hideLoading(); }
+}
+
+// Сохраняет новую цену (старая функция — оставляем для совместимости с историей цен)
+async function saveIdNewPrice() { await saveStockAndPrice(); }
 async function saveIdNewPrice() {
     const ing = ingredients.find(i => i.id === currentIngredientId);
     if (!ing) return;

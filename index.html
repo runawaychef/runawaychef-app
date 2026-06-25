@@ -418,30 +418,29 @@
                     </div>
                 </div>
 
-                <!-- Блок 2: Остаток на складе -->
+                <!-- Блок 2: Пополнить склад (остаток + новая цена) -->
                 <div class="bg-white p-2 rounded-md shadow-md mb-3">
-                    <h3 class="text-xs font-semibold text-gray-700 uppercase tracking-wide mb-2">Остаток на складе</h3>
-                    <div class="flex items-center justify-between mb-2">
+                    <h3 class="text-xs font-semibold text-gray-700 uppercase tracking-wide mb-2">Склад</h3>
+
+                    <!-- Текущий остаток -->
+                    <div class="flex items-center justify-between mb-3 border-b pb-2">
                         <div>
-                            <span id="ingBalanceValue" class="text-lg font-bold text-gray-800">—</span>
+                            <span class="text-xs text-gray-500">Остаток:</span>
+                            <span id="ingBalanceValue" class="text-lg font-bold text-gray-800 ml-1">—</span>
                             <span id="ingBalanceUnit" class="text-xs text-gray-500 ml-1"></span>
                         </div>
-                        <div class="text-right">
-                            <div id="ingDaysLeft" class="text-xs text-gray-500"></div>
-                        </div>
+                        <div id="ingDaysLeft" class="text-xs text-gray-500"></div>
                     </div>
-                    <button onclick="openInventoryAddModal(currentIngredientId)" class="btn bg-indigo-50 text-indigo-700 px-2 py-1 rounded-md hover:bg-indigo-100 text-xs w-full">+ Пополнить склад</button>
-                    <!-- История пополнений -->
-                    <div id="ingStockHistory" class="mt-2"></div>
-                </div>
 
-                <!-- Блок 3: Форма добавления новой цены -->
-                <div class="bg-white p-2 rounded-md shadow-md mb-3">
-                    <h3 class="text-xs font-semibold text-gray-700 uppercase tracking-wide mb-2">Новая цена</h3>
+                    <!-- Форма пополнения (количество + цена) -->
                     <div class="grid grid-cols-2 gap-1 mb-2">
                         <div>
                             <label class="text-xs text-gray-500">Дата</label>
                             <input id="idNewPriceDate" type="date" class="border p-0.5 rounded-md text-xs w-full">
+                        </div>
+                        <div>
+                            <label class="text-xs text-gray-500">Количество (<span id="ingQtyUnit"></span>)</label>
+                            <input id="idStockQty" type="number" autocomplete="off" inputmode="decimal" step="0.01" min="0" class="border p-0.5 rounded-md text-xs w-full" placeholder="0">
                         </div>
                         <div>
                             <label class="text-xs text-gray-500">Цена за упаковку (€)</label>
@@ -451,11 +450,14 @@
                             <label class="text-xs text-gray-500">Размер упаковки</label>
                             <input id="idPackageSize" type="number" autocomplete="off" inputmode="decimal" step="0.01" min="0.01" onchange="renderIngredientUnitPricePreview()" class="border p-0.5 rounded-md text-xs w-full">
                         </div>
-                        <div class="flex items-end">
+                        <div class="col-span-2">
                             <span class="text-xs text-gray-500">Цена за ед.: <span id="idUnitPrice" class="font-semibold text-gray-900">0.0000 €</span></span>
                         </div>
                     </div>
-                    <button onclick="saveIdNewPrice()" class="btn bg-gray-700 text-white p-1 rounded-md hover:bg-gray-800 text-xs w-full">Сохранить цену</button>
+                    <button onclick="saveStockAndPrice()" class="btn bg-gray-700 text-white p-1 rounded-md hover:bg-gray-800 text-xs w-full">Сохранить</button>
+
+                    <!-- История пополнений -->
+                    <div id="ingStockHistory" class="mt-2"></div>
                 </div>
 
                 <!-- Блок 3: График изменения цены -->
@@ -1228,7 +1230,7 @@
 <script src="auth.js?v=3"></script>
 <script src="employees.js?v=12"></script>
     <script src="inventory.js?v=2"></script>
-<script src="ingredients.js?v=17"></script>
+<script src="ingredients.js?v=18"></script>
 <script src="semifinished.js?v=6"></script>
 <script src="products.js?v=8"></script>
 <script src="customers.js?v=19"></script>
