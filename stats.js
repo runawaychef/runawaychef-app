@@ -186,10 +186,6 @@ function updateTotals(filteredOrders) {
     const weekStart  = new Date(today);
     weekStart.setDate(today.getDate() - today.getDay() + (today.getDay() === 0 ? -6 : 1));
     const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
-    const weekTotal  = filteredOrders.filter(o => new Date(o.date) >= weekStart).reduce((s,o) => s + orderGrandTotal(o), 0).toFixed(2);
-    const monthTotal = filteredOrders.filter(o => new Date(o.date) >= monthStart).reduce((s,o) => s + orderGrandTotal(o), 0).toFixed(2);
-    document.getElementById('weekTotal').textContent  = weekTotal  + ' €';
-    document.getElementById('monthTotal').textContent = monthTotal + ' €';
 }
 
 // --- Таблица по клиентам ---
