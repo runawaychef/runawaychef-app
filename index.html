@@ -983,6 +983,14 @@
                 </div>
 
                 <div class="flex flex-col gap-1 mb-3 border-t pt-2">
+                    <label class="text-xs text-gray-500">Учёт склада с даты (списание ингредиентов только для новых заказов)</label>
+                    <div class="flex gap-1">
+                        <input id="inventoryStartDate" type="date" class="border p-0.5 rounded-md text-xs flex-1">
+                        <button onclick="saveInventoryStartDate()" class="btn bg-gray-700 text-white px-2 py-1 rounded-md hover:bg-gray-800 text-xs">Сохранить</button>
+                    </div>
+                </div>
+
+                <div class="flex flex-col gap-1 mb-3 border-t pt-2">
                     <button onclick="logoutEmployee()" class="btn bg-gray-200 text-gray-800 px-2 py-1.5 rounded-md hover:bg-gray-300 text-xs text-left">👤 Сменить сотрудника</button>
                     <button onclick="signOutAccount()" class="btn bg-gray-200 text-gray-800 px-2 py-1.5 rounded-md hover:bg-gray-300 text-xs text-left">🔒 Сменить аккаунт (выйти из приложения)</button>
                 </div>
@@ -1197,13 +1205,13 @@
 <script src="money.js?v=4"></script>
 <script src="supabaseClient.js?v=3"></script>
 <script src="auth.js?v=3"></script>
-<script src="employees.js?v=11"></script>
-    <script src="inventory.js?v=1"></script>
+<script src="employees.js?v=12"></script>
+    <script src="inventory.js?v=2"></script>
 <script src="ingredients.js?v=16"></script>
 <script src="semifinished.js?v=6"></script>
 <script src="products.js?v=8"></script>
 <script src="customers.js?v=19"></script>
-<script src="orders.js?v=25"></script>
+<script src="orders.js?v=26"></script>
 <script src="stats.js?v=8"></script>
 <script src="history.js?v=3"></script>
 <script src="modals.js?v=8"></script>

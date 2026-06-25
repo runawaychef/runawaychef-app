@@ -26,20 +26,20 @@ function displayOrders() {
             ? `<span class="text-red-600">${pending} не выполн.</span>`
             : `<span class="text-green-700">все выполнены ✓</span>`;
 
-        // Разбивка по изделиям
-        const byProduct = {};
-        dayOrders.forEach(o => (o.items || []).forEach(it => {
-            byProduct[it.product] = (byProduct[it.product] || 0) + Number(it.quantity || 0);
-        }));
-        const productLines = Object.entries(byProduct)
-            .sort((a, b) => b[1] - a[1])
-            .map(([name, qty]) => `<div class="pl-2 text-gray-500">· ${name} — ${qty} шт.</div>`)
-            .join('');
+        // Разбивка по клиентам с изделиями
+        let clientLines = '';
+        dayOrders.forEach(o => {
+            const clientQty = (o.items || []).reduce((q, it) => q + Number(it.quantity || 0), 0);
+            const clientSum = orderGrandTotal(o);
+            clientLines += `<div class="pl-1 mt-0.5"><span class="text-indigo-600 font-medium">${escapeHtml(o.customer || '(без клиента)')}:</span> ${clientQty} шт. · ${clientSum.toFixed(2)} €</div>`;
+            (o.items || []).forEach(it => {
+                clientLines += `<div class="pl-3 text-gray-500">· ${escapeHtml(it.product)} — ${it.quantity} шт.</div>`;
+            });
+        });
 
         return `<div class="mb-2 last:mb-0">
-            <div class="font-semibold text-indigo-700 mb-0.5">${label}</div>
-            <div class="text-gray-700">${dayOrders.length} зак. · ${totalQty} шт. · ${totalSum.toFixed(2)} € · ${statusLabel}</div>
-            ${productLines}
+            <div class="font-semibold text-indigo-700 mb-0.5">${label}: ${dayOrders.length} зак. · ${totalQty} шт. · ${totalSum.toFixed(2)} € · ${statusLabel}</div>
+            ${clientLines}
         </div>`;
     }
 

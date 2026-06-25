@@ -5,6 +5,23 @@
 
 const STOCK_LOW_DAYS = 7; // порог «критически мало» — менее N дней запаса
 
+// Дата начала учёта склада — списание только для заказов начиная с этой даты
+let _inventoryStartDate = localStorage.getItem('inventoryStartDate') || '2026-06-26';
+
+function saveInventoryStartDate() {
+    const val = document.getElementById('inventoryStartDate').value;
+    if (!val) { showInfo('Выберите дату!'); return; }
+    _inventoryStartDate = val;
+    localStorage.setItem('inventoryStartDate', val);
+    showInfo(`Учёт склада ведётся с ${formatDateDMY(val)}`);
+}
+
+function openSettingsModal() {
+    document.getElementById('settingsCurrentEmployee').textContent = currentEmployee ? currentEmployee.name : '—';
+    document.getElementById('inventoryStartDate').value = _inventoryStartDate;
+    document.getElementById('settingsModal').style.display = 'flex';
+}
+
 // Кэш данных склада: { ingredient_id: { total_in, total_out, balance } }
 let _inventoryCache = {};
 
@@ -190,6 +207,9 @@ async function saveInventoryAdd() {
 
 // Вызывается при добавлении позиции в заказ
 async function writeOffInventoryForItem(prod, itemQty, orderId) {
+    // Списываем только для заказов начиная с даты начала учёта склада
+    const order = orders.find(o => o.id === orderId);
+    if (!order || order.date < _inventoryStartDate) return;
     if (!prod || !prod.ingredients || !prod.ingredients.length) return;
     const rows = [];
     const qtyFactor = 1 / Number(prod.batch_size || 1);

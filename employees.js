@@ -83,11 +83,6 @@ async function logoutEmployee() {
 }
 
 // Панель настроек (шестерёнка) — служебные функции, доступна из любого раздела
-function openSettingsModal() {
-    document.getElementById('settingsCurrentEmployee').textContent = currentEmployee ? currentEmployee.name : '—';
-    document.getElementById('settingsModal').style.display = 'flex';
-}
-
 // Фиксирует item_cost для всех позиций заказов, у которых он ещё не зафиксирован.
 // Запускается один раз из настроек чтобы «заморозить» себестоимость старых заказов
 // по текущим ценам ингредиентов — после этого изменение цен не будет влиять на историю.
