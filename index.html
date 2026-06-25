@@ -582,6 +582,10 @@
                         <input type="checkbox" id="sfdRecipeConfirmed" onchange="toggleSfRecipeConfirmed()">
                         Рецепт заполнен полностью
                     </label>
+                    <label class="flex items-center gap-2 text-xs text-gray-700 mb-1 cursor-pointer">
+                        <input type="checkbox" id="sfdTrackStock" onchange="toggleSfTrackStock()">
+                        Отслеживать остатки постоянно (включить в аналитику склада)
+                    </label>
                     <div class="text-right text-xs text-gray-600 space-y-0.5 border-t pt-1">
                         <div>Себестоимость партии: <span id="sfdBatchCost" class="font-medium text-gray-800">0.00 €</span></div>
                         <div>Себестоимость за единицу: <span id="sfdUnitCost" class="font-semibold text-gray-900">0.0000 €</span></div>
@@ -1338,9 +1342,9 @@
 <script src="supabaseClient.js?v=3"></script>
 <script src="auth.js?v=3"></script>
 <script src="employees.js?v=12"></script>
-    <script src="inventory.js?v=6"></script>
+    <script src="inventory.js?v=7"></script>
 <script src="ingredients.js?v=22"></script>
-<script src="semifinished.js?v=8"></script>
+<script src="semifinished.js?v=9"></script>
 <script src="products.js?v=9"></script>
 <script src="customers.js?v=19"></script>
 <script src="orders.js?v=26"></script>
@@ -1399,7 +1403,7 @@ async function loadAllData() {
             db.from('employees').select('id, name').order('name').limit(1000),
             db.from('ingredients').select('id, name, package_price, package_size, unit').order('name').limit(5000),
             db.from('product_ingredients').select('id, product_id, ingredient_id, semi_finished_id, quantity').limit(10000),
-            db.from('semi_finished').select('id, name, batch_size, unit, other_costs, recipe_confirmed').order('name').limit(5000),
+            db.from('semi_finished').select('id, name, batch_size, unit, other_costs, recipe_confirmed, track_stock').order('name').limit(5000),
             db.from('semi_finished_ingredients').select('id, semi_finished_id, ingredient_id, quantity').limit(10000)
         ]);
         if (pRes.error) throw pRes.error;
@@ -1422,6 +1426,7 @@ async function loadAllData() {
         semiFinished = (sfRes.data || []).map(sf => ({
             id: sf.id, name: sf.name, batch_size: Number(sf.batch_size || 1), unit: sf.unit, other_costs: Number(sf.other_costs || 0),
             recipe_confirmed: !!sf.recipe_confirmed,
+            track_stock: !!sf.track_stock,
             ingredients: sfRecipeBySf[sf.id] || []
         }));
 

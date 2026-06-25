@@ -140,6 +140,7 @@ function openSemiFinishedDetail(sfId) {
     document.getElementById('sfdUnit').value = sf.unit;
     document.getElementById('sfdOtherCosts').value = (sf.other_costs || 0).toFixed(2);
     document.getElementById('sfdRecipeConfirmed').checked = !!sf.recipe_confirmed;
+    document.getElementById('sfdTrackStock').checked = !!sf.track_stock;
 
     renderSemiFinishedRecipe(sf);
     fillNewSfRecipeIngredientSelect();
@@ -325,6 +326,23 @@ async function toggleSfRecipeConfirmed() {
     } catch (e) {
         console.error(e); showInfo('Ошибка сохранения. Проверьте подключение.');
         document.getElementById('sfdRecipeConfirmed').checked = !checked;
+    } finally { hideLoading(); }
+}
+
+async function toggleSfTrackStock() {
+    const sf = semiFinished.find(s => s.id === currentSemiFinishedId);
+    if (!sf) return;
+    const checked = document.getElementById('sfdTrackStock').checked;
+    showLoading();
+    try {
+        const { error } = await db.from('semi_finished').update({ track_stock: checked }).eq('id', sf.id);
+        if (error) throw error;
+        sf.track_stock = checked;
+        if (typeof updateInventoryAlertDot === 'function') updateInventoryAlertDot();
+        logActivity('semiFinished', `«${sf.name}» — отслеживание склада ${checked ? 'включено' : 'отключено'}`);
+    } catch (e) {
+        console.error(e); showInfo('Ошибка сохранения.');
+        document.getElementById('sfdTrackStock').checked = !checked;
     } finally { hideLoading(); }
 }
 

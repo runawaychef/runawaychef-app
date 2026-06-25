@@ -101,7 +101,7 @@ function updateInventoryAlertDot() {
     const dot = document.getElementById('inventoryAlertDot');
     if (!dot) return;
 
-    // 1. Проверяем изделия с галочкой track_stock — постоянный мониторинг
+    // 1. Проверяем изделия с галочкой track_stock
     const trackedIngIds = new Set();
     (products || []).filter(p => p.track_stock).forEach(prod => {
         (prod.ingredients || []).forEach(ri => {
@@ -112,6 +112,15 @@ function updateInventoryAlertDot() {
         const balance = getIngredientBalance(ingId);
         if (balance === null || balance <= 0) return false;
         const daily = avgDailyUsage(ingId);
+        if (!daily) return false;
+        return (balance / daily) < STOCK_LOW_DAYS;
+    });
+
+    // 1б. Проверяем п/ф с галочкой track_stock
+    const hasLowTrackedSf = (semiFinished || []).filter(sf => sf.track_stock).some(sf => {
+        const balance = getSemiFinishedBalance(sf.id);
+        if (balance === null || balance <= 0) return true; // нет запаса — уже плохо
+        const daily = avgDailySfUsage(sf.id);
         if (!daily) return false;
         return (balance / daily) < STOCK_LOW_DAYS;
     });
@@ -140,7 +149,7 @@ function updateInventoryAlertDot() {
         });
     }
 
-    dot.classList.toggle('hidden', !hasLowTracked && !hasShortage);
+    dot.classList.toggle('hidden', !hasLowTracked && !hasLowTrackedSf && !hasShortage);
 }
 
 // ── Открытие окна склада ─────────────────────────────────────────────────────
@@ -220,6 +229,40 @@ async function openInventoryModal() {
     }
 
     html += '</tbody></table>';
+
+    // Секция полуфабрикатов
+    const sfSorted = (semiFinished || []).slice().sort((a, b) => (a.name||'').localeCompare(b.name||''));
+    if (sfSorted.length) {
+        const SF_UNIT_LABELS = { g: 'г', kg: 'кг', ml: 'мл', l: 'л', pcs: 'шт' };
+        const sfRed = [], sfYellow = [], sfRest = [];
+        sfSorted.forEach(sf => {
+            const balance  = getSemiFinishedBalance(sf.id);
+            const daily    = avgDailySfUsage(sf.id);
+            const daysLeft = (balance !== null && balance > 0 && daily > 0) ? Math.floor(balance / daily) : null;
+            const unitLabel = SF_UNIT_LABELS[sf.unit] || sf.unit;
+            const item = { ing: { id: sf.id, name: sf.name }, balance, daysLeft, unitLabel, shortage: false };
+            if ((balance !== null && balance <= 0) || (daysLeft !== null && daysLeft < 3)) sfRed.push(item);
+            else if (daysLeft !== null && daysLeft < 7) sfYellow.push(item);
+            else sfRest.push(item);
+        });
+
+        html += `<p class="text-xs font-semibold text-gray-600 mt-3 mb-1">Полуфабрикаты</p>`;
+        html += '<table class="w-full text-xs"><thead><tr class="bg-gray-100 sticky top-0"><th class="p-1 text-left">Название</th><th class="p-1 text-right">Остаток</th><th class="p-1 text-right">Хватит</th></tr></thead><tbody>';
+        if (sfRed.length) {
+            html += `<tr><td colspan="3" class="p-1 text-xs font-semibold text-red-600 bg-red-50">🔴 Критично</td></tr>`;
+            sfRed.forEach(item => { html += renderRow(item, 'bg-red-50', 'text-red-600'); });
+        }
+        if (sfYellow.length) {
+            html += `<tr><td colspan="3" class="p-1 text-xs font-semibold text-yellow-700 bg-yellow-50">🟡 Заканчивается</td></tr>`;
+            sfYellow.forEach(item => { html += renderRow(item, 'bg-yellow-50', 'text-yellow-700'); });
+        }
+        if (sfRest.length) {
+            if (sfRed.length || sfYellow.length) html += `<tr><td colspan="3" class="p-1 text-xs font-semibold text-gray-500 bg-gray-50">Остальные</td></tr>`;
+            sfRest.forEach(item => { html += renderRow(item, '', 'text-gray-500'); });
+        }
+        html += '</tbody></table>';
+    }
+
     document.getElementById('inventoryContent').innerHTML = html;
     document.getElementById('inventoryModal').style.display = 'flex';
 }
