@@ -378,7 +378,10 @@
                 <div class="bg-white p-2 rounded-md shadow-md">
                     <div class="flex items-center justify-between mb-2">
                         <h2 class="text-lg font-semibold text-gray-800">Склад</h2>
-                        <button onclick="showTab('semiFinished')" class="btn text-xs bg-gray-200 text-gray-700 px-2 py-1 rounded-md hover:bg-gray-300">Полуфабрикаты →</button>
+                        <div class="flex gap-1">
+                            <button onclick="openInventarizationModal()" class="btn text-xs bg-indigo-50 text-indigo-700 px-2 py-1 rounded-md hover:bg-indigo-100">📋 Инвентаризация</button>
+                            <button onclick="showTab('semiFinished')" class="btn text-xs bg-gray-200 text-gray-700 px-2 py-1 rounded-md hover:bg-gray-300">Полуфабрикаты →</button>
+                        </div>
                     </div>
                     <p class="text-xs text-gray-400 mb-2">Нажмите на строку, чтобы открыть карточку</p>
                     <table class="w-full table-auto">
@@ -1050,6 +1053,19 @@
             </div>
         </div>
 
+        <!-- Модалка инвентаризации -->
+        <div id="inventarizationModal" class="modal">
+            <div class="modal-content" style="max-width:480px;">
+                <h2 class="text-base font-semibold mb-1 text-gray-800">📋 Инвентаризация</h2>
+                <p class="text-xs text-gray-500 mb-3">Введите фактическое количество. Пустые поля — пропускаются. Разница запишется автоматически.</p>
+                <div id="inventarizationContent" style="max-height:60vh;overflow-y:auto;touch-action:pan-y;overscroll-behavior:contain;"></div>
+                <div class="flex gap-1 mt-3">
+                    <button onclick="saveInventarization()" class="btn bg-gray-700 text-white p-1 rounded-md hover:bg-gray-800 text-xs flex-1">Сохранить инвентаризацию</button>
+                    <button onclick="closeModal()" class="btn bg-gray-400 text-white p-1 rounded-md hover:bg-gray-500 text-xs" style="width:80px;">Отмена</button>
+                </div>
+            </div>
+        </div>
+
         <!-- Модалка редактирования записи склада -->
         <div id="editInventoryModal" class="modal">
             <div class="modal-content" style="max-width:480px;">
@@ -1274,7 +1290,7 @@
 <script src="supabaseClient.js?v=3"></script>
 <script src="auth.js?v=3"></script>
 <script src="employees.js?v=12"></script>
-    <script src="inventory.js?v=4"></script>
+    <script src="inventory.js?v=5"></script>
 <script src="ingredients.js?v=22"></script>
 <script src="semifinished.js?v=6"></script>
 <script src="products.js?v=9"></script>

@@ -217,6 +217,77 @@ async function openInventoryModal() {
     document.getElementById('inventoryModal').style.display = 'flex';
 }
 
+// ── Инвентаризация ───────────────────────────────────────────────────────────
+
+function openInventarizationModal() {
+    const UNIT_LABELS = { g: 'г', kg: 'кг', ml: 'мл', l: 'л', pcs: 'шт' };
+    const sorted = ingredients.slice().sort((a, b) => (a.name||'').localeCompare(b.name||''));
+    const today  = getLocalDateStr(0);
+
+    let html = '<table class="w-full text-xs">';
+    html += '<thead><tr class="bg-gray-100"><th class="p-1 text-left">Ингредиент</th><th class="p-1 text-right">Текущий остаток</th><th class="p-1 text-right">Фактически</th></tr></thead><tbody>';
+    sorted.forEach(ing => {
+        const unitLabel = UNIT_LABELS[ing.unit] || ing.unit;
+        const balance   = getIngredientBalance(ing.id);
+        const balStr    = balance !== null ? `${Number(balance).toFixed(2)} ${unitLabel}` : '—';
+        html += `<tr class="border-b">
+            <td class="p-1">${escapeHtml(ing.name)}</td>
+            <td class="p-1 text-right text-gray-500">${balStr}</td>
+            <td class="p-1 text-right">
+                <input type="number" inputmode="decimal" step="0.01" min="0"
+                    data-ing-id="${ing.id}" data-unit="${unitLabel}"
+                    class="inv-qty-input border p-0.5 rounded text-xs w-24 text-right"
+                    placeholder="${unitLabel}">
+            </td>
+        </tr>`;
+    });
+    html += '</tbody></table>';
+
+    document.getElementById('inventarizationContent').innerHTML = html;
+    document.getElementById('inventarizationModal').style.display = 'flex';
+}
+
+async function saveInventarization() {
+    const inputs = document.querySelectorAll('.inv-qty-input');
+    const today  = getLocalDateStr(0);
+    const rows   = [];
+
+    inputs.forEach(input => {
+        const val = parseFloat(input.value);
+        if (isNaN(val) || input.value === '') return; // пропускаем пустые
+        const ingId   = Number(input.dataset.ingId);
+        const balance = getIngredientBalance(ingId) || 0;
+        const diff    = parseFloat((val - balance).toFixed(4));
+        if (Math.abs(diff) < 0.0001) return; // разницы нет — пропускаем
+        rows.push({
+            ingredient_id: ingId,
+            type:     diff > 0 ? 'приход' : 'расход',
+            quantity: Math.abs(diff),
+            notes:    `Инвентаризация ${today}`
+        });
+    });
+
+    if (!rows.length) {
+        await showInfo('Нет изменений — все фактические остатки совпадают с текущими.');
+        return;
+    }
+
+    const ok = await showConfirm(`Записать ${rows.length} корректировок по результатам инвентаризации?`);
+    if (!ok) return;
+
+    showLoading('Сохраняю инвентаризацию...');
+    try {
+        const { error } = await db.from('inventory').insert(rows);
+        if (error) throw error;
+        await loadInventory();
+        closeModal();
+        displayIngredients();
+        logActivity('inventory', `Инвентаризация ${today}: скорректировано ${rows.length} позиций`);
+        await showInfo(`Инвентаризация сохранена. Скорректировано: ${rows.length} позиций.`);
+    } catch(e) { console.error(e); showInfo('Ошибка сохранения.'); }
+    finally { hideLoading(); }
+}
+
 // ── Пополнение склада ────────────────────────────────────────────────────────
 
 function openInventoryAddModal(ingId) {
