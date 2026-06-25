@@ -181,6 +181,56 @@ async function saveStockAndPrice() {
 
 // Сохраняет новую цену (старая функция — оставляем для совместимости с историей цен)
 async function saveIdNewPrice() { await saveStockAndPrice(); }
+
+// ── Ручное списание ──────────────────────────────────────────────────────────
+
+function openWriteOffModal() {
+    const ing = ingredients.find(i => i.id === currentIngredientId);
+    if (!ing) return;
+    const unitLabel = UNIT_LABELS[ing.unit] || ing.unit;
+    document.getElementById('writeOffIngName').textContent = `Ингредиент: ${ing.name}`;
+    document.getElementById('writeOffUnit').textContent = unitLabel;
+    document.getElementById('writeOffQty').value = '';
+    document.getElementById('writeOffReason').value = '';
+    document.getElementById('writeOffNote').value = '';
+    document.getElementById('writeOffNote').classList.add('hidden');
+    document.getElementById('writeOffModal').style.display = 'flex';
+}
+
+// Показываем поле «Другое» если выбрано
+document.addEventListener('change', e => {
+    if (e.target.id === 'writeOffReason') {
+        const noteEl = document.getElementById('writeOffNote');
+        if (noteEl) noteEl.classList.toggle('hidden', e.target.value !== 'Другое');
+    }
+});
+
+async function saveWriteOff() {
+    const ing = ingredients.find(i => i.id === currentIngredientId);
+    if (!ing) return;
+    const qty    = parseFloat(document.getElementById('writeOffQty').value);
+    const reason = document.getElementById('writeOffReason').value;
+    const note   = document.getElementById('writeOffNote').value.trim();
+    if (isNaN(qty) || qty <= 0) { showInfo('Введите корректное количество!'); return; }
+
+    const notes = reason === 'Другое' ? `Корректировка: ${note || 'другое'}` : `Корректировка: ${reason || 'без причины'}`;
+
+    showLoading();
+    try {
+        await db.from('inventory').insert({
+            ingredient_id: ing.id,
+            type:          'расход',
+            quantity:      parseFloat(qty.toFixed(4)),
+            notes
+        });
+        await loadInventory();
+        closeModal();
+        await renderIngredientStockBlock(ing);
+        displayIngredients();
+        logActivity('inventory', `Списание: «${ing.name}» -${qty} (${notes})`);
+    } catch (e) { console.error(e); showInfo('Ошибка сохранения.'); }
+    finally { hideLoading(); }
+}
 async function saveIdNewPrice() {
     const ing = ingredients.find(i => i.id === currentIngredientId);
     if (!ing) return;
@@ -317,26 +367,30 @@ async function renderIngredientStockBlock(ing) {
         }
     }
 
-    // История пополнений
+    // История пополнений и списаний
     const histEl = document.getElementById('ingStockHistory');
     if (!histEl) return;
     try {
         const { data } = await db.from('inventory')
             .select('type, quantity, created_at, notes')
             .eq('ingredient_id', ing.id)
-            .eq('type', 'приход')
+            .in('type', ['приход', 'расход'])
             .order('created_at', { ascending: false })
-            .limit(10);
+            .limit(15);
         if (!data || !data.length) {
-            histEl.innerHTML = '<p class="text-xs text-gray-400 mt-1">Пополнений ещё не было</p>';
+            histEl.innerHTML = '<p class="text-xs text-gray-400 mt-1">Движений ещё не было</p>';
             return;
         }
-        const totalQty = data.reduce((s, r) => s + Number(r.quantity), 0);
-        let html = `<p class="text-xs text-gray-500 font-semibold mt-2 mb-1">История пополнений (всего: ${totalQty.toFixed(2)} ${unitLabel})</p>`;
+        const totalIn  = data.filter(r => r.type === 'приход').reduce((s, r) => s + Number(r.quantity), 0);
+        const totalOut = data.filter(r => r.type === 'расход' && (r.notes || '').includes('Корректировка')).reduce((s, r) => s + Number(r.quantity), 0);
+        let html = `<p class="text-xs text-gray-500 font-semibold mt-2 mb-1">История (куплено: ${totalIn.toFixed(2)} ${unitLabel}${totalOut > 0 ? `, списано: ${totalOut.toFixed(2)} ${unitLabel}` : ''})</p>`;
         html += '<table class="w-full text-xs"><thead><tr class="bg-gray-100"><th class="p-0.5 text-left">Дата</th><th class="p-0.5 text-right">Кол-во</th><th class="p-0.5 text-left">Заметка</th></tr></thead><tbody>';
         data.forEach(r => {
             const date = new Date(r.created_at).toLocaleDateString('ru-LT');
-            html += `<tr class="border-b"><td class="p-0.5">${date}</td><td class="p-0.5 text-right">+${Number(r.quantity).toFixed(2)} ${unitLabel}</td><td class="p-0.5 text-gray-500">${escapeHtml(r.notes || '')}</td></tr>`;
+            const isIn = r.type === 'приход';
+            const sign = isIn ? '+' : '−';
+            const color = isIn ? 'text-green-700' : 'text-red-600';
+            html += `<tr class="border-b"><td class="p-0.5">${date}</td><td class="p-0.5 text-right ${color} font-semibold">${sign}${Number(r.quantity).toFixed(2)} ${unitLabel}</td><td class="p-0.5 text-gray-500 text-xs">${escapeHtml(r.notes || '')}</td></tr>`;
         });
         html += '</tbody></table>';
         histEl.innerHTML = html;

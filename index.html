@@ -455,6 +455,7 @@
                         </div>
                     </div>
                     <button onclick="saveStockAndPrice()" class="btn bg-gray-700 text-white p-1 rounded-md hover:bg-gray-800 text-xs w-full">Сохранить</button>
+                    <button onclick="openWriteOffModal()" class="btn bg-red-50 text-red-600 p-1 rounded-md hover:bg-red-100 text-xs w-full mt-1">— Списать (корректировка)</button>
 
                     <!-- История пополнений -->
                     <div id="ingStockHistory" class="mt-2"></div>
@@ -1045,6 +1046,29 @@
             </div>
         </div>
 
+        <!-- Модалка ручного списания со склада -->
+        <div id="writeOffModal" class="modal">
+            <div class="modal-content" style="max-width:480px;">
+                <h2 class="text-base font-semibold mb-3 text-gray-800">Списание (корректировка)</h2>
+                <p id="writeOffIngName" class="text-xs text-gray-500 mb-3"></p>
+                <label class="text-xs text-gray-500">Количество (<span id="writeOffUnit"></span>)</label>
+                <input id="writeOffQty" type="number" inputmode="decimal" step="0.01" min="0.01" class="border p-0.5 rounded-md mb-2 w-full text-xs">
+                <label class="text-xs text-gray-500">Причина (необязательно)</label>
+                <select id="writeOffReason" class="border p-0.5 rounded-md mb-2 w-full text-xs">
+                    <option value="">— выберите причину —</option>
+                    <option value="Испортилось">Испортилось</option>
+                    <option value="Личное использование">Личное использование</option>
+                    <option value="Пересчёт остатков">Пересчёт остатков</option>
+                    <option value="Другое">Другое</option>
+                </select>
+                <input id="writeOffNote" type="text" class="border p-0.5 rounded-md mb-3 w-full text-xs hidden" placeholder="Уточните причину...">
+                <div class="flex gap-1">
+                    <button onclick="saveWriteOff()" class="btn bg-red-500 text-white p-1 rounded-md hover:bg-red-600 text-xs flex-1">Списать</button>
+                    <button onclick="closeModal()" class="btn bg-gray-400 text-white p-1 rounded-md hover:bg-gray-500 text-xs flex-1">Отмена</button>
+                </div>
+            </div>
+        </div>
+
         <!-- Модалка пополнения склада -->
         <div id="inventoryAddModal" class="modal">
             <div class="modal-content" style="max-width:480px;">
@@ -1230,7 +1254,7 @@
 <script src="auth.js?v=3"></script>
 <script src="employees.js?v=12"></script>
     <script src="inventory.js?v=2"></script>
-<script src="ingredients.js?v=18"></script>
+<script src="ingredients.js?v=19"></script>
 <script src="semifinished.js?v=6"></script>
 <script src="products.js?v=8"></script>
 <script src="customers.js?v=19"></script>
