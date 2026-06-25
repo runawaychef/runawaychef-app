@@ -261,6 +261,7 @@ function openProductDetail(productId) {
     document.getElementById('pdBatchSize').value = prod.batch_size || 1;
     document.getElementById('pdOtherCosts').value = (prod.other_costs || 0).toFixed(2);
     document.getElementById('pdRecipeConfirmed').checked = !!prod.recipe_confirmed;
+    document.getElementById('pdTrackStock').checked = !!prod.track_stock;
 
     updatePdUnitUI(prod.unit);
     renderProductRecipe(prod);
@@ -535,7 +536,25 @@ async function toggleRecipeConfirmed() {
         logActivity('product', `Рецепт «${prod.name}» отмечен как ${checked ? 'заполненный полностью' : 'неполный'}`);
     } catch (e) {
         console.error(e); showInfo('Ошибка сохранения. Проверьте подключение.');
-        document.getElementById('pdRecipeConfirmed').checked = !checked; // откатываем чекбокс
+        document.getElementById('pdRecipeConfirmed').checked = !checked;
+    } finally { hideLoading(); }
+}
+
+async function toggleTrackStock() {
+    const prod = products.find(p => p.id === currentProductId);
+    if (!prod) return;
+    const checked = document.getElementById('pdTrackStock').checked;
+    showLoading();
+    try {
+        const { error } = await db.from('products').update({ track_stock: checked }).eq('id', prod.id);
+        if (error) throw error;
+        prod.track_stock = checked;
+        // Обновляем пульсацию корзинки
+        if (typeof updateInventoryAlertDot === 'function') updateInventoryAlertDot();
+        logActivity('product', `«${prod.name}» — отслеживание склада ${checked ? 'включено' : 'отключено'}`);
+    } catch (e) {
+        console.error(e); showInfo('Ошибка сохранения. Проверьте подключение.');
+        document.getElementById('pdTrackStock').checked = !checked;
     } finally { hideLoading(); }
 }
 

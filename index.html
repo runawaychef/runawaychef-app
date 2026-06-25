@@ -352,6 +352,10 @@
                         <input type="checkbox" id="pdRecipeConfirmed" onchange="toggleRecipeConfirmed()">
                         Рецепт заполнен полностью
                     </label>
+                    <label class="flex items-center gap-2 text-xs text-gray-700 mb-1 cursor-pointer">
+                        <input type="checkbox" id="pdTrackStock" onchange="toggleTrackStock()">
+                        Отслеживать остатки постоянно (включить в аналитику склада)
+                    </label>
                     <div class="text-right text-xs text-gray-600 space-y-0.5 border-t pt-1">
                         <div>Себестоимость партии: <span id="pdBatchCost" class="font-medium text-gray-800">0.00 €</span></div>
                         <div>Себестоимость 1 шт: <span id="pdUnitCost" class="font-semibold text-gray-900">0.00 €</span></div>
@@ -1253,10 +1257,10 @@
 <script src="supabaseClient.js?v=3"></script>
 <script src="auth.js?v=3"></script>
 <script src="employees.js?v=12"></script>
-    <script src="inventory.js?v=2"></script>
+    <script src="inventory.js?v=3"></script>
 <script src="ingredients.js?v=19"></script>
 <script src="semifinished.js?v=6"></script>
-<script src="products.js?v=8"></script>
+<script src="products.js?v=9"></script>
 <script src="customers.js?v=19"></script>
 <script src="orders.js?v=26"></script>
 <script src="stats.js?v=8"></script>
@@ -1307,7 +1311,7 @@ async function loadAllData() {
     showLoading();
     try {
         const [pRes, cRes, oRes, oiRes, eRes, ingRes, piRes, sfRes, sfiRes] = await Promise.all([
-            db.from('products').select('id, name, price, batch_size, other_costs, unit, recipe_confirmed').order('name').limit(5000),
+            db.from('products').select('id, name, price, batch_size, other_costs, unit, recipe_confirmed, track_stock').order('name').limit(5000),
             db.from('customers').select('id, name, contact, discount, vat_exempt, notes').order('name').limit(5000),
             db.from('orders').select('id, customer_id, order_date, status, discount, vat_exempt, employee_id, notes').range(0, 9999),
             db.from('order_items').select('id, order_id, product_id, quantity, price, item_cost').range(0, 9999),
@@ -1351,6 +1355,7 @@ async function loadAllData() {
             batch_size: Number(p.batch_size || 1), other_costs: Number(p.other_costs || 0),
             unit: p.unit || '',
             recipe_confirmed: !!p.recipe_confirmed,
+            track_stock: !!p.track_stock,
             ingredients: recipeByProduct[p.id] || []
         }));
         customers = (cRes.data || []).map(c => ({ id: c.id, name: c.name || '', contact: c.contact || '', discount: Number(c.discount || 0), vat_exempt: !!c.vat_exempt, notes: c.notes || '' }));

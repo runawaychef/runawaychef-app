@@ -93,14 +93,47 @@ function avgDailyUsage(ingId) {
 function updateInventoryAlertDot() {
     const dot = document.getElementById('inventoryAlertDot');
     if (!dot) return;
-    const hasLow = ingredients.some(ing => {
-        const balance = getIngredientBalance(ing.id);
+
+    // 1. Проверяем изделия с галочкой track_stock — постоянный мониторинг
+    const trackedIngIds = new Set();
+    (products || []).filter(p => p.track_stock).forEach(prod => {
+        (prod.ingredients || []).forEach(ri => {
+            if (ri.ingredient_id) trackedIngIds.add(ri.ingredient_id);
+        });
+    });
+    const hasLowTracked = [...trackedIngIds].some(ingId => {
+        const balance = getIngredientBalance(ingId);
         if (balance === null || balance <= 0) return false;
-        const daily = avgDailyUsage(ing.id);
+        const daily = avgDailyUsage(ingId);
         if (!daily) return false;
         return (balance / daily) < STOCK_LOW_DAYS;
     });
-    dot.classList.toggle('hidden', !hasLow);
+
+    // 2. Проверяем принятые заказы — хватит ли ингредиентов
+    const today = getLocalDateStr(0);
+    const pendingOrders = (orders || []).filter(o => o.status !== 'выполнен' && o.date >= today);
+    let hasShortage = false;
+    if (!hasLowTracked) {
+        const needed = {}; // ingredient_id -> нужно
+        pendingOrders.forEach(o => {
+            (o.items || []).forEach(item => {
+                const prod = products.find(p => p.id === item.product_id);
+                if (!prod || !prod.ingredients) return;
+                const factor = 1 / Number(prod.batch_size || 1);
+                prod.ingredients.forEach(ri => {
+                    if (!ri.ingredient_id) return;
+                    const qty = Number(ri.quantity) * Number(item.quantity) * factor;
+                    needed[ri.ingredient_id] = (needed[ri.ingredient_id] || 0) + qty;
+                });
+            });
+        });
+        hasShortage = Object.entries(needed).some(([ingId, qty]) => {
+            const balance = getIngredientBalance(Number(ingId));
+            return balance !== null && balance < qty;
+        });
+    }
+
+    dot.classList.toggle('hidden', !hasLowTracked && !hasShortage);
 }
 
 // ── Открытие окна склада ─────────────────────────────────────────────────────
