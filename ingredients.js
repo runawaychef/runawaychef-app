@@ -15,27 +15,68 @@ function ingredientUnitPrice(ing) {
     return ing.package_price / ing.package_size;
 }
 
+// Возвращает CSS-класс цвета по количеству дней запаса
+// Красный < 3 дней, жёлтый 3-7 дней, серый > 7 дней
+function stockColorClass(daysLeft, prefix) {
+    if (daysLeft === null) return `${prefix}gray-400`;
+    if (daysLeft < 3)  return `${prefix}red-600`;
+    if (daysLeft < 7)  return `${prefix}yellow-500`;
+    return `${prefix}green-700`;
+}
+
 function displayIngredients() {
     ingredients.sort((a, b) => (a.name||"").localeCompare(b.name||""));
     const tbody = document.getElementById('ingredientTableBody');
     if (!tbody) return;
     tbody.innerHTML = '';
-    ingredients.forEach((ing, i) => {
+
+    // Считаем сколько нужно для принятых заказов
+    const today = typeof getLocalDateStr === 'function' ? getLocalDateStr(0) : new Date().toISOString().slice(0, 10);
+    const neededForOrders = {};
+    (orders || []).filter(o => o.status !== 'выполнен' && o.date >= today).forEach(o => {
+        (o.items || []).forEach(item => {
+            const prod = products.find(p => p.id === item.product_id);
+            if (!prod || !prod.ingredients) return;
+            const factor = 1 / Number(prod.batch_size || 1);
+            prod.ingredients.forEach(ri => {
+                if (!ri.ingredient_id) return;
+                const qty = Number(ri.quantity) * Number(item.quantity) * factor;
+                neededForOrders[ri.ingredient_id] = (neededForOrders[ri.ingredient_id] || 0) + qty;
+            });
+        });
+    });
+
+    ingredients.forEach((ing) => {
         const unitPrice = ingredientUnitPrice(ing);
         const unitLabel = UNIT_LABELS[ing.unit] || ing.unit;
         const balance  = typeof getIngredientBalance === 'function' ? getIngredientBalance(ing.id) : null;
         const daily    = typeof avgDailyUsage === 'function' ? avgDailyUsage(ing.id) : 0;
         const daysLeft = (balance !== null && balance > 0 && daily > 0) ? Math.floor(balance / daily) : null;
+        const needed   = neededForOrders[ing.id] || 0;
+        const shortfall = needed > 0 && (balance === null || balance < needed); // не хватает для заказа
 
         const balanceStr = balance !== null && balance > 0
             ? `${Number(balance).toFixed(1)} ${unitLabel}`
-            : '<span class="text-gray-400">—</span>';
+            : balance !== null && balance <= 0
+                ? `<span class="text-red-600 font-semibold">${Number(balance).toFixed(1)} ${unitLabel}</span>`
+                : '<span class="text-gray-400">—</span>';
+
+        const colorClass = shortfall || (balance !== null && balance <= 0) || daysLeft !== null && daysLeft < 3
+            ? 'text-red-600'
+            : daysLeft !== null && daysLeft < 7 ? 'text-yellow-600' : 'text-gray-600';
+
         const daysStr = daysLeft !== null
-            ? `<span class="${daysLeft < 7 ? 'text-red-600 font-semibold' : 'text-gray-600'}">${daysLeft} дн.</span>`
+            ? `<span class="${colorClass} font-semibold">${daysLeft} дн.</span>`
+            : shortfall ? '<span class="text-red-600 font-semibold">нехватка</span>'
             : '<span class="text-gray-400">—</span>';
 
+        // Цвет всей строки
+        const rowBg = shortfall || (balance !== null && balance <= 0) || (daysLeft !== null && daysLeft < 3)
+            ? ' bg-red-50'
+            : daysLeft !== null && daysLeft < 7 ? ' bg-yellow-50' : '';
+
         const row = document.createElement('tr');
-        row.className = 'order-row';
+        row.className = 'order-row' + rowBg;
         row.innerHTML = `
             <td class="border p-0.5 text-xs" onclick="openIngredientDetail(${ing.id})">${escapeHtml(ing.name)}</td>
             <td class="border p-0.5 text-xs text-center" onclick="openIngredientDetail(${ing.id})">${unitPrice.toFixed(4)} €/${unitLabel}</td>
@@ -349,7 +390,9 @@ async function renderIngredientStockBlock(ing) {
     if (balEl) {
         if (balance !== null && balance > 0) {
             balEl.textContent = Number(balance).toFixed(2);
-            balEl.className = balance < (daily * 7) ? 'text-lg font-bold text-red-600' : 'text-lg font-bold text-gray-800';
+            const days = (daily > 0) ? Math.floor(balance / daily) : null;
+            const colorClass = stockColorClass(days, 'text-') + ' text-lg font-bold';
+            balEl.className = colorClass;
         } else {
             balEl.textContent = '0';
             balEl.className = 'text-lg font-bold text-gray-400';
@@ -360,7 +403,7 @@ async function renderIngredientStockBlock(ing) {
         if (balance !== null && balance > 0 && daily > 0) {
             const days = Math.floor(balance / daily);
             daysEl.textContent = `~${days} дн. запаса`;
-            daysEl.className = days < 7 ? 'text-xs text-red-600 font-semibold' : 'text-xs text-green-700';
+            daysEl.className = `text-xs font-semibold ${stockColorClass(days, 'text-')}`;
         } else {
             daysEl.textContent = daily > 0 ? 'нет данных о запасе' : 'недостаточно истории';
             daysEl.className = 'text-xs text-gray-400';
@@ -372,7 +415,7 @@ async function renderIngredientStockBlock(ing) {
     if (!histEl) return;
     try {
         const { data } = await db.from('inventory')
-            .select('type, quantity, created_at, notes')
+            .select('id, type, quantity, created_at, notes')
             .eq('ingredient_id', ing.id)
             .in('type', ['приход', 'расход'])
             .order('created_at', { ascending: false })
@@ -384,17 +427,69 @@ async function renderIngredientStockBlock(ing) {
         const totalIn  = data.filter(r => r.type === 'приход').reduce((s, r) => s + Number(r.quantity), 0);
         const totalOut = data.filter(r => r.type === 'расход' && (r.notes || '').includes('Корректировка')).reduce((s, r) => s + Number(r.quantity), 0);
         let html = `<p class="text-xs text-gray-500 font-semibold mt-2 mb-1">История (куплено: ${totalIn.toFixed(2)} ${unitLabel}${totalOut > 0 ? `, списано: ${totalOut.toFixed(2)} ${unitLabel}` : ''})</p>`;
-        html += '<table class="w-full text-xs"><thead><tr class="bg-gray-100"><th class="p-0.5 text-left">Дата</th><th class="p-0.5 text-right">Кол-во</th><th class="p-0.5 text-left">Заметка</th></tr></thead><tbody>';
+        html += '<table class="w-full text-xs"><thead><tr class="bg-gray-100"><th class="p-0.5 text-left">Дата</th><th class="p-0.5 text-right">Кол-во</th><th class="p-0.5 text-left">Заметка</th><th class="p-0.5 w-10"></th></tr></thead><tbody>';
         data.forEach(r => {
             const date = new Date(r.created_at).toLocaleDateString('ru-LT');
             const isIn = r.type === 'приход';
             const sign = isIn ? '+' : '−';
             const color = isIn ? 'text-green-700' : 'text-red-600';
-            html += `<tr class="border-b"><td class="p-0.5">${date}</td><td class="p-0.5 text-right ${color} font-semibold">${sign}${Number(r.quantity).toFixed(2)} ${unitLabel}</td><td class="p-0.5 text-gray-500 text-xs">${escapeHtml(r.notes || '')}</td></tr>`;
+            html += `<tr class="border-b">
+                <td class="p-0.5">${date}</td>
+                <td class="p-0.5 text-right ${color} font-semibold">${sign}${Number(r.quantity).toFixed(2)} ${unitLabel}</td>
+                <td class="p-0.5 text-gray-500">${escapeHtml(r.notes || '')}</td>
+                <td class="p-0.5 text-center whitespace-nowrap">
+                    <button onclick="editInventoryRecord(${r.id}, ${Number(r.quantity)}, '${escapeHtml(r.notes || '')}')" class="text-gray-400 hover:text-indigo-600 mr-1">✏️</button>
+                    <button onclick="deleteInventoryRecord(${r.id})" class="text-gray-400 hover:text-red-600">🗑</button>
+                </td>
+            </tr>`;
         });
         html += '</tbody></table>';
         histEl.innerHTML = html;
     } catch(e) { console.error(e); }
+}
+
+// ── Редактирование и удаление записей склада ────────────────────────────────
+
+function editInventoryRecord(id, qty, notes) {
+    document.getElementById('editInventoryId').value = id;
+    document.getElementById('editInventoryQty').value = qty;
+    document.getElementById('editInventoryNotes').value = notes;
+    document.getElementById('editInventoryModal').style.display = 'flex';
+}
+
+async function saveInventoryEdit() {
+    const id  = Number(document.getElementById('editInventoryId').value);
+    const qty = parseFloat(document.getElementById('editInventoryQty').value);
+    const notes = document.getElementById('editInventoryNotes').value.trim();
+    if (isNaN(qty) || qty <= 0) { showInfo('Введите корректное количество!'); return; }
+    showLoading();
+    try {
+        const { error } = await db.from('inventory')
+            .update({ quantity: parseFloat(qty.toFixed(4)), notes: notes || null })
+            .eq('id', id);
+        if (error) throw error;
+        await loadInventory();
+        closeModal();
+        const ing = ingredients.find(i => i.id === currentIngredientId);
+        if (ing) await renderIngredientStockBlock(ing);
+        displayIngredients();
+    } catch(e) { console.error(e); showInfo('Ошибка сохранения.'); }
+    finally { hideLoading(); }
+}
+
+async function deleteInventoryRecord(id) {
+    const ok = await showConfirm('Удалить эту запись из истории склада?');
+    if (!ok) return;
+    showLoading();
+    try {
+        const { error } = await db.from('inventory').delete().eq('id', id);
+        if (error) throw error;
+        await loadInventory();
+        const ing = ingredients.find(i => i.id === currentIngredientId);
+        if (ing) await renderIngredientStockBlock(ing);
+        displayIngredients();
+    } catch(e) { console.error(e); showInfo('Ошибка удаления.'); }
+    finally { hideLoading(); }
 }
 
 function renderIngredientPriceChart(ingredientId) {
