@@ -1061,6 +1061,7 @@
                 <input id="editInventoryNotes" type="text" class="border p-0.5 rounded-md mb-3 w-full text-xs">
                 <div class="flex gap-1">
                     <button onclick="saveInventoryEdit()" class="btn bg-gray-700 text-white p-1 rounded-md hover:bg-gray-800 text-xs flex-1">Сохранить</button>
+                    <button onclick="deleteInventoryRecord(Number(document.getElementById('editInventoryId').value))" class="btn bg-red-500 text-white p-1 rounded-md hover:bg-red-600 text-xs flex-1">Удалить</button>
                     <button onclick="closeModal()" class="btn bg-gray-400 text-white p-1 rounded-md hover:bg-gray-500 text-xs flex-1">Отмена</button>
                 </div>
             </div>
@@ -1274,7 +1275,7 @@
 <script src="auth.js?v=3"></script>
 <script src="employees.js?v=12"></script>
     <script src="inventory.js?v=3"></script>
-<script src="ingredients.js?v=21"></script>
+<script src="ingredients.js?v=22"></script>
 <script src="semifinished.js?v=6"></script>
 <script src="products.js?v=9"></script>
 <script src="customers.js?v=19"></script>

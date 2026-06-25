@@ -419,7 +419,7 @@ async function renderIngredientStockBlock(ing) {
             .eq('ingredient_id', ing.id)
             .in('type', ['приход', 'расход'])
             .order('created_at', { ascending: false })
-            .limit(15);
+            .limit(50);
         if (!data || !data.length) {
             histEl.innerHTML = '<p class="text-xs text-gray-400 mt-1">Движений ещё не было</p>';
             return;
@@ -427,23 +427,20 @@ async function renderIngredientStockBlock(ing) {
         const totalIn  = data.filter(r => r.type === 'приход').reduce((s, r) => s + Number(r.quantity), 0);
         const totalOut = data.filter(r => r.type === 'расход' && (r.notes || '').includes('Корректировка')).reduce((s, r) => s + Number(r.quantity), 0);
         let html = `<p class="text-xs text-gray-500 font-semibold mt-2 mb-1">История (куплено: ${totalIn.toFixed(2)} ${unitLabel}${totalOut > 0 ? `, списано: ${totalOut.toFixed(2)} ${unitLabel}` : ''})</p>`;
-        html += '<table class="w-full text-xs"><thead><tr class="bg-gray-100"><th class="p-0.5 text-left">Дата</th><th class="p-0.5 text-right">Кол-во</th><th class="p-0.5 text-left">Заметка</th><th class="p-0.5 w-10"></th></tr></thead><tbody>';
+        html += '<div style="max-height:224px;overflow-y:auto;touch-action:pan-y;overscroll-behavior:contain;">';
+        html += '<table class="w-full text-xs"><thead><tr class="bg-gray-100"><th class="p-0.5 text-left">Дата</th><th class="p-0.5 text-right">Кол-во</th><th class="p-0.5 text-left">Заметка</th></tr></thead><tbody>';
         data.forEach(r => {
             const date = new Date(r.created_at).toLocaleDateString('ru-LT');
             const isIn = r.type === 'приход';
             const sign = isIn ? '+' : '−';
             const color = isIn ? 'text-green-700' : 'text-red-600';
-            html += `<tr class="border-b">
-                <td class="p-0.5">${date}</td>
-                <td class="p-0.5 text-right ${color} font-semibold">${sign}${Number(r.quantity).toFixed(2)} ${unitLabel}</td>
-                <td class="p-0.5 text-gray-500">${escapeHtml(r.notes || '')}</td>
-                <td class="p-0.5 text-center whitespace-nowrap">
-                    <button onclick="editInventoryRecord(${r.id}, ${Number(r.quantity)}, '${escapeHtml(r.notes || '')}')" class="text-gray-400 hover:text-indigo-600 mr-1">✏️</button>
-                    <button onclick="deleteInventoryRecord(${r.id})" class="text-gray-400 hover:text-red-600">🗑</button>
-                </td>
+            html += `<tr class="border-b cursor-pointer hover:bg-gray-50 active:bg-gray-100" onclick="editInventoryRecord(${r.id}, ${Number(r.quantity)}, '${escapeHtml(r.notes || '')}')">
+                <td class="p-1">${date}</td>
+                <td class="p-1 text-right ${color} font-semibold">${sign}${Number(r.quantity).toFixed(2)} ${unitLabel}</td>
+                <td class="p-1 text-gray-500">${escapeHtml(r.notes || '')}</td>
             </tr>`;
         });
-        html += '</tbody></table>';
+        html += '</tbody></table></div>';
         histEl.innerHTML = html;
     } catch(e) { console.error(e); }
 }
@@ -480,6 +477,7 @@ async function saveInventoryEdit() {
 async function deleteInventoryRecord(id) {
     const ok = await showConfirm('Удалить эту запись из истории склада?');
     if (!ok) return;
+    closeModal();
     showLoading();
     try {
         const { error } = await db.from('inventory').delete().eq('id', id);
