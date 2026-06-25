@@ -33,21 +33,60 @@ function displaySemiFinished() {
     if (!tbody) return;
     tbody.innerHTML = '';
     let warningCount = 0;
+
+    // Считаем нехватку для принятых заказов
+    const today = typeof getLocalDateStr === 'function' ? getLocalDateStr(0) : new Date().toISOString().slice(0, 10);
+    const neededForOrders = {};
+    (orders || []).filter(o => o.status !== 'выполнен' && o.date >= today).forEach(o => {
+        (o.items || []).forEach(item => {
+            const prod = products.find(p => p.id === item.product_id);
+            if (!prod || !prod.ingredients) return;
+            const factor = 1 / Number(prod.batch_size || 1);
+            prod.ingredients.forEach(ri => {
+                if (!ri.semi_finished_id) return;
+                neededForOrders[ri.semi_finished_id] = (neededForOrders[ri.semi_finished_id] || 0) +
+                    Number(ri.quantity) * Number(item.quantity) * factor;
+            });
+        });
+    });
+
     semiFinished.forEach((sf, i) => {
         const unitLabel = SF_UNIT_LABELS[sf.unit] || sf.unit;
-        const unitCost = semiFinishedUnitCost(sf);
-        const needsAttention = !sf.recipe_confirmed;
-        if (needsAttention) warningCount++;
+        const unitCost  = semiFinishedUnitCost(sf);
+        const balance   = typeof getSemiFinishedBalance === 'function' ? getSemiFinishedBalance(sf.id) : null;
+        const daily     = typeof avgDailySfUsage === 'function' ? avgDailySfUsage(sf.id) : 0;
+        const daysLeft  = (balance !== null && balance > 0 && daily > 0) ? Math.floor(balance / daily) : null;
+        const needed    = neededForOrders[sf.id] || 0;
+        const shortage  = needed > 0 && (balance === null || balance < needed);
+
+        if (!sf.recipe_confirmed) warningCount++;
+
+        const balanceStr = balance !== null && balance > 0
+            ? `${Number(balance).toFixed(1)} ${unitLabel}`
+            : balance !== null && balance <= 0
+                ? `<span class="text-red-600 font-semibold">${Number(balance).toFixed(1)} ${unitLabel}</span>`
+                : '<span class="text-gray-400">—</span>';
+
+        const colorClass = shortage || (balance !== null && balance <= 0) || (daysLeft !== null && daysLeft < 3)
+            ? 'text-red-600' : daysLeft !== null && daysLeft < 7 ? 'text-yellow-600' : 'text-gray-600';
+
+        const daysStr = daysLeft !== null
+            ? `<span class="${colorClass} font-semibold">${daysLeft} дн.</span>`
+            : shortage ? '<span class="text-red-600 font-semibold">нехватка</span>'
+            : '<span class="text-gray-400">—</span>';
+
+        const rowBg = shortage || (balance !== null && balance <= 0) || (daysLeft !== null && daysLeft < 3)
+            ? ' bg-red-50'
+            : daysLeft !== null && daysLeft < 7 ? ' bg-yellow-50' : '';
+
         const row = document.createElement('tr');
-        row.className = 'order-row' + (needsAttention ? ' bg-red-50' : '');
+        row.className = 'order-row' + rowBg;
+        row.style.cursor = 'pointer';
         row.innerHTML = `
             <td class="border p-0.5 text-xs" onclick="openSemiFinishedDetail(${sf.id})">${escapeHtml(sf.name)}</td>
-            <td class="border p-0.5 text-xs text-center" onclick="openSemiFinishedDetail(${sf.id})">${sf.batch_size} ${unitLabel}</td>
             <td class="border p-0.5 text-xs text-center" onclick="openSemiFinishedDetail(${sf.id})">${unitCost.toFixed(4)} €/${unitLabel}</td>
-            <td class="border p-0.5 text-center">
-                ${svgEdit(`openSemiFinishedDetail(${sf.id})`)}
-                ${svgDelete(`openDeleteModal(${i},'semiFinished','полуфабрикат «${sf.name}»')`)}
-            </td>`;
+            <td class="border p-0.5 text-xs text-center" onclick="openSemiFinishedDetail(${sf.id})">${balanceStr}</td>
+            <td class="border p-0.5 text-xs text-center" onclick="openSemiFinishedDetail(${sf.id})">${daysStr}</td>`;
         tbody.appendChild(row);
     });
     const warningEl = document.getElementById('semiFinishedRecipeWarning');
