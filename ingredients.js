@@ -23,17 +23,24 @@ function displayIngredients() {
     ingredients.forEach((ing, i) => {
         const unitPrice = ingredientUnitPrice(ing);
         const unitLabel = UNIT_LABELS[ing.unit] || ing.unit;
+        const balance  = typeof getIngredientBalance === 'function' ? getIngredientBalance(ing.id) : null;
+        const daily    = typeof avgDailyUsage === 'function' ? avgDailyUsage(ing.id) : 0;
+        const daysLeft = (balance !== null && balance > 0 && daily > 0) ? Math.floor(balance / daily) : null;
+
+        const balanceStr = balance !== null && balance > 0
+            ? `${Number(balance).toFixed(1)} ${unitLabel}`
+            : '<span class="text-gray-400">—</span>';
+        const daysStr = daysLeft !== null
+            ? `<span class="${daysLeft < 7 ? 'text-red-600 font-semibold' : 'text-gray-600'}">${daysLeft} дн.</span>`
+            : '<span class="text-gray-400">—</span>';
+
         const row = document.createElement('tr');
         row.className = 'order-row';
         row.innerHTML = `
             <td class="border p-0.5 text-xs" onclick="openIngredientDetail(${ing.id})">${escapeHtml(ing.name)}</td>
-            <td class="border p-0.5 text-xs text-center" onclick="openIngredientDetail(${ing.id})">${ing.package_price.toFixed(2)} €</td>
-            <td class="border p-0.5 text-xs text-center" onclick="openIngredientDetail(${ing.id})">${ing.package_size} ${unitLabel}</td>
             <td class="border p-0.5 text-xs text-center" onclick="openIngredientDetail(${ing.id})">${unitPrice.toFixed(4)} €/${unitLabel}</td>
-            <td class="border p-0.5 text-center">
-                ${svgEdit(`openIngredientDetail(${ing.id})`)}
-                ${svgDelete(`openDeleteModal(${i},'ingredient','ингредиент «${ing.name}»')`)}
-            </td>`;
+            <td class="border p-0.5 text-xs text-center" onclick="openIngredientDetail(${ing.id})">${balanceStr}</td>
+            <td class="border p-0.5 text-xs text-center" onclick="openIngredientDetail(${ing.id})">${daysStr}</td>`;
         tbody.appendChild(row);
     });
 }
@@ -90,6 +97,7 @@ function openIngredientDetail(ingId) {
     document.getElementById('idPackageSize').value = ing.package_size;
     renderIngredientUnitPrice(ing);
     loadIngredientPriceHistory(ingId);
+    renderIngredientStockBlock(ing);
     refreshFab();
 }
 
@@ -210,6 +218,63 @@ async function loadIngredientPriceHistory(ingredientId) {
 }
 
 let _ingredientPriceChartInstance = null;
+
+// Обновляет блок «Остаток на складе» в карточке ингредиента
+async function renderIngredientStockBlock(ing) {
+    const unitLabel = UNIT_LABELS[ing.unit] || ing.unit;
+    const balance = typeof getIngredientBalance === 'function' ? getIngredientBalance(ing.id) : null;
+    const daily   = typeof avgDailyUsage === 'function' ? avgDailyUsage(ing.id) : 0;
+
+    const balEl   = document.getElementById('ingBalanceValue');
+    const unitEl  = document.getElementById('ingBalanceUnit');
+    const daysEl  = document.getElementById('ingDaysLeft');
+
+    if (balEl) {
+        if (balance !== null && balance > 0) {
+            balEl.textContent = Number(balance).toFixed(2);
+            balEl.className = balance < (daily * 7) ? 'text-lg font-bold text-red-600' : 'text-lg font-bold text-gray-800';
+        } else {
+            balEl.textContent = '0';
+            balEl.className = 'text-lg font-bold text-gray-400';
+        }
+    }
+    if (unitEl) unitEl.textContent = unitLabel;
+    if (daysEl) {
+        if (balance !== null && balance > 0 && daily > 0) {
+            const days = Math.floor(balance / daily);
+            daysEl.textContent = `~${days} дн. запаса`;
+            daysEl.className = days < 7 ? 'text-xs text-red-600 font-semibold' : 'text-xs text-green-700';
+        } else {
+            daysEl.textContent = daily > 0 ? 'нет данных о запасе' : 'недостаточно истории';
+            daysEl.className = 'text-xs text-gray-400';
+        }
+    }
+
+    // История пополнений
+    const histEl = document.getElementById('ingStockHistory');
+    if (!histEl) return;
+    try {
+        const { data } = await db.from('inventory')
+            .select('type, quantity, created_at, notes')
+            .eq('ingredient_id', ing.id)
+            .eq('type', 'приход')
+            .order('created_at', { ascending: false })
+            .limit(10);
+        if (!data || !data.length) {
+            histEl.innerHTML = '<p class="text-xs text-gray-400 mt-1">Пополнений ещё не было</p>';
+            return;
+        }
+        const totalQty = data.reduce((s, r) => s + Number(r.quantity), 0);
+        let html = `<p class="text-xs text-gray-500 font-semibold mt-2 mb-1">История пополнений (всего: ${totalQty.toFixed(2)} ${unitLabel})</p>`;
+        html += '<table class="w-full text-xs"><thead><tr class="bg-gray-100"><th class="p-0.5 text-left">Дата</th><th class="p-0.5 text-right">Кол-во</th><th class="p-0.5 text-left">Заметка</th></tr></thead><tbody>';
+        data.forEach(r => {
+            const date = new Date(r.created_at).toLocaleDateString('ru-LT');
+            html += `<tr class="border-b"><td class="p-0.5">${date}</td><td class="p-0.5 text-right">+${Number(r.quantity).toFixed(2)} ${unitLabel}</td><td class="p-0.5 text-gray-500">${escapeHtml(r.notes || '')}</td></tr>`;
+        });
+        html += '</tbody></table>';
+        histEl.innerHTML = html;
+    } catch(e) { console.error(e); }
+}
 
 function renderIngredientPriceChart(ingredientId) {
     const canvas = document.getElementById('ingredientPriceChart');
