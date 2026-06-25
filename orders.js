@@ -186,14 +186,15 @@ function getFilteredOrdersForList() {
     if (employeeFilter) filtered = filtered.filter(o => String(o.employee_id) === employeeFilter);
     if (dateRange === 'week' || dateRange === 'month') {
         const today = new Date();
-        let start;
+        let startStr;
         if (dateRange === 'week') {
-            start = new Date(today);
-            start.setDate(today.getDate() - today.getDay() + (today.getDay() === 0 ? -6 : 1));
+            const s = new Date(today);
+            s.setDate(today.getDate() - today.getDay() + (today.getDay() === 0 ? -6 : 1));
+            startStr = `${s.getFullYear()}-${String(s.getMonth()+1).padStart(2,'0')}-${String(s.getDate()).padStart(2,'0')}`;
         } else {
-            start = new Date(today.getFullYear(), today.getMonth(), 1);
+            startStr = `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-01`;
         }
-        filtered = filtered.filter(o => new Date(o.date) >= start);
+        filtered = filtered.filter(o => o.date >= startStr);
     } else if (dateRange === 'custom' && dateFrom && dateTo) {
         const from = new Date(dateFrom);
         const to   = new Date(dateTo); to.setDate(to.getDate() + 1);
