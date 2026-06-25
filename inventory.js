@@ -145,55 +145,74 @@ async function openInventoryModal() {
 
     const UNIT_LABELS = { g: 'г', kg: 'кг', ml: 'мл', l: 'л', pcs: 'шт' };
 
-    // Разделяем на критические и обычные
-    const critical = [];
-    const normal   = [];
+    // Считаем нехватку для принятых заказов
+    const today = getLocalDateStr(0);
+    const neededForOrders = {};
+    (orders || []).filter(o => o.status !== 'выполнен' && o.date >= today).forEach(o => {
+        (o.items || []).forEach(item => {
+            const prod = products.find(p => p.id === item.product_id);
+            if (!prod || !prod.ingredients) return;
+            const factor = 1 / Number(prod.batch_size || 1);
+            prod.ingredients.forEach(ri => {
+                if (!ri.ingredient_id) return;
+                neededForOrders[ri.ingredient_id] = (neededForOrders[ri.ingredient_id] || 0) +
+                    Number(ri.quantity) * Number(item.quantity) * factor;
+            });
+        });
+    });
 
-    ingredients.forEach(ing => {
-        const balance = getIngredientBalance(ing.id);
-        const daily   = avgDailyUsage(ing.id);
-        const daysLeft = (balance !== null && balance > 0 && daily > 0)
-            ? Math.floor(balance / daily) : null;
+    // Сортируем по алфавиту и разбиваем на три группы
+    const sorted = ingredients.slice().sort((a, b) => (a.name||'').localeCompare(b.name||''));
+    const red    = []; // < 3 дней или нехватка для заказа
+    const yellow = []; // 3-7 дней
+    const rest   = []; // всё остальное
+
+    sorted.forEach(ing => {
+        const balance  = getIngredientBalance(ing.id);
+        const daily    = avgDailyUsage(ing.id);
+        const daysLeft = (balance !== null && balance > 0 && daily > 0) ? Math.floor(balance / daily) : null;
+        const shortage = neededForOrders[ing.id] > 0 && (balance === null || balance < neededForOrders[ing.id]);
         const unitLabel = UNIT_LABELS[ing.unit] || ing.unit;
+        const item = { ing, balance, daysLeft, unitLabel, shortage };
 
-        const item = { ing, balance, daily, daysLeft, unitLabel };
-        if (balance !== null && balance > 0 && daysLeft !== null && daysLeft < STOCK_LOW_DAYS) {
-            critical.push(item);
+        if (shortage || (balance !== null && balance <= 0) || (daysLeft !== null && daysLeft < 3)) {
+            red.push(item);
+        } else if (daysLeft !== null && daysLeft < 7) {
+            yellow.push(item);
         } else {
-            normal.push(item);
+            rest.push(item);
         }
     });
 
-    function renderRow(item, isCritical) {
-        const { ing, balance, daysLeft, unitLabel } = item;
-        const balanceStr = balance !== null ? `${Number(balance).toFixed(2)} ${unitLabel}` : '—';
-        const daysStr    = daysLeft !== null ? `~${daysLeft} дн.` : 'нет данных';
-        const rowClass   = isCritical ? 'bg-red-50' : '';
-        const daysClass  = isCritical ? 'text-red-600 font-semibold' : 'text-gray-500';
-        return `<tr class="border-b ${rowClass}">
+    function renderRow(item, bgClass, daysClass) {
+        const { ing, balance, daysLeft, unitLabel, shortage } = item;
+        const balanceStr = balance !== null ? `${Number(balance).toFixed(1)} ${unitLabel}` : '—';
+        const daysStr    = shortage ? 'нехватка' : daysLeft !== null ? `~${daysLeft} дн.` : '—';
+        return `<tr class="border-b ${bgClass}">
             <td class="p-1 text-xs">${escapeHtml(ing.name)}</td>
             <td class="p-1 text-xs text-right">${balanceStr}</td>
-            <td class="p-1 text-xs text-right ${daysClass}">${daysStr}</td>
-            <td class="p-1 text-center">
-                <button onclick="openInventoryAddModal(${ing.id})" class="text-indigo-500 hover:text-indigo-700 text-xs">+</button>
-            </td>
+            <td class="p-1 text-xs text-right ${daysClass} font-semibold">${daysStr}</td>
         </tr>`;
     }
 
-    let html = '';
+    let html = '<table class="w-full text-xs"><thead><tr class="bg-gray-100 sticky top-0"><th class="p-1 text-left">Ингредиент</th><th class="p-1 text-right">Остаток</th><th class="p-1 text-right">Хватит</th></tr></thead><tbody>';
 
-    if (critical.length) {
-        html += `<p class="text-xs font-semibold text-red-600 mb-1">⚠ Заканчивается (менее ${STOCK_LOW_DAYS} дней)</p>`;
-        html += '<table class="w-full mb-3"><thead><tr class="bg-red-100"><th class="p-1 text-xs text-left">Ингредиент</th><th class="p-1 text-xs text-right">Остаток</th><th class="p-1 text-xs text-right">Хватит</th><th class="p-1 w-8"></th></tr></thead><tbody>';
-        critical.forEach(item => { html += renderRow(item, true); });
-        html += '</tbody></table>';
+    if (red.length) {
+        html += `<tr><td colspan="3" class="p-1 text-xs font-semibold text-red-600 bg-red-50">🔴 Критично</td></tr>`;
+        red.forEach(item => { html += renderRow(item, 'bg-red-50', 'text-red-600'); });
+    }
+    if (yellow.length) {
+        html += `<tr><td colspan="3" class="p-1 text-xs font-semibold text-yellow-700 bg-yellow-50">🟡 Заканчивается</td></tr>`;
+        yellow.forEach(item => { html += renderRow(item, 'bg-yellow-50', 'text-yellow-700'); });
+    }
+    if (rest.length) {
+        if (red.length || yellow.length) {
+            html += `<tr><td colspan="3" class="p-1 text-xs font-semibold text-gray-500 bg-gray-50">Остальные</td></tr>`;
+        }
+        rest.forEach(item => { html += renderRow(item, '', 'text-gray-500'); });
     }
 
-    html += '<p class="text-xs font-semibold text-gray-600 mb-1">Все ингредиенты</p>';
-    html += '<table class="w-full"><thead><tr class="bg-gray-100"><th class="p-1 text-xs text-left">Ингредиент</th><th class="p-1 text-xs text-right">Остаток</th><th class="p-1 text-xs text-right">Хватит</th><th class="p-1 w-8"></th></tr></thead><tbody>';
-    [...critical, ...normal].forEach(item => { html += renderRow(item, false); });
     html += '</tbody></table>';
-
     document.getElementById('inventoryContent').innerHTML = html;
     document.getElementById('inventoryModal').style.display = 'flex';
 }
