@@ -380,6 +380,7 @@ function openOrderDetail(orderId) {
     // Скрыть список, показать детальный вид
     document.getElementById('ordersList').classList.add('hidden');
     document.getElementById('orderDetail').classList.add('active');
+    document.getElementById('orderDetail').classList.add('fade-in'); setTimeout(() => document.getElementById('orderDetail').classList.remove('fade-in'), 300);
 
     document.getElementById('detailOrderId').textContent = `Заказ #${orderId}`;
 

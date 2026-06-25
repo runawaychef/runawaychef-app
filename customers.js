@@ -273,6 +273,7 @@ function openCustomerDetail(custId) {
 
     document.getElementById('customersList').classList.add('hidden');
     document.getElementById('customerDetail').classList.add('active');
+    document.getElementById('customerDetail').classList.add('fade-in'); setTimeout(() => document.getElementById('customerDetail').classList.remove('fade-in'), 300);
 
     document.getElementById('cdName').value = cust.name;
     document.getElementById('cdContact').value = cust.contact;

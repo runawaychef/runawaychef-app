@@ -254,6 +254,7 @@ function openProductDetail(productId) {
 
     document.getElementById('productsList').classList.add('hidden');
     document.getElementById('productDetail').classList.add('active');
+    document.getElementById('productDetail').classList.add('fade-in'); setTimeout(() => document.getElementById('productDetail').classList.remove('fade-in'), 300);
 
     document.getElementById('pdName').value = prod.name;
     document.getElementById('pdUnit').value = prod.unit || '';

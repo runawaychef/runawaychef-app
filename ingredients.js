@@ -127,6 +127,7 @@ function openIngredientDetail(ingId) {
 
     document.getElementById('ingredientsList').classList.add('hidden');
     document.getElementById('ingredientDetail').classList.add('active');
+    document.getElementById('ingredientDetail').classList.add('fade-in'); setTimeout(() => document.getElementById('ingredientDetail').classList.remove('fade-in'), 300);
 
     // Блок 1: название и единица
     document.getElementById('idName').value = ing.name;

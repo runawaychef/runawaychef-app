@@ -134,6 +134,7 @@ function openSemiFinishedDetail(sfId) {
 
     document.getElementById('semiFinishedList').classList.add('hidden');
     document.getElementById('semiFinishedDetail').classList.add('active');
+    document.getElementById('semiFinishedDetail').classList.add('fade-in'); setTimeout(() => document.getElementById('semiFinishedDetail').classList.remove('fade-in'), 300);
 
     document.getElementById('sfdName').value = sf.name;
     document.getElementById('sfdBatchSize').value = sf.batch_size;
