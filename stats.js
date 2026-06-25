@@ -157,6 +157,13 @@ function applyFilter() {
     drawProductTable(filtered);
     drawProfitabilitySummary(filtered);
     drawProductProfitabilityTable();
+
+    // Подписываемся на фильтр каждый раз при открытии статистики
+    const filterEl = document.getElementById('productProfitFilter');
+    if (filterEl) {
+        filterEl.value = '';
+        filterEl.oninput = () => drawProductProfitabilityTable();
+    }
 }
 
 function updateDisplay(filteredOrders = orders) {
@@ -278,17 +285,34 @@ function drawProfitabilitySummary(filtered) {
     if (profitPctEl) profitPctEl.textContent = profitPct.toFixed(1) + '%';
 }
 
-// --- Топ-10 изделий по рентабельности (% прибыли) ---
+// --- Топ изделий по рентабельности с фильтром по названию ---
 function drawProductProfitabilityTable() {
     const container = document.getElementById('statsProductProfitability');
     if (!container) return;
-    const withRecipe = products.filter(p => (p.ingredients || []).length > 0);
+    const filterEl = document.getElementById('productProfitFilter');
+    const filter = filterEl ? filterEl.value.trim().toLowerCase() : '';
+
+    let withRecipe = products.filter(p => (p.ingredients || []).length > 0);
+    if (filter) {
+        withRecipe = withRecipe.filter(p => p.name.toLowerCase().includes(filter));
+    }
+
     if (!withRecipe.length) {
-        container.innerHTML = '<p class="text-xs text-gray-400">Нет изделий с заполненной рецептурой</p>';
+        container.innerHTML = `<p class="text-xs text-gray-400">${filter ? 'Нет изделий по фильтру «' + filter + '»' : 'Нет изделий с заполненной рецептурой'}</p>`;
         return;
     }
-    const sorted = [...withRecipe].sort((a, b) => productProfitPct(b) - productProfitPct(a)).slice(0, 10);
-    let html = '<table class="w-full stats-table" style="table-layout:fixed;"><thead><tr class="bg-gray-100"><th class="p-0.5 text-left" style="width:46%;">Изделие</th><th class="p-0.5 text-right" style="width:18%;">Себест. (€)</th><th class="p-0.5 text-right" style="width:18%;">Цена (€)</th><th class="p-0.5 text-right" style="width:18%;">Рент.</th></tr></thead><tbody>';
+
+    // Без фильтра — топ-10, с фильтром — все найденные
+    const sorted = [...withRecipe]
+        .sort((a, b) => productProfitPct(b) - productProfitPct(a))
+        .slice(0, filter ? 100 : 10);
+
+    const title = filter
+        ? `Найдено: ${sorted.length} изделий по «${filter}»`
+        : `Топ-${sorted.length} по рентабельности`;
+
+    let html = `<p class="text-xs text-gray-500 mb-1">${title}</p>`;
+    html += '<table class="w-full stats-table" style="table-layout:fixed;"><thead><tr class="bg-gray-100"><th class="p-0.5 text-left" style="width:46%;">Изделие</th><th class="p-0.5 text-right" style="width:18%;">Себест. (€)</th><th class="p-0.5 text-right" style="width:18%;">Цена (€)</th><th class="p-0.5 text-right" style="width:18%;">Рент.</th></tr></thead><tbody>';
     sorted.forEach(p => {
         const cost = productUnitCost(p);
         const pct  = productProfitPct(p);
