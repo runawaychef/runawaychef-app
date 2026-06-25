@@ -348,16 +348,17 @@ function renderCustomerOrders() {
 
     if (range === 'week' || range === 'month' || range === 'year') {
         const today = new Date();
-        let start;
+        let startStr;
         if (range === 'week') {
-            start = new Date(today);
-            start.setDate(today.getDate() - today.getDay() + (today.getDay() === 0 ? -6 : 1));
+            const s = new Date(today);
+            s.setDate(today.getDate() - today.getDay() + (today.getDay() === 0 ? -6 : 1));
+            startStr = `${s.getFullYear()}-${String(s.getMonth()+1).padStart(2,'0')}-${String(s.getDate()).padStart(2,'0')}`;
         } else if (range === 'year') {
-            start = new Date(today.getFullYear(), 0, 1);
+            startStr = `${today.getFullYear()}-01-01`;
         } else {
-            start = new Date(today.getFullYear(), today.getMonth(), 1);
+            startStr = `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-01`;
         }
-        custOrders = custOrders.filter(o => new Date(o.date) >= start);
+        custOrders = custOrders.filter(o => o.date >= startStr);
     }
 
     custOrders.sort((a, b) => b.date.localeCompare(a.date));
