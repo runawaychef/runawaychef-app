@@ -83,10 +83,10 @@ function displaySemiFinished() {
         row.className = 'order-row' + rowBg;
         row.style.cursor = 'pointer';
         row.innerHTML = `
-            <td class="border p-0.5 text-xs" onclick="openSemiFinishedDetail(${sf.id})">${escapeHtml(sf.name)}</td>
-            <td class="border p-0.5 text-xs text-center" onclick="openSemiFinishedDetail(${sf.id})">${unitCost.toFixed(4)} €/${unitLabel}</td>
-            <td class="border p-0.5 text-xs text-center" onclick="openSemiFinishedDetail(${sf.id})">${balanceStr}</td>
-            <td class="border p-0.5 text-xs text-center" onclick="openSemiFinishedDetail(${sf.id})">${daysStr}</td>`;
+            <td class="border p-1 text-xs" onclick="openSemiFinishedDetail(${sf.id})">${escapeHtml(sf.name)}</td>
+            <td class="border p-1 text-xs text-center" onclick="openSemiFinishedDetail(${sf.id})">${unitCost.toFixed(4)} €/${unitLabel}</td>
+            <td class="border p-1 text-xs text-center" onclick="openSemiFinishedDetail(${sf.id})">${balanceStr}</td>
+            <td class="border p-1 text-xs text-center" onclick="openSemiFinishedDetail(${sf.id})">${daysStr}</td>`;
         tbody.appendChild(row);
     });
     const warningEl = document.getElementById('semiFinishedRecipeWarning');
@@ -212,10 +212,10 @@ function renderSemiFinishedRecipe(sf) {
             const row = document.createElement('tr');
             row.className = 'border-b';
             row.innerHTML = `
-                <td class="p-0.5 text-xs">${escapeHtml(ing ? ing.name : '(удалён)')}</td>
-                <td class="p-0.5 text-xs text-center">${ri.quantity} ${ing ? UNIT_LABELS[ing.unit] : ''}</td>
-                <td class="p-0.5 text-xs text-center font-medium">${lineCost.toFixed(2)} €</td>
-                <td class="p-0.5 text-center">
+                <td class="p-1 text-xs">${escapeHtml(ing ? ing.name : '(удалён)')}</td>
+                <td class="p-1 text-xs text-center">${ri.quantity} ${ing ? UNIT_LABELS[ing.unit] : ''}</td>
+                <td class="p-1 text-xs text-center font-medium">${lineCost.toFixed(2)} €</td>
+                <td class="p-1 text-center">
                     ${svgEdit(`openEditSfRecipeItemModal(${i})`)}
                     ${svgDelete(`deleteSfRecipeItem(${i})`)}
                 </td>`;
@@ -457,7 +457,7 @@ async function renderSfStockBlock(sf) {
         const totalIn = data.filter(r => r.type === 'приход').reduce((s, r) => s + Number(r.quantity), 0);
         let html = `<p class="text-xs text-gray-500 font-semibold mt-2 mb-1">История (произведено: ${totalIn.toFixed(2)} ${unitLabel})</p>`;
         html += '<div style="max-height:224px;overflow-y:auto;touch-action:pan-y;overscroll-behavior:contain;">';
-        html += '<table class="w-full text-xs"><thead><tr class="bg-gray-100"><th class="p-0.5 text-left">Дата</th><th class="p-0.5 text-right">Кол-во</th><th class="p-0.5 text-left">Заметка</th></tr></thead><tbody>';
+        html += '<table class="w-full text-xs"><thead><tr class="bg-gray-100"><th class="p-1 text-left">Дата</th><th class="p-1 text-right">Кол-во</th><th class="p-1 text-left">Заметка</th></tr></thead><tbody>';
         data.forEach(r => {
             const date = new Date(r.created_at).toLocaleDateString('ru-LT');
             const isIn = r.type === 'приход';
