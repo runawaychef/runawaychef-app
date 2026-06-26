@@ -173,9 +173,11 @@ async function openInventoryModal() {
 
     const UNIT_LABELS = { g: 'г', kg: 'кг', ml: 'мл', l: 'л', pcs: 'шт' };
 
-    // Считаем нехватку для принятых заказов (раскрываем и полуфабрикаты до прямых ингредиентов)
+    // Считаем нехватку для принятых заказов.
+    // П/ф НЕ раскрываем до ингредиентов — нехватку п/ф проверяем по его остатку.
     const today = getLocalDateStr(0);
-    const neededForOrders = {};
+    const neededForOrders = {};    // ingredient_id -> qty
+    const neededSfForOrders = {}; // semi_finished_id -> qty
     (orders || []).filter(o => o.status !== 'выполнен' && o.date >= today).forEach(o => {
         (o.items || []).forEach(item => {
             const prod = products.find(p => p.id === item.product_id);
@@ -186,15 +188,8 @@ async function openInventoryModal() {
                     neededForOrders[ri.ingredient_id] = (neededForOrders[ri.ingredient_id] || 0) +
                         Number(ri.quantity) * Number(item.quantity) * factor;
                 } else if (ri.semi_finished_id) {
-                    // Раскрываем полуфабрикат до прямых ингредиентов
-                    const sf = (semiFinished || []).find(s => s.id === ri.semi_finished_id);
-                    if (!sf || !sf.ingredients) return;
-                    const sfFactor = Number(ri.quantity) / Number(sf.batch_size || 1);
-                    sf.ingredients.forEach(sfi => {
-                        if (!sfi.ingredient_id) return;
-                        neededForOrders[sfi.ingredient_id] = (neededForOrders[sfi.ingredient_id] || 0) +
-                            Number(sfi.quantity) * sfFactor * Number(item.quantity) * factor;
-                    });
+                    neededSfForOrders[ri.semi_finished_id] = (neededSfForOrders[ri.semi_finished_id] || 0) +
+                        Number(ri.quantity) * Number(item.quantity) * factor;
                 }
             });
         });
@@ -275,27 +270,13 @@ async function openInventoryModal() {
         const SF_UNIT_LABELS = { g: 'г', kg: 'кг', ml: 'мл', l: 'л', pcs: 'шт' };
         const sfRed = [], sfYellow = [], sfRest = [];
 
-        // Считаем нехватку п/ф для принятых заказов
-        const neededSf = {};
-        (orders || []).filter(o => o.status !== 'выполнен' && o.date >= today).forEach(o => {
-            (o.items || []).forEach(item => {
-                const prod = products.find(p => p.id === item.product_id);
-                if (!prod || !prod.ingredients) return;
-                const factor = 1 / Number(prod.batch_size || 1);
-                prod.ingredients.forEach(ri => {
-                    if (!ri.semi_finished_id) return;
-                    neededSf[ri.semi_finished_id] = (neededSf[ri.semi_finished_id] || 0) +
-                        Number(ri.quantity) * Number(item.quantity) * factor;
-                });
-            });
-        });
-
+        // Используем neededSfForOrders, посчитанный выше вместе с ингредиентами
         sfSorted.forEach(sf => {
             const balance  = getSemiFinishedBalance(sf.id);
             const daily    = avgDailySfUsage(sf.id);
             const daysLeft = (balance !== null && balance > 0 && daily > 0) ? Math.floor(balance / daily) : null;
             const unitLabel = SF_UNIT_LABELS[sf.unit] || sf.unit;
-            const needed = neededSf[sf.id] || 0;
+            const needed = neededSfForOrders[sf.id] || 0;
             const shortage = needed > 0 && (balance === null || balance < needed);
             const item = { ing: { id: sf.id, name: sf.name }, balance, daysLeft, unitLabel, shortage };
             if (shortage || (balance !== null && balance <= 0) || (daysLeft !== null && daysLeft < 3)) sfRed.push(item);
@@ -646,8 +627,9 @@ async function addCriticalToShoppingList() {
     const UL = { g: 'г', kg: 'кг', ml: 'мл', l: 'л', pcs: 'шт' };
     const today = getLocalDateStr(0);
 
-    // Считаем нехватку для заказов (та же логика что в openInventoryModal)
-    const neededForOrders = {};
+    // Считаем нехватку для заказов — П/ф НЕ раскрываем до ингредиентов
+    const neededForOrders = {};    // ingredient_id -> qty
+    const neededSfOrders = {};     // semi_finished_id -> qty
     (orders || []).filter(o => o.status !== 'выполнен' && o.date >= today).forEach(o => {
         (o.items || []).forEach(item => {
             const prod = products.find(p => p.id === item.product_id);
@@ -658,14 +640,8 @@ async function addCriticalToShoppingList() {
                     neededForOrders[ri.ingredient_id] = (neededForOrders[ri.ingredient_id] || 0) +
                         Number(ri.quantity) * Number(item.quantity) * factor;
                 } else if (ri.semi_finished_id) {
-                    const sf = (semiFinished || []).find(s => s.id === ri.semi_finished_id);
-                    if (!sf || !sf.ingredients) return;
-                    const sfFactor = Number(ri.quantity) / Number(sf.batch_size || 1);
-                    sf.ingredients.forEach(sfi => {
-                        if (!sfi.ingredient_id) return;
-                        neededForOrders[sfi.ingredient_id] = (neededForOrders[sfi.ingredient_id] || 0) +
-                            Number(sfi.quantity) * sfFactor * Number(item.quantity) * factor;
-                    });
+                    neededSfOrders[ri.semi_finished_id] = (neededSfOrders[ri.semi_finished_id] || 0) +
+                        Number(ri.quantity) * Number(item.quantity) * factor;
                 }
             });
         });
@@ -680,25 +656,12 @@ async function addCriticalToShoppingList() {
         return shortage || (balance !== null && balance <= 0) || (daysLeft !== null && daysLeft < 3);
     });
 
-    // П/ф в красной зоне
-    const neededSf = {};
-    (orders || []).filter(o => o.status !== 'выполнен' && o.date >= today).forEach(o => {
-        (o.items || []).forEach(item => {
-            const prod = products.find(p => p.id === item.product_id);
-            if (!prod || !prod.ingredients) return;
-            const factor = 1 / Number(prod.batch_size || 1);
-            prod.ingredients.forEach(ri => {
-                if (!ri.semi_finished_id) return;
-                neededSf[ri.semi_finished_id] = (neededSf[ri.semi_finished_id] || 0) +
-                    Number(ri.quantity) * Number(item.quantity) * factor;
-            });
-        });
-    });
+    // П/ф в красной зоне — используем neededSfOrders, посчитанный выше
     const criticalSf = (semiFinished || []).filter(sf => {
         const balance  = getSemiFinishedBalance(sf.id);
         const daily    = avgDailySfUsage(sf.id);
         const daysLeft = (balance !== null && balance > 0 && daily > 0) ? Math.floor(balance / daily) : null;
-        const needed   = neededSf[sf.id] || 0;
+        const needed   = neededSfOrders[sf.id] || 0;
         const shortage = needed > 0 && (balance === null || balance < needed);
         return shortage || (balance !== null && balance <= 0) || (daysLeft !== null && daysLeft < 3);
     });
@@ -722,7 +685,7 @@ async function addCriticalToShoppingList() {
         }
         for (const sf of criticalSf) {
             const balance = getSemiFinishedBalance(sf.id) || 0;
-            const needed  = neededSf[sf.id] || 0;
+            const needed  = neededSfOrders[sf.id] || 0;
             const daily   = avgDailySfUsage(sf.id);
             let toBuy = needed > balance ? parseFloat((needed - balance).toFixed(2)) : 0;
             if (toBuy === 0 && daily > 0) toBuy = parseFloat((daily * 14).toFixed(2));
