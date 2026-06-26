@@ -680,16 +680,16 @@ async function addCriticalToShoppingList() {
             const needed  = neededForOrders[ing.id] || 0;
             // Дефицит = сколько не хватает; если просто заканчивается — среднесуточный × 14 дней
             const daily   = avgDailyUsage(ing.id);
-            let toBuy = needed > balance ? parseFloat((needed - balance).toFixed(2)) : 0;
-            if (toBuy === 0 && daily > 0) toBuy = parseFloat((daily * 14).toFixed(2));
+            let toBuy = needed > balance ? Math.ceil((needed - balance) / 100) * 100 : 0;
+            if (toBuy === 0 && daily > 0) toBuy = Math.ceil((daily * 14) / 100) * 100;
             await addToShoppingList(ing.id, null, toBuy);
         }
         for (const sf of criticalSf) {
             const balance = getSemiFinishedBalance(sf.id) || 0;
             const needed  = neededSfOrders[sf.id] || 0;
             const daily   = avgDailySfUsage(sf.id);
-            let toBuy = needed > balance ? parseFloat((needed - balance).toFixed(2)) : 0;
-            if (toBuy === 0 && daily > 0) toBuy = parseFloat((daily * 14).toFixed(2));
+            let toBuy = needed > balance ? Math.ceil((needed - balance) / 100) * 100 : 0;
+            if (toBuy === 0 && daily > 0) toBuy = Math.ceil((daily * 14) / 100) * 100;
             await addToShoppingList(null, sf.id, toBuy);
         }
         switchInventoryTab('shop');
@@ -705,7 +705,7 @@ async function addIngredientToShoppingList(ingId) {
     if (!ing) return;
     const balance = getIngredientBalance(ingId) || 0;
     const daily   = avgDailyUsage(ingId);
-    const toBuy   = daily > 0 ? parseFloat((daily * 14).toFixed(2)) : 0;
+    const toBuy   = daily > 0 ? Math.ceil((daily * 14) / 100) * 100 : 0;
     showLoading();
     try {
         await addToShoppingList(ingId, null, toBuy);
@@ -758,10 +758,10 @@ async function addRowToShoppingList(ingId, sfId) {
     if (ingId) {
         const balance = getIngredientBalance(ingId) || 0;
         const daily   = avgDailyUsage(ingId);
-        toBuy = daily > 0 ? parseFloat((daily * 14).toFixed(2)) : 0;
+        toBuy = daily > 0 ? Math.ceil((daily * 14) / 100) * 100 : 0;
     } else if (sfId) {
         const daily = avgDailySfUsage(sfId);
-        toBuy = daily > 0 ? parseFloat((daily * 14).toFixed(2)) : 0;
+        toBuy = daily > 0 ? Math.ceil((daily * 14) / 100) * 100 : 0;
     }
     showLoading();
     try {
