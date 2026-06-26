@@ -191,9 +191,7 @@ function getFilteredOrdersForList() {
         const today = new Date();
         let startStr;
         if (dateRange === 'week') {
-            const s = new Date(today);
-            s.setDate(today.getDate() - today.getDay() + (today.getDay() === 0 ? -6 : 1));
-            startStr = `${s.getFullYear()}-${String(s.getMonth()+1).padStart(2,'0')}-${String(s.getDate()).padStart(2,'0')}`;
+            startStr = getCurrentWeekStartStr();
         } else {
             startStr = `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-01`;
         }
@@ -550,16 +548,27 @@ async function openOrdersTrash() {
     }
 }
 
-async function openTrashOrderActions(orderId, custName, orderDate) {
-    const ok = await showConfirm(
-        `Заказ №${orderId} · ${custName} · ${orderDate}\n\nВосстановить этот заказ?`
-    );
-    if (ok) {
+function openTrashOrderActions(orderId, custName, orderDate) {
+    const modal = document.getElementById('trashOrderActionsModal');
+    const title = document.getElementById('trashOrderActionsTitle');
+    const restoreBtn = document.getElementById('trashRestoreBtn');
+    const deleteBtn  = document.getElementById('trashDeleteBtn');
+    if (!modal) return;
+
+    title.textContent = `Заказ №${orderId} · ${custName} · ${orderDate}`;
+
+    // Переназначаем обработчики каждый раз (избегаем накопления listener-ов)
+    restoreBtn.onclick = async () => {
+        modal.style.display = 'none';
         await restoreOrder(orderId);
-    } else {
-        const del = await showConfirm('Удалить заказ навсегда?');
-        if (del) await permanentDeleteOrder(orderId);
-    }
+    };
+    deleteBtn.onclick = async () => {
+        modal.style.display = 'none';
+        const ok = await showConfirm(`Удалить заказ №${orderId} навсегда? Это действие нельзя отменить.`);
+        if (ok) await permanentDeleteOrder(orderId);
+    };
+
+    modal.style.display = 'flex';
 }
 
 async function restoreOrder(orderId) {
@@ -813,11 +822,12 @@ async function saveItemEdit() {
 
     showLoading();
     try {
+        const itemCost = parseFloat((productUnitCost(prod) * quantity).toFixed(4));
         const { error } = await db.from('order_items').update({
-            product_id: prod.id, quantity, price: parseFloat(price.toFixed(2))
+            product_id: prod.id, quantity, price: parseFloat(price.toFixed(2)), item_cost: itemCost
         }).eq('id', item.id);
         if (error) throw error;
-        order.items[editItemIdx] = { id: item.id, product_id: prod.id, product: prod.name, quantity, price: parseFloat(price.toFixed(2)) };
+        order.items[editItemIdx] = { id: item.id, product_id: prod.id, product: prod.name, quantity, price: parseFloat(price.toFixed(2)), item_cost: itemCost };
         renderDetailItems(order);
         closeModal();
         logActivity('item', `Изменена позиция в заказе №${order.id}: ${oldDesc} → «${prod.name}» × ${quantity}`, order.id);

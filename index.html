@@ -1120,6 +1120,18 @@
             </div>
         </div>
 
+        <!-- Модалка действий с заказом в корзине -->
+        <div id="trashOrderActionsModal" class="modal" style="z-index:310;">
+            <div class="modal-content" style="max-width:340px;">
+                <h2 id="trashOrderActionsTitle" class="text-sm font-semibold mb-3 text-gray-800"></h2>
+                <div class="flex flex-col gap-2">
+                    <button id="trashRestoreBtn" class="btn bg-indigo-600 text-white p-2 rounded-md hover:bg-indigo-700 text-xs">↩ Восстановить заказ</button>
+                    <button id="trashDeleteBtn" class="btn bg-red-50 text-red-600 p-2 rounded-md hover:bg-red-100 text-xs">🗑 Удалить навсегда</button>
+                    <button onclick="document.getElementById('trashOrderActionsModal').style.display='none'" class="btn bg-gray-200 text-gray-700 p-2 rounded-md hover:bg-gray-300 text-xs">Отмена</button>
+                </div>
+            </div>
+        </div>
+
         <!-- Модалка инвентаризации -->
         <div id="inventarizationModal" class="modal">
             <div class="modal-content" style="max-width:480px;">
@@ -1377,18 +1389,18 @@
     </div><!-- p-2 -->
 </div><!-- container -->
 
-<script src="dates.js?v=3"></script>
-<script src="money.js?v=4"></script>
-<script src="supabaseClient.js?v=3"></script>
-<script src="auth.js?v=3"></script>
-<script src="employees.js?v=12"></script>
-    <script src="inventory.js?v=11"></script>
+<script src="dates.js?v=4"></script>
+    <script src="money.js?v=4"></script>
+    <script src="supabaseClient.js?v=3"></script>
+    <script src="auth.js?v=3"></script>
+    <script src="employees.js?v=12"></script>
+    <script src="inventory.js?v=12"></script>
 <script src="ingredients.js?v=31"></script>
 <script src="semifinished.js?v=13"></script>
 <script src="products.js?v=13"></script>
-<script src="customers.js?v=25"></script>
-<script src="orders.js?v=33"></script>
-<script src="stats.js?v=11"></script>
+<script src="customers.js?v=26"></script>
+<script src="orders.js?v=34"></script>
+<script src="stats.js?v=12"></script>
 <script src="history.js?v=3"></script>
 <script src="modals.js?v=9"></script>
 <script src="helpers.js?v=9"></script>

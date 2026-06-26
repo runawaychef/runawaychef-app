@@ -21,6 +21,8 @@ function downloadBackup() {
         date: o.date,
         status: o.status,
         discount: o.discount,
+        vat_exempt: o.vat_exempt,
+        notes: o.notes,
         items: o.items.map(it => ({ product: it.product, quantity: it.quantity, price: it.price }))
     }));
     const data = {
@@ -51,8 +53,7 @@ function getFilteredOrders() {
         const today = new Date();
         let start;
         if (dateRange === 'week') {
-            start = new Date(today);
-            start.setDate(today.getDate() - today.getDay() + (today.getDay() === 0 ? -6 : 1));
+            start = getCurrentWeekStart();
         } else if (dateRange === 'year') {
             start = new Date(today.getFullYear(), 0, 1);
         } else {
@@ -69,8 +70,7 @@ function getFilteredOrders() {
 
 function calculateStats(filteredOrders) {
     const today = new Date();
-    const weekStart  = new Date(today);
-    weekStart.setDate(today.getDate() - today.getDay() + (today.getDay() === 0 ? -6 : 1));
+    const weekStart  = getCurrentWeekStart();
     const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
     const sum    = list => list.reduce((s, o) => s + orderGrandTotal(o), 0).toFixed(2);
     const sumVat = list => list.reduce((s, o) => s + orderVatAmount(o), 0).toFixed(2);
@@ -182,10 +182,7 @@ function updateInfoCounts() {
 }
 
 function updateTotals(filteredOrders) {
-    const today = new Date();
-    const weekStart  = new Date(today);
-    weekStart.setDate(today.getDate() - today.getDay() + (today.getDay() === 0 ? -6 : 1));
-    const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
+    // Функция оставлена как точка расширения; основные итоги обновляет updateDisplay()
 }
 
 // --- Таблица по клиентам ---

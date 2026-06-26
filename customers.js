@@ -107,8 +107,7 @@ function getCustomerOrdersForRange(cust) {
         const today = new Date();
         let start;
         if (range === 'week') {
-            start = new Date(today);
-            start.setDate(today.getDate() - today.getDay() + (today.getDay() === 0 ? -6 : 1));
+            start = getCurrentWeekStart();
         } else if (range === 'year') {
             start = new Date(today.getFullYear(), 0, 1);
         } else {
@@ -313,7 +312,7 @@ async function saveCdHeader() {
     const discount = parseFloat(document.getElementById('cdDiscount').value) || 0;
     const vatExempt = document.getElementById('cdVatExempt').checked;
     const notes    = document.getElementById('cdNotes').value.trim();
-    if (!name || !contact) { showInfo('Заполните имя и контакты!'); return; }
+    if (!name) { showInfo('Заполните имя клиента!'); return; }
     const oldName = cust.name;
     showLoading();
     try {
@@ -351,9 +350,7 @@ function renderCustomerOrders() {
         const today = new Date();
         let startStr;
         if (range === 'week') {
-            const s = new Date(today);
-            s.setDate(today.getDate() - today.getDay() + (today.getDay() === 0 ? -6 : 1));
-            startStr = `${s.getFullYear()}-${String(s.getMonth()+1).padStart(2,'0')}-${String(s.getDate()).padStart(2,'0')}`;
+            startStr = getCurrentWeekStartStr();
         } else if (range === 'year') {
             startStr = `${today.getFullYear()}-01-01`;
         } else {

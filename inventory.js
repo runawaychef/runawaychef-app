@@ -166,7 +166,7 @@ async function openInventoryModal() {
 
     const UNIT_LABELS = { g: 'г', kg: 'кг', ml: 'мл', l: 'л', pcs: 'шт' };
 
-    // Считаем нехватку для принятых заказов
+    // Считаем нехватку для принятых заказов (раскрываем и полуфабрикаты до прямых ингредиентов)
     const today = getLocalDateStr(0);
     const neededForOrders = {};
     (orders || []).filter(o => o.status !== 'выполнен' && o.date >= today).forEach(o => {
@@ -175,9 +175,20 @@ async function openInventoryModal() {
             if (!prod || !prod.ingredients) return;
             const factor = 1 / Number(prod.batch_size || 1);
             prod.ingredients.forEach(ri => {
-                if (!ri.ingredient_id) return;
-                neededForOrders[ri.ingredient_id] = (neededForOrders[ri.ingredient_id] || 0) +
-                    Number(ri.quantity) * Number(item.quantity) * factor;
+                if (ri.ingredient_id) {
+                    neededForOrders[ri.ingredient_id] = (neededForOrders[ri.ingredient_id] || 0) +
+                        Number(ri.quantity) * Number(item.quantity) * factor;
+                } else if (ri.semi_finished_id) {
+                    // Раскрываем полуфабрикат до прямых ингредиентов
+                    const sf = (semiFinished || []).find(s => s.id === ri.semi_finished_id);
+                    if (!sf || !sf.ingredients) return;
+                    const sfFactor = Number(ri.quantity) / Number(sf.batch_size || 1);
+                    sf.ingredients.forEach(sfi => {
+                        if (!sfi.ingredient_id) return;
+                        neededForOrders[sfi.ingredient_id] = (neededForOrders[sfi.ingredient_id] || 0) +
+                            Number(sfi.quantity) * sfFactor * Number(item.quantity) * factor;
+                    });
+                }
             });
         });
     });

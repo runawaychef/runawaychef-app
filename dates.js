@@ -19,6 +19,17 @@ function getMondayOf(d) {
     return date;
 }
 
+// Возвращает Date — понедельник текущей недели (в локальном времени)
+function getCurrentWeekStart() {
+    return getMondayOf(new Date());
+}
+
+// Возвращает строку YYYY-MM-DD — понедельник текущей недели
+function getCurrentWeekStartStr() {
+    const d = getCurrentWeekStart();
+    return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+
 const MONTH_NAMES_RU = [
     'января', 'февраля', 'марта', 'апреля', 'мая', 'июня',
     'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря'
