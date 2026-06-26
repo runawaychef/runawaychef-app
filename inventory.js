@@ -538,6 +538,7 @@ function renderShoppingList() {
 
     if (!_shoppingList.length) {
         container.innerHTML = '<p class="text-xs text-gray-400 text-center py-4">Список пуст. Добавьте позиции кнопкой «+ Добавить критичное» или из карточки ингредиента.</p>';
+        updateShopListBadge();
         return;
     }
 
