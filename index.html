@@ -39,7 +39,9 @@
         .tab.active { color: #4f46e5 !important; border-bottom: 2px solid #4f46e5 !important; font-weight: 600; }
         .tab:hover:not(.active) { color: #374151 !important; border-bottom: 2px solid #d1d5db !important; }
 
-        table { overflow-x: auto; touch-action: pan-y; overscroll-behavior: contain; }
+        /* Таблицы — без боковых границ, только нижняя линия */
+        .table-clean td, .table-clean th { border-bottom: 1px solid #e5e7eb; padding: 4px; }
+        .table-clean thead tr { background: #f3f4f6; }
         #statsCustomerTableScroll table { touch-action: pan-y; }
         td, th { font-size: 13px; font-family: inherit; }
         .flag { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin: 0; vertical-align: middle; }
@@ -279,7 +281,7 @@
                     <h2 class="text-sm font-semibold mb-2 text-gray-800">Ассортимент</h2>
                     <p class="text-xs text-gray-400 mb-2">Нажмите на строку изделия, чтобы открыть рецептуру</p>
                     <p id="productsUnitWarning" class="text-xs text-red-600 bg-red-50 border border-red-200 rounded-md p-1.5 mb-2 hidden">⚠ У некоторых изделий не выбрана единица измерения или не подтверждён рецепт. Откройте их и проверьте.</p>
-                    <table class="w-full table-auto">
+                    <table class="w-full table-auto table-clean">
                         <thead><tr class="bg-gray-100">
                             <th class="p-1 text-xs w-[45%]">Название</th>
                             <th class="p-1 text-xs w-[15%]">Ед.</th>
@@ -623,7 +625,7 @@
                     <h2 class="text-sm font-semibold mb-2 text-gray-800">Список клиентов</h2>
                     <p class="text-xs text-gray-400 mb-2">Нажмите на строку, чтобы открыть карточку клиента</p>
                     <p id="customersNameWarning" class="text-xs text-red-600 bg-red-50 border border-red-200 rounded-md p-1.5 mb-2 hidden">⚠ У некоторых клиентов не указано имя. Откройте их карточку и заполните имя — без этого их заказы будут отображаться некорректно.</p>
-                    <table class="w-full table-auto">
+                    <table class="w-full table-auto table-clean">
                         <thead><tr class="bg-gray-100">
                             <th class="p-1 text-xs w-[35%]">Имя</th>
                             <th class="p-1 text-xs w-[30%]">Контакты</th>
@@ -733,7 +735,7 @@
                     </select>
                 </div>
                 <p class="text-xs text-gray-400 mb-2">Записи о заказах можно открыть нажатием (кроме удалённых)</p>
-                <table class="w-full table-auto">
+                <table class="w-full table-auto table-clean">
                     <thead><tr class="bg-gray-100">
                         <th class="p-1 text-xs w-[15%]">Дата</th>
                         <th class="p-1 text-xs w-[10%]">Время</th>
@@ -799,7 +801,7 @@
                         </div>
                     </div>
 
-                    <table class="w-full table-auto">
+                    <table class="w-full table-auto table-clean">
                         <thead><tr class="bg-gray-100">
                             <th class="p-1 text-xs w-[17%]">Дата</th>
                             <th class="p-1 text-xs w-[23%]">Клиент</th>
