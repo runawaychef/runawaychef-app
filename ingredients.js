@@ -120,7 +120,7 @@ async function cleanupIngredientDraftIfEmpty(ingId) {
 }
 
 // ==================== КАРТОЧКА ИНГРЕДИЕНТА ====================
-function openIngredientDetail(ingId) {
+async function openIngredientDetail(ingId) {
     currentIngredientId = ingId;
     const ing = ingredients.find(i => i.id === ingId);
     if (!ing) return;
@@ -142,6 +142,12 @@ function openIngredientDetail(ingId) {
     const qtyUnitEl = document.getElementById('ingQtyUnit');
     if (qtyUnitEl) qtyUnitEl.textContent = UNIT_LABELS[ing.unit] || ing.unit;
     renderIngredientUnitPrice(ing);
+    // Загружаем историю цен для расчёта стоимости в истории движений
+    const { data: ph } = await db.from('ingredient_price_history')
+        .select('valid_from, package_price, package_size')
+        .eq('ingredient_id', ing.id)
+        .order('valid_from', { ascending: true });
+    ing.priceHistory = ph || [];
     loadIngredientPriceHistory(ingId);
     renderIngredientStockBlock(ing);
     refreshFab();
@@ -454,29 +460,89 @@ async function renderIngredientStockBlock(ing) {
             .eq('ingredient_id', ing.id)
             .in('type', ['приход', 'расход'])
             .order('created_at', { ascending: false })
-            .limit(50);
+            .limit(200);
         if (!data || !data.length) {
             histEl.innerHTML = '<p class="text-xs text-gray-400 mt-1">Движений ещё не было</p>';
             return;
         }
-        const totalIn  = data.filter(r => r.type === 'приход').reduce((s, r) => s + Number(r.quantity), 0);
-        const totalOut = data.filter(r => r.type === 'расход' && (r.notes || '').includes('Корректировка')).reduce((s, r) => s + Number(r.quantity), 0);
-        let html = `<p class="text-xs text-gray-500 font-semibold mt-2 mb-1">История (куплено: ${totalIn.toFixed(2)} ${unitLabel}${totalOut > 0 ? `, списано: ${totalOut.toFixed(2)} ${unitLabel}` : ''})</p>`;
-        html += '<div style="max-height:224px;overflow-y:auto;touch-action:pan-y;overscroll-behavior:contain;">';
-        html += '<table class="w-full text-xs"><thead><tr class="bg-gray-100"><th class="p-0.5 text-left">Дата</th><th class="p-0.5 text-right">Кол-во</th><th class="p-0.5 text-left">Заметка</th></tr></thead><tbody>';
+
+        // Определяем категорию каждой записи
+        function getCategory(r) {
+            if (r.type === 'приход') return 'in';
+            const n = r.notes || '';
+            if (n.startsWith('Заказ #') || n.startsWith('Сторно заказа')) return 'order';
+            return 'personal';
+        }
+
+        // Стоимость единицы на дату записи
+        function unitCostAtDate(dateStr) {
+            if (!ing.priceHistory || !ing.priceHistory.length) return ing.package_price / ing.package_size;
+            const applicable = ing.priceHistory.filter(h => h.valid_from <= dateStr);
+            if (!applicable.length) return ing.package_price / ing.package_size;
+            const last = applicable[applicable.length - 1];
+            return last.package_size ? last.package_price / last.package_size : 0;
+        }
+
+        // Итоги по категориям
+        const totals = { in: { qty: 0, cost: 0 }, order: { qty: 0, cost: 0 }, personal: { qty: 0, cost: 0 } };
         data.forEach(r => {
-            const date = new Date(r.created_at).toLocaleDateString('ru-LT');
+            const cat = getCategory(r);
+            const qty = Number(r.quantity);
+            const dateStr = r.created_at.slice(0, 10);
+            const cost = qty * unitCostAtDate(dateStr);
+            totals[cat].qty  += qty;
+            totals[cat].cost += cost;
+        });
+
+        // Итоговая строка
+        let summary = `<div class="text-xs text-gray-600 mt-2 mb-2 space-y-0.5">`;
+        summary += `<div>🟢 Куплено: <span class="font-semibold text-green-700">${totals.in.qty.toFixed(2)} ${unitLabel}</span> · ${totals.in.cost.toFixed(2)} €</div>`;
+        if (totals.order.qty > 0) summary += `<div>🔵 На заказы: <span class="font-semibold text-blue-700">${totals.order.qty.toFixed(2)} ${unitLabel}</span> · ${totals.order.cost.toFixed(2)} €</div>`;
+        if (totals.personal.qty > 0) summary += `<div>🔴 Личное/потери: <span class="font-semibold text-red-600">${totals.personal.qty.toFixed(2)} ${unitLabel}</span> · ${totals.personal.cost.toFixed(2)} €</div>`;
+        summary += `</div>`;
+
+        // Фильтр-табы
+        const tabs = `<div class="flex gap-1 mb-2 flex-wrap">
+            <button onclick="filterIngHistory('all')" id="histTab_all" class="hist-tab hist-tab-active text-xs px-2 py-0.5 rounded-full border border-gray-300 bg-gray-700 text-white">Все</button>
+            <button onclick="filterIngHistory('in')" id="histTab_in" class="hist-tab text-xs px-2 py-0.5 rounded-full border border-gray-300 bg-white text-gray-600">+ Приходы</button>
+            <button onclick="filterIngHistory('order')" id="histTab_order" class="hist-tab text-xs px-2 py-0.5 rounded-full border border-gray-300 bg-white text-gray-600">− Заказы</button>
+            <button onclick="filterIngHistory('personal')" id="histTab_personal" class="hist-tab text-xs px-2 py-0.5 rounded-full border border-gray-300 bg-white text-gray-600">− Личное</button>
+        </div>`;
+
+        // Строки таблицы
+        let rows = '';
+        data.forEach(r => {
+            const cat = getCategory(r);
+            const dateStr = r.created_at.slice(0, 10);
+            const date = formatDateDMY(dateStr);
+            const qty = Number(r.quantity);
+            const unitCost = unitCostAtDate(dateStr);
+            const cost = (qty * unitCost).toFixed(2);
             const isIn = r.type === 'приход';
             const sign = isIn ? '+' : '−';
-            const color = isIn ? 'text-green-700' : 'text-red-600';
-            html += `<tr class="border-b cursor-pointer hover:bg-gray-50 active:bg-gray-100" onclick="editInventoryRecord(${r.id}, ${Number(r.quantity)}, '${escapeHtml(r.notes || '')}')">
-                <td class="p-1">${date}</td>
-                <td class="p-1 text-right ${color} font-semibold">${sign}${Number(r.quantity).toFixed(2)} ${unitLabel}</td>
-                <td class="p-1 text-gray-500">${escapeHtml(r.notes || '')}</td>
+            const color = isIn ? 'text-green-700' : (cat === 'order' ? 'text-blue-700' : 'text-red-600');
+            const notes = escapeHtml(r.notes || '').replace('Корректировка: ', '').replace('Закупка ', '');
+            rows += `<tr class="border-b cursor-pointer hover:bg-gray-50" data-cat="${cat}" onclick="editInventoryRecord(${r.id}, ${qty}, '${escapeHtml(r.notes || '')}')">
+                <td class="p-1 whitespace-nowrap">${date}</td>
+                <td class="p-1 text-right ${color} font-semibold whitespace-nowrap">${sign}${qty.toFixed(2)} ${unitLabel}</td>
+                <td class="p-1 text-right text-gray-500 whitespace-nowrap">${cost} €</td>
+                <td class="p-1 text-gray-400 text-xs">${notes}</td>
             </tr>`;
         });
-        html += '</tbody></table></div>';
-        histEl.innerHTML = html;
+
+        const table = `<div id="ingHistTableWrap" style="max-height:260px;overflow-y:auto;touch-action:pan-y;overscroll-behavior:contain;">
+            <table class="w-full text-xs">
+                <thead><tr class="bg-gray-100 sticky top-0">
+                    <th class="p-1 text-left">Дата</th>
+                    <th class="p-1 text-right">Кол-во</th>
+                    <th class="p-1 text-right">Сумма</th>
+                    <th class="p-1 text-left">Заметка</th>
+                </tr></thead>
+                <tbody id="ingHistTableBody">${rows}</tbody>
+            </table>
+        </div>`;
+
+        histEl.innerHTML = summary + tabs + table;
     } catch(e) { console.error(e); }
 }
 
@@ -724,4 +790,24 @@ async function confirmQuickAddIngredient() {
         if (input) input.value = newIng.name;
     } catch (e) { console.error(e); showInfo('Ошибка сохранения. Проверьте подключение.'); }
     finally { hideLoading(); }
+}
+
+// ── Фильтр истории движений ──────────────────────────────────────────────────
+
+function filterIngHistory(cat) {
+    // Переключаем табы
+    document.querySelectorAll('.hist-tab').forEach(btn => {
+        btn.classList.remove('bg-gray-700', 'text-white', 'hist-tab-active');
+        btn.classList.add('bg-white', 'text-gray-600');
+    });
+    const activeBtn = document.getElementById(`histTab_${cat}`);
+    if (activeBtn) {
+        activeBtn.classList.add('bg-gray-700', 'text-white', 'hist-tab-active');
+        activeBtn.classList.remove('bg-white', 'text-gray-600');
+    }
+    // Фильтруем строки
+    const rows = document.querySelectorAll('#ingHistTableBody tr');
+    rows.forEach(row => {
+        row.style.display = (cat === 'all' || row.dataset.cat === cat) ? '' : 'none';
+    });
 }
