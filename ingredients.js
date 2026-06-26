@@ -432,11 +432,11 @@ async function renderIngredientStockBlock(ing) {
         if (balance !== null && balance > 0) {
             balEl.textContent = Number(balance).toFixed(2);
             const days = (daily > 0) ? Math.floor(balance / daily) : null;
-            const colorClass = stockColorClass(days, 'text-') + ' text-lg font-bold';
+            const colorClass = stockColorClass(days, 'text-') + ' font-bold';
             balEl.className = colorClass;
         } else {
             balEl.textContent = '0';
-            balEl.className = 'text-lg font-bold text-gray-400';
+            balEl.className = 'font-bold text-gray-400';
         }
     }
     if (unitEl) unitEl.textContent = unitLabel;
