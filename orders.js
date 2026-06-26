@@ -673,13 +673,11 @@ async function saveDetailHeader() {
         if (old.notes !== order.notes) changes.push(`комментарий изменён`);
         if (changes.length) logActivity('order', `Изменён заказ №${order.id}: ${changes.join(', ')}`, order.id);
 
-        // Telegram: уведомление о новом заказе (первый раз когда появился клиент)
-        if (!old.customer && order.customer) {
-            notifyNewOrder(order);
-        }
-        // Telegram: уведомление о смене статуса
-        if (old.status !== order.status) {
-            notifyStatusChange(order, old.status, order.status);
+        // Telegram: автоуведомление при смене статуса
+        if (old.status !== order.status && order.customer) {
+            const senderName = currentEmployee ? currentEmployee.name : '—';
+            const text = `🔄 ${order.customer} · 📅 ${formatDateDMY(order.date)}\nСтатус: ${old.status} → ${order.status}\n👨\u200d🍳 ${senderName}`;
+            sendTelegramNotification(text);
         }
     } catch (e) { console.error(e); showInfo('Ошибка сохранения. Проверьте подключение.'); }
     finally { hideLoading(); }

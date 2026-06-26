@@ -154,21 +154,22 @@ async function sendTelegramNotification(text) {
     }
 }
 
-// Уведомление о новом заказе (вызывается когда выбран клиент)
-async function notifyNewOrder(order) {
-    if (!order.customer) return;
+// Отправка уведомления о заказе по кнопке из карточки заказа
+async function notifyOrderToTelegram() {
+    const order = orders.find(o => o.id === currentOrderId);
+    if (!order) return;
+    if (!order.customer) { await showInfo('Сначала выберите клиента!'); return; }
+
     const senderName = currentEmployee ? currentEmployee.name : '—';
     const items = (order.items || []).map(it => `• ${it.product} × ${it.quantity}`).join('\n');
     const text = `🆕 Новый заказ\n👤 ${order.customer} · 📅 ${formatDateDMY(order.date)}${items ? '\n' + items : ''}\n👨‍🍳 ${senderName}`;
-    await sendTelegramNotification(text);
-}
 
-// Уведомление о смене статуса заказа
-async function notifyStatusChange(order, oldStatus, newStatus) {
-    if (!order.customer) return;
-    const senderName = currentEmployee ? currentEmployee.name : '—';
-    const text = `🔄 ${order.customer} · 📅 ${formatDateDMY(order.date)}\nСтатус: ${oldStatus} → ${newStatus}\n👨‍🍳 ${senderName}`;
-    await sendTelegramNotification(text);
+    showLoading('Отправляю...');
+    try {
+        await sendTelegramNotification(text);
+        await showInfo('Уведомление отправлено!');
+    } catch(e) { console.error(e); showInfo('Ошибка отправки.'); }
+    finally { hideLoading(); }
 }
 
 // Отправка списка покупок в Telegram
