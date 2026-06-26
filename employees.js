@@ -130,3 +130,155 @@ async function fixateAllItemCosts() {
         await showInfo(`Ошибка: зафиксировано ${fixed} из ${toFix.length}. Попробуйте ещё раз.`);
     } finally { hideLoading(); }
 }
+
+// ==================== TELEGRAM УВЕДОМЛЕНИЯ ====================
+
+const TELEGRAM_BOT_TOKEN = '8672305499:AAGt64Stm_UE10nYJ3nI9BZttdOJqKnK_Bc';
+const TELEGRAM_CHAT_IDS = {
+    'Sergey': 371171905,
+    'Mark':   658689940
+};
+
+// Отправляет сообщение всем кроме текущего сотрудника
+async function sendTelegramNotification(message) {
+    const senderName = currentEmployee ? currentEmployee.name : null;
+    const recipients = Object.entries(TELEGRAM_CHAT_IDS).filter(([name]) => name !== senderName);
+    for (const [, chatId] of recipients) {
+        try {
+            await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ chat_id: chatId, text: message })
+            });
+        } catch (e) { console.error('Telegram error:', e); }
+    }
+}
+
+// Уведомление о новом заказе (вызывается после того как добавлена первая позиция)
+function buildNewOrderMessage(order) {
+    const senderName = currentEmployee ? currentEmployee.name : '—';
+    const dateStr = formatDateDMY(order.date);
+    const items = (order.items || []).map(it => `• ${it.product} × ${it.quantity}`).join('\n');
+    return `🆕 Новый заказ\n👤 ${order.customer || '(без клиента)'} · 📅 ${dateStr}\n${items}\n👨‍🍳 ${senderName}`;
+}
+
+// Уведомление о смене статуса
+function buildStatusChangeMessage(order, oldStatus, newStatus) {
+    const senderName = currentEmployee ? currentEmployee.name : '—';
+    const dateStr = formatDateDMY(order.date);
+    return `🔄 ${order.customer || '(без клиента)'} · ${dateStr}\nСтатус: ${oldStatus} → ${newStatus}\n👨‍🍳 ${senderName}`;
+}
+
+// Уведомление со списком покупок
+async function sendShoppingListToTelegram(shoppingList) {
+    if (!shoppingList.length) { await showInfo('Список покупок пуст.'); return; }
+    const UL = { g: 'г', kg: 'кг', ml: 'мл', l: 'л', pcs: 'шт' };
+    const senderName = currentEmployee ? currentEmployee.name : '—';
+
+    const lines = shoppingList.filter(r => !r.is_bought).map(r => {
+        let name = '—', unit = '';
+        if (r.ingredient_id) {
+            const ing = (ingredients || []).find(i => i.id === r.ingredient_id);
+            if (ing) { name = ing.name; unit = UL[ing.unit] || ing.unit; }
+        } else if (r.semi_finished_id) {
+            const sf = (semiFinished || []).find(s => s.id === r.semi_finished_id);
+            if (sf) { name = sf.name; unit = UL[sf.unit] || sf.unit; }
+        }
+        return `• ${name} — ${Number(r.quantity_to_buy).toFixed(1)} ${unit}`;
+    });
+
+    if (!lines.length) { await showInfo('Все позиции уже отмечены куплеными.'); return; }
+
+    const message = `🛒 Список покупок\n\n${lines.join('\n')}\n\n👨‍🍳 ${senderName}`;
+    showLoading('Отправляю...');
+    try {
+        // Список покупок отправляем всем включая себя
+        for (const chatId of Object.values(TELEGRAM_CHAT_IDS)) {
+            await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ chat_id: chatId, text: message })
+            });
+        }
+        await showInfo('Список отправлен в Telegram!');
+    } catch (e) { console.error(e); showInfo('Ошибка отправки.'); }
+    finally { hideLoading(); }
+}
+
+// ==================== TELEGRAM УВЕДОМЛЕНИЯ ====================
+
+const TELEGRAM_BOT_TOKEN = '8672305499:AAGt64Stm_UE10nYJ3nI9BZttdOJqKnK_Bc';
+const TELEGRAM_CHAT_IDS = {
+    'Sergey': 371171905,
+    'Mark':   658689940
+};
+
+// Отправляет сообщение всем кроме текущего сотрудника
+async function sendTelegramNotification(text) {
+    const senderName = currentEmployee ? currentEmployee.name : null;
+    const recipients = Object.entries(TELEGRAM_CHAT_IDS).filter(([name]) => name !== senderName);
+    for (const [, chatId] of recipients) {
+        try {
+            await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ chat_id: chatId, text, parse_mode: 'HTML' })
+            });
+        } catch (e) { console.error('Telegram error:', e); }
+    }
+}
+
+// Уведомление о новом заказе (вызывается когда выбран клиент)
+async function notifyNewOrder(order) {
+    if (!order.customer) return;
+    const senderName = currentEmployee ? currentEmployee.name : '—';
+    const items = (order.items || []).map(it => `• ${it.product} × ${it.quantity}`).join('\n');
+    const text = `🆕 Новый заказ\n👤 ${order.customer} · 📅 ${formatDateDMY(order.date)}${items ? '\n' + items : ''}\n👨‍🍳 ${senderName}`;
+    await sendTelegramNotification(text);
+}
+
+// Уведомление о смене статуса заказа
+async function notifyStatusChange(order, oldStatus, newStatus) {
+    if (!order.customer) return;
+    const senderName = currentEmployee ? currentEmployee.name : '—';
+    const text = `🔄 ${order.customer} · 📅 ${formatDateDMY(order.date)}\nСтатус: ${oldStatus} → ${newStatus}\n👨‍🍳 ${senderName}`;
+    await sendTelegramNotification(text);
+}
+
+// Отправка списка покупок в Telegram
+async function sendShoppingListToTelegram(shoppingList) {
+    if (!shoppingList.length) { await showInfo('Список покупок пуст.'); return; }
+    const UL = { g: 'г', kg: 'кг', ml: 'мл', l: 'л', pcs: 'шт' };
+    const senderName = currentEmployee ? currentEmployee.name : '—';
+
+    const lines = shoppingList.filter(r => !r.is_bought).map(r => {
+        let name = '—', unit = '';
+        if (r.ingredient_id) {
+            const ing = (ingredients || []).find(i => i.id === r.ingredient_id);
+            if (ing) { name = ing.name; unit = UL[ing.unit] || ing.unit; }
+        } else if (r.semi_finished_id) {
+            const sf = (semiFinished || []).find(s => s.id === r.semi_finished_id);
+            if (sf) { name = sf.name; unit = UL[sf.unit] || sf.unit; }
+        }
+        return `• ${name} — ${Number(r.quantity_to_buy).toFixed(1)} ${unit}`;
+    });
+
+    if (!lines.length) { await showInfo('Все позиции уже отмечены как купленные.'); return; }
+
+    const text = `🛒 Список покупок\n\n${lines.join('\n')}\n\n👨‍🍳 ${senderName}`;
+
+    // Отправляем всем — список покупок видят все
+    const recipients = Object.values(TELEGRAM_CHAT_IDS);
+    showLoading('Отправляю в Telegram...');
+    try {
+        for (const chatId of recipients) {
+            await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ chat_id: chatId, text })
+            });
+        }
+        await showInfo('Список отправлен в Telegram!');
+    } catch (e) { console.error(e); showInfo('Ошибка отправки.'); }
+    finally { hideLoading(); }
+}
