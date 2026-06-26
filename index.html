@@ -20,10 +20,10 @@
     <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
     <style>
-        html, body { font-size: 12px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+        html, body { font-size: 14px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
         body { background: linear-gradient(to bottom, #f7f7f7, #e5e7eb); }
         /* Базовый размер для всего контента приложения */
-        #appContent { font-size: 12px; }
+        #appContent { font-size: 14px; }
         .btn { transition: all 0.2s ease; }
         .btn:active { transform: scale(0.97); opacity: 0.85; }
         .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); justify-content: center; align-items: flex-start; overflow-y: auto; padding: 16px 8px; z-index: 100; }
@@ -422,7 +422,7 @@
                     </div>
                     <div class="flex items-center gap-2">
                         <div>
-                            <span id="idNameDisplay" class="text-sm font-bold text-gray-900"></span>
+                            <span id="idNameDisplay" class="text-xs font-bold text-gray-900"></span>
                             <span id="idUnitDisplay" class="text-xs text-gray-500 ml-1"></span>
                         </div>
                         <button onclick="openEditIngredientHeaderModal()" class="text-gray-400 hover:text-indigo-600 transition-colors" title="Редактировать">
@@ -439,7 +439,7 @@
                     <div class="flex items-center justify-between mb-3 border-b pb-2">
                         <div>
                             <span class="text-xs text-gray-500">Остаток:</span>
-                            <span id="ingBalanceValue" class="text-sm font-bold text-gray-800 ml-1">—</span>
+                            <span id="ingBalanceValue" class="text-xs font-bold text-gray-800 ml-1">—</span>
                             <span id="ingBalanceUnit" class="text-xs text-gray-500 ml-1"></span>
                         </div>
                         <div id="ingDaysLeft" class="text-xs text-gray-500"></div>
@@ -604,7 +604,7 @@
                     <div class="flex items-center justify-between mb-3 border-b pb-2">
                         <div>
                             <span class="text-xs text-gray-500">Остаток:</span>
-                            <span id="sfBalanceValue" class="text-sm font-bold text-gray-800 ml-1">—</span>
+                            <span id="sfBalanceValue" class="text-xs font-bold text-gray-800 ml-1">—</span>
                             <span id="sfBalanceUnit" class="text-xs text-gray-500 ml-1"></span>
                         </div>
                         <div id="sfDaysLeft" class="text-xs text-gray-500"></div>
