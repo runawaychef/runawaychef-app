@@ -20,8 +20,10 @@
     <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
     <style>
-        html, body { font-size: 14px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+        html, body { font-size: 12px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
         body { background: linear-gradient(to bottom, #f7f7f7, #e5e7eb); }
+        /* Базовый размер для всего контента приложения */
+        #appContent { font-size: 12px; }
         .btn { transition: all 0.2s ease; }
         .btn:active { transform: scale(0.97); opacity: 0.85; }
         .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); justify-content: center; align-items: flex-start; overflow-y: auto; padding: 16px 8px; z-index: 100; }
@@ -274,7 +276,7 @@
         <div id="products" class="tab-content hidden">
             <div id="productsList">
                 <div class="bg-white p-2 rounded-md shadow-md">
-                    <h2 class="text-lg font-semibold mb-2 text-gray-800">Список изделий</h2>
+                    <h2 class="text-sm font-semibold mb-2 text-gray-800">Список изделий</h2>
                     <p class="text-xs text-gray-400 mb-2">Нажмите на строку изделия, чтобы открыть рецептуру</p>
                     <p id="productsUnitWarning" class="text-xs text-red-600 bg-red-50 border border-red-200 rounded-md p-1.5 mb-2 hidden">⚠ У некоторых изделий не выбрана единица измерения или не подтверждён рецепт. Откройте их и проверьте.</p>
                     <table class="w-full table-auto">
@@ -331,7 +333,7 @@
                 </div>
 
                 <div class="bg-white p-2 rounded-md shadow-md">
-                    <h2 class="text-base font-semibold text-gray-800 mb-2">Рецептура (на партию)</h2>
+                    <h2 class="text-xs font-semibold text-gray-800 mb-2">Рецептура (на партию)</h2>
                     <div class="bg-gray-50 border border-dashed border-gray-300 rounded-md p-2 mb-2">
                         <label class="text-xs text-gray-500">Скопировать рецепт из другого изделия</label>
                         <div class="search-input-wrap">
@@ -388,7 +390,7 @@
             <div id="ingredientsList">
                 <div class="bg-white p-2 rounded-md shadow-md">
                     <div class="flex items-center justify-between mb-2">
-                        <h2 class="text-lg font-semibold text-gray-800">Склад</h2>
+                        <h2 class="text-sm font-semibold text-gray-800">Склад</h2>
                         <div class="flex gap-1">
                             <button onclick="openInventarizationModal()" class="btn text-xs bg-indigo-50 text-indigo-700 px-2 py-1 rounded-md hover:bg-indigo-100">📋 Инвентаризация</button>
                             <button onclick="showTab('semiFinished')" class="btn text-xs bg-gray-200 text-gray-700 px-2 py-1 rounded-md hover:bg-gray-300">Полуфабрикаты →</button>
@@ -420,8 +422,8 @@
                     </div>
                     <div class="flex items-center gap-2">
                         <div>
-                            <span id="idNameDisplay" class="text-lg font-bold text-gray-900"></span>
-                            <span id="idUnitDisplay" class="text-sm text-gray-500 ml-1"></span>
+                            <span id="idNameDisplay" class="text-sm font-bold text-gray-900"></span>
+                            <span id="idUnitDisplay" class="text-xs text-gray-500 ml-1"></span>
                         </div>
                         <button onclick="openEditIngredientHeaderModal()" class="text-gray-400 hover:text-indigo-600 transition-colors" title="Редактировать">
                             <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
@@ -437,7 +439,7 @@
                     <div class="flex items-center justify-between mb-3 border-b pb-2">
                         <div>
                             <span class="text-xs text-gray-500">Остаток:</span>
-                            <span id="ingBalanceValue" class="text-lg font-bold text-gray-800 ml-1">—</span>
+                            <span id="ingBalanceValue" class="text-sm font-bold text-gray-800 ml-1">—</span>
                             <span id="ingBalanceUnit" class="text-xs text-gray-500 ml-1"></span>
                         </div>
                         <div id="ingDaysLeft" class="text-xs text-gray-500"></div>
@@ -498,7 +500,7 @@
                 </div>
                 <div class="bg-white p-2 rounded-md shadow-md">
                     <div class="flex items-center justify-between mb-2">
-                        <h2 class="text-lg font-semibold text-gray-800">Полуфабрикаты</h2>
+                        <h2 class="text-sm font-semibold text-gray-800">Полуфабрикаты</h2>
                         <div class="flex gap-1">
                             <button onclick="openSfInventarizationModal()" class="btn text-xs bg-indigo-50 text-indigo-700 px-2 py-1 rounded-md hover:bg-indigo-100">📋 Инвентаризация</button>
                             <button onclick="showTab('ingredients')" class="btn text-xs bg-gray-200 text-gray-700 px-2 py-1 rounded-md hover:bg-gray-300">← Склад</button>
@@ -554,7 +556,7 @@
                 </div>
 
                 <div class="bg-white p-2 rounded-md shadow-md">
-                    <h2 class="text-base font-semibold text-gray-800 mb-2">Рецептура (на партию)</h2>
+                    <h2 class="text-xs font-semibold text-gray-800 mb-2">Рецептура (на партию)</h2>
                     <div class="bg-gray-50 border border-dashed border-gray-300 rounded-md p-2 mb-2">
                         <label class="text-xs text-gray-500">Скопировать рецепт из другого полуфабриката</label>
                         <div class="search-input-wrap">
@@ -602,7 +604,7 @@
                     <div class="flex items-center justify-between mb-3 border-b pb-2">
                         <div>
                             <span class="text-xs text-gray-500">Остаток:</span>
-                            <span id="sfBalanceValue" class="text-lg font-bold text-gray-800 ml-1">—</span>
+                            <span id="sfBalanceValue" class="text-sm font-bold text-gray-800 ml-1">—</span>
                             <span id="sfBalanceUnit" class="text-xs text-gray-500 ml-1"></span>
                         </div>
                         <div id="sfDaysLeft" class="text-xs text-gray-500"></div>
@@ -618,7 +620,7 @@
         <div id="customers" class="tab-content hidden">
             <div id="customersList">
                 <div class="bg-white p-2 rounded-md shadow-md">
-                    <h2 class="text-lg font-semibold mb-2 text-gray-800">Список клиентов</h2>
+                    <h2 class="text-sm font-semibold mb-2 text-gray-800">Список клиентов</h2>
                     <p class="text-xs text-gray-400 mb-2">Нажмите на строку, чтобы открыть карточку клиента</p>
                     <p id="customersNameWarning" class="text-xs text-red-600 bg-red-50 border border-red-200 rounded-md p-1.5 mb-2 hidden">⚠ У некоторых клиентов не указано имя. Откройте их карточку и заполните имя — без этого их заказы будут отображаться некорректно.</p>
                     <table class="w-full table-auto">
@@ -672,15 +674,15 @@
 
                 <div class="bg-white p-2 rounded-md shadow-md mb-3">
                     <div class="grid grid-cols-3 gap-1 text-center bg-gray-50 rounded-md p-2">
-                        <div><p class="text-xs text-gray-500">Заказов всего</p><p id="cdOrderCount" class="text-sm font-bold text-gray-800">0</p></div>
-                        <div><p class="text-xs text-gray-500">Сумма за всё время</p><p id="cdTotalSum" class="text-sm font-bold text-gray-800">0.00 €</p></div>
-                        <div><p class="text-xs text-gray-500">Последний заказ</p><p id="cdLastOrderDate" class="text-sm font-bold text-gray-800">—</p></div>
+                        <div><p class="text-xs text-gray-500">Заказов всего</p><p id="cdOrderCount" class="text-xs font-bold text-gray-800">0</p></div>
+                        <div><p class="text-xs text-gray-500">Сумма за всё время</p><p id="cdTotalSum" class="text-xs font-bold text-gray-800">0.00 €</p></div>
+                        <div><p class="text-xs text-gray-500">Последний заказ</p><p id="cdLastOrderDate" class="text-xs font-bold text-gray-800">—</p></div>
                     </div>
                 </div>
 
                 <div class="bg-white p-2 rounded-md shadow-md">
                     <div class="flex justify-between items-center mb-2">
-                        <h2 class="text-base font-semibold text-gray-800">Заказы клиента</h2>
+                        <h2 class="text-xs font-semibold text-gray-800">Заказы клиента</h2>
                         <select id="cdDateRange" onchange="renderCustomerOrders()" class="border p-0.5 rounded-md text-xs">
                             <option value="all">Весь период</option>
                             <option value="week">Текущая неделя</option>
@@ -709,7 +711,7 @@
         <div id="history" class="tab-content hidden">
             <div class="bg-white p-2 rounded-md shadow-md">
                 <div class="flex items-center justify-between mb-2">
-                    <h2 class="text-lg font-semibold text-gray-800">Журнал действий</h2>
+                    <h2 class="text-sm font-semibold text-gray-800">Журнал действий</h2>
                     <button onclick="closeHistoryScreen()" class="btn text-xs bg-gray-200 text-gray-700 px-2 py-1 rounded-md hover:bg-gray-300 flex items-center gap-1">
                         <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
                         Назад
@@ -755,7 +757,7 @@
                     </div>
                 </div>
                 <div class="bg-white p-2 rounded-md shadow-md">
-                    <h2 class="text-lg font-semibold mb-2 text-gray-800">Список заказов</h2>
+                    <h2 class="text-sm font-semibold mb-2 text-gray-800">Список заказов</h2>
                     <p class="text-xs text-gray-400 mb-2">Нажмите на строку заказа, чтобы открыть его</p>
 
                     <!-- Фильтры -->
@@ -875,7 +877,7 @@
 
                 <div class="bg-white p-2 rounded-md shadow-md">
                     <div class="flex justify-between items-center mb-2">
-                        <h2 class="text-base font-semibold text-gray-800">Позиции заказа</h2>
+                        <h2 class="text-xs font-semibold text-gray-800">Позиции заказа</h2>
                     </div>
                     <table class="w-full table-auto mb-2">
                         <thead><tr class="bg-gray-100">
@@ -907,7 +909,7 @@
                         <div>Сумма позиций: <span id="detailSubtotal" class="font-medium text-gray-800">0.00 €</span></div>
                         <div id="detailDiscountRow">Скидка (<span id="detailDiscountPct">0</span>%): <span id="detailDiscountAmount" class="font-medium text-red-600">-0.00 €</span></div>
                         <div>НДС (21%): <span id="detailVatAmount" class="font-medium text-gray-800">0.00 €</span></div>
-                        <div class="text-sm font-semibold text-gray-900 pt-1 border-t mt-1">Итого к оплате: <span id="detailTotal">0.00 €</span></div>
+                        <div class="text-xs font-semibold text-gray-900 pt-1 border-t mt-1">Итого к оплате: <span id="detailTotal">0.00 €</span></div>
                         <div class="pt-1 border-t mt-1">Себестоимость: <span id="detailCost" class="font-medium text-gray-700">0.00 €</span></div>
                         <div>Прибыль: <span id="detailProfit" class="font-semibold text-green-700">0.00 €</span> (<span id="detailProfitPct">0.0</span>%)</div>
                         <button onclick="openOrderCostBreakdown()" class="btn bg-gray-100 text-gray-700 px-2 py-1 rounded-md hover:bg-gray-200 text-xs w-full mt-1">📊 Детализация себестоимости</button>
@@ -921,7 +923,7 @@
         <!-- Редактировать изделие -->
         <div id="editProductModal" class="modal">
             <div class="modal-content">
-                <h2 class="text-base font-semibold mb-2 text-gray-800">Редактировать изделие</h2>
+                <h2 class="text-xs font-semibold mb-2 text-gray-800">Редактировать изделие</h2>
                 <input id="editProductName" type="text" placeholder="Название изделия" class="border p-0.5 rounded-md mb-1 w-full text-xs">
                 <input id="editProductPrice" type="number" autocomplete="off" inputmode="decimal" step="0.01" placeholder="Продажная цена (€)" class="border p-0.5 rounded-md mb-2 w-full text-xs">
                 <button onclick="saveProductEdit()" class="btn bg-gray-500 text-white p-0.5 rounded-md hover:bg-gray-600 mr-1 text-xs">Сохранить</button>
@@ -935,7 +937,7 @@
         <!-- Редактировать позицию рецепта -->
         <div id="editRecipeItemModal" class="modal">
             <div class="modal-content">
-                <h2 class="text-base font-semibold mb-2 text-gray-800">Редактировать ингредиент рецепта</h2>
+                <h2 class="text-xs font-semibold mb-2 text-gray-800">Редактировать ингредиент рецепта</h2>
                 <label class="text-xs text-gray-600">Ингредиент</label>
                 <select id="editRecipeIngredient" class="border p-0.5 rounded-md mb-1 w-full text-xs">
                     <option value="">Выберите ингредиент</option>
@@ -950,7 +952,7 @@
         <!-- Редактировать позицию рецепта полуфабриката -->
         <div id="editSfRecipeItemModal" class="modal">
             <div class="modal-content">
-                <h2 class="text-base font-semibold mb-2 text-gray-800">Редактировать ингредиент рецепта</h2>
+                <h2 class="text-xs font-semibold mb-2 text-gray-800">Редактировать ингредиент рецепта</h2>
                 <label class="text-xs text-gray-600">Ингредиент</label>
                 <select id="editSfRecipeIngredient" class="border p-0.5 rounded-md mb-1 w-full text-xs">
                     <option value="">Выберите ингредиент</option>
@@ -966,7 +968,7 @@
         <!-- Редактировать позицию заказа -->
         <div id="editItemModal" class="modal">
             <div class="modal-content">
-                <h2 class="text-base font-semibold mb-2 text-gray-800">Редактировать позицию</h2>
+                <h2 class="text-xs font-semibold mb-2 text-gray-800">Редактировать позицию</h2>
                 <label class="text-xs text-gray-600">Изделие</label>
                 <div class="search-input-wrap">
                     <input id="editItemProduct" oninput="autoFillEditItemPrice()" placeholder="Выберите изделие" autocomplete="off" class="border p-0.5 rounded-md mb-1 w-full text-xs">
@@ -984,7 +986,7 @@
         <!-- Редактировать заголовок заказа (из списка) -->
         <div id="editOrderModal" class="modal">
             <div class="modal-content">
-                <h2 class="text-base font-semibold mb-2 text-gray-800">Редактировать заказ</h2>
+                <h2 class="text-xs font-semibold mb-2 text-gray-800">Редактировать заказ</h2>
                 <label class="text-xs text-gray-600">Клиент</label>
                 <div class="search-input-wrap mb-1">
                     <input id="editOrderCustomer" placeholder="Выберите клиента" autocomplete="off" class="border p-0.5 rounded-md w-full text-xs">
@@ -1026,7 +1028,7 @@
         <!-- Настройки (шестерёнка) — служебные функции, доступны из любого раздела -->
         <div id="settingsModal" class="modal">
             <div class="modal-content" style="max-width:320px;">
-                <h2 class="text-base font-semibold mb-1 text-gray-800">Настройки</h2>
+                <h2 class="text-xs font-semibold mb-1 text-gray-800">Настройки</h2>
                 <p class="text-xs text-gray-500 mb-3">Текущий сотрудник: <b id="settingsCurrentEmployee" class="text-gray-800"></b></p>
 
                 <div class="flex flex-col gap-1 mb-3">
@@ -1056,7 +1058,7 @@
         <!-- Детализация себестоимости заказа -->
         <div id="orderCostBreakdownModal" class="modal">
             <div class="modal-content" style="max-width:480px;">
-                <h2 class="text-base font-semibold mb-1 text-gray-800">Детализация себестоимости</h2>
+                <h2 class="text-xs font-semibold mb-1 text-gray-800">Детализация себестоимости</h2>
                 <p id="orderCostBreakdownSubtitle" class="text-xs text-gray-500 mb-2"></p>
                 <div id="orderCostBreakdownContent" style="max-height:60vh;overflow-y:auto;"></div>
                 <div class="flex gap-1 mt-3">
@@ -1313,10 +1315,10 @@
                 <!-- Общие цифры -->
                 <div class="bg-white rounded-md shadow-md p-2 mb-5">
                     <div class="bg-gray-50 rounded-md p-2 mb-2 grid grid-cols-2 gap-1 text-center">
-                        <div><p class="text-xs text-gray-500">Всего (с НДС)</p><p id="totalPrice" class="text-sm font-bold text-gray-800">0.00 €</p></div>
+                        <div><p class="text-xs text-gray-500">Всего (с НДС)</p><p id="totalPrice" class="text-xs font-bold text-gray-800">0.00 €</p></div>
                         <div><p class="text-xs text-gray-500">в т.ч. НДС</p><p id="totalVatModal" class="text-sm font-bold text-blue-700">0.00 €</p></div>
-                        <div><p class="text-xs text-gray-500">Неделя (с НДС)</p><p id="weekTotalModal" class="text-sm font-bold text-gray-800">0.00 €</p></div>
-                        <div><p class="text-xs text-gray-500">Месяц (с НДС)</p><p id="monthTotalModal" class="text-sm font-bold text-gray-800">0.00 €</p></div>
+                        <div><p class="text-xs text-gray-500">Неделя (с НДС)</p><p id="weekTotalModal" class="text-xs font-bold text-gray-800">0.00 €</p></div>
+                        <div><p class="text-xs text-gray-500">Месяц (с НДС)</p><p id="monthTotalModal" class="text-xs font-bold text-gray-800">0.00 €</p></div>
                     </div>
                     <div class="flex gap-3 text-xs text-gray-500">
                         <span>Клиентов: <b id="customerCount" class="text-gray-700">0</b></span>
@@ -1353,7 +1355,7 @@
                 <!-- Рентабельность за период + топ изделий по рентабельности -->
                 <div class="bg-white rounded-md shadow-md p-2 mb-5">
                     <div class="bg-gray-50 rounded-md p-2 mb-2 grid grid-cols-3 gap-1 text-center">
-                        <div><p class="text-xs text-gray-500">Себестоимость</p><p id="statsTotalCost" class="text-sm font-bold text-gray-800">0.00 €</p></div>
+                        <div><p class="text-xs text-gray-500">Себестоимость</p><p id="statsTotalCost" class="text-xs font-bold text-gray-800">0.00 €</p></div>
                         <div><p class="text-xs text-gray-500">Прибыль</p><p id="statsTotalProfit" class="text-sm font-bold text-green-700">0.00 €</p></div>
                         <div><p class="text-xs text-gray-500">Рентабельность</p><p id="statsProfitPct" class="text-sm font-bold text-gray-800">0.0%</p></div>
                     </div>
