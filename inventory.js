@@ -248,13 +248,31 @@ async function openInventoryModal() {
     if (sfSorted.length) {
         const SF_UNIT_LABELS = { g: 'г', kg: 'кг', ml: 'мл', l: 'л', pcs: 'шт' };
         const sfRed = [], sfYellow = [], sfRest = [];
+
+        // Считаем нехватку п/ф для принятых заказов
+        const neededSf = {};
+        (orders || []).filter(o => o.status !== 'выполнен' && o.date >= today).forEach(o => {
+            (o.items || []).forEach(item => {
+                const prod = products.find(p => p.id === item.product_id);
+                if (!prod || !prod.ingredients) return;
+                const factor = 1 / Number(prod.batch_size || 1);
+                prod.ingredients.forEach(ri => {
+                    if (!ri.semi_finished_id) return;
+                    neededSf[ri.semi_finished_id] = (neededSf[ri.semi_finished_id] || 0) +
+                        Number(ri.quantity) * Number(item.quantity) * factor;
+                });
+            });
+        });
+
         sfSorted.forEach(sf => {
             const balance  = getSemiFinishedBalance(sf.id);
             const daily    = avgDailySfUsage(sf.id);
             const daysLeft = (balance !== null && balance > 0 && daily > 0) ? Math.floor(balance / daily) : null;
             const unitLabel = SF_UNIT_LABELS[sf.unit] || sf.unit;
-            const item = { ing: { id: sf.id, name: sf.name }, balance, daysLeft, unitLabel, shortage: false };
-            if ((balance !== null && balance <= 0) || (daysLeft !== null && daysLeft < 3)) sfRed.push(item);
+            const needed = neededSf[sf.id] || 0;
+            const shortage = needed > 0 && (balance === null || balance < needed);
+            const item = { ing: { id: sf.id, name: sf.name }, balance, daysLeft, unitLabel, shortage };
+            if (shortage || (balance !== null && balance <= 0) || (daysLeft !== null && daysLeft < 3)) sfRed.push(item);
             else if (daysLeft !== null && daysLeft < 7) sfYellow.push(item);
             else sfRest.push(item);
         });
@@ -271,6 +289,12 @@ async function openInventoryModal() {
         }
         if (sfRest.length) {
             if (sfRed.length || sfYellow.length) html += `<tr><td colspan="3" class="p-1 text-xs font-semibold text-gray-500 bg-gray-50">Остальные</td></tr>`;
+            sfRest.sort((a, b) => {
+                if (a.daysLeft === null && b.daysLeft === null) return 0;
+                if (a.daysLeft === null) return 1;
+                if (b.daysLeft === null) return -1;
+                return a.daysLeft - b.daysLeft;
+            });
             sfRest.forEach(item => { html += renderRow(item, '', 'text-gray-500'); });
         }
         html += '</tbody></table>';
