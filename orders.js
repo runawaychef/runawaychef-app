@@ -26,12 +26,15 @@ function displayOrders() {
             ? `<span class="text-red-600">${pending} не выполн.</span>`
             : `<span class="text-green-700">все выполнены ✓</span>`;
 
-        // Разбивка по клиентам с изделиями
+        // Разбивка по клиентам с изделиями — кликабельные строки
         let clientLines = '';
         dayOrders.forEach(o => {
             const clientQty = (o.items || []).reduce((q, it) => q + Number(it.quantity || 0), 0);
             const clientSum = orderGrandTotal(o);
-            clientLines += `<div class="pl-1 mt-0.5"><span class="text-indigo-600 font-medium">${escapeHtml(o.customer || '(без клиента)')}:</span> ${clientQty} шт. · ${clientSum.toFixed(2)} €</div>`;
+            const statusDot = o.status === 'выполнен' ? '🟢' : '🟠';
+            clientLines += `<div class="pl-1 mt-0.5 cursor-pointer hover:bg-indigo-50 rounded px-1 -mx-1 transition-colors" onclick="openOrderDetail(${o.id})">
+                <span class="text-indigo-600 font-medium">${statusDot} ${escapeHtml(o.customer || '(без клиента)')}:</span> ${clientQty} шт. · ${clientSum.toFixed(2)} €
+            </div>`;
             (o.items || []).forEach(it => {
                 clientLines += `<div class="pl-3 text-gray-500">· ${escapeHtml(it.product)} — ${it.quantity} шт.</div>`;
             });
