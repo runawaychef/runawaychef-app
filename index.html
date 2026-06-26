@@ -1074,9 +1074,26 @@
         <!-- Модалка склада -->
         <div id="inventoryModal" class="modal">
             <div class="modal-content" style="max-width:480px;">
-                <h2 class="text-base font-semibold mb-1 text-gray-800">🛒 Склад ингредиентов</h2>
-                <p class="text-xs text-gray-500 mb-3">Остатки на складе и рекомендации к закупке</p>
-                <div id="inventoryContent" style="max-height:65vh;overflow-y:auto;touch-action:pan-y;overscroll-behavior:contain;"></div>
+                <h2 class="text-base font-semibold mb-2 text-gray-800">🛒 Корзина</h2>
+                <!-- Вкладки -->
+                <div class="flex gap-3 border-b mb-3">
+                    <button id="invTabStock" onclick="switchInventoryTab('stock')" class="tab active text-xs pb-1">Склад</button>
+                    <button id="invTabShop" onclick="switchInventoryTab('shop')" class="tab text-xs pb-1">Список покупок <span id="shopListBadge" class="hidden bg-indigo-600 text-white rounded-full px-1.5 py-0.5 text-xs ml-1"></span></button>
+                </div>
+                <!-- Склад -->
+                <div id="inventoryTabStock">
+                    <div id="inventoryContent" style="max-height:58vh;overflow-y:auto;touch-action:pan-y;overscroll-behavior:contain;"></div>
+                </div>
+                <!-- Список покупок -->
+                <div id="inventoryTabShop" class="hidden">
+                    <div class="flex gap-1 mb-2">
+                        <button onclick="addCriticalToShoppingList()" class="btn bg-indigo-50 text-indigo-700 px-2 py-1 rounded-md hover:bg-indigo-100 text-xs flex-1">+ Добавить критичное</button>
+                        <button onclick="clearShoppingList()" class="btn bg-red-50 text-red-600 px-2 py-1 rounded-md hover:bg-red-100 text-xs">Очистить всё</button>
+                    </div>
+                    <div id="shopListContent" style="max-height:52vh;overflow-y:auto;touch-action:pan-y;overscroll-behavior:contain;">
+                        <p class="text-xs text-gray-400 text-center py-4">Список пуст</p>
+                    </div>
+                </div>
                 <button onclick="closeModal()" class="btn bg-gray-400 text-white p-1 rounded-md hover:bg-gray-500 w-full text-xs mt-3">Закрыть</button>
             </div>
         </div>
@@ -1394,7 +1411,7 @@
     <script src="supabaseClient.js?v=3"></script>
     <script src="auth.js?v=3"></script>
     <script src="employees.js?v=12"></script>
-    <script src="inventory.js?v=12"></script>
+    <script src="inventory.js?v=13"></script>
 <script src="ingredients.js?v=31"></script>
 <script src="semifinished.js?v=13"></script>
 <script src="products.js?v=13"></script>
