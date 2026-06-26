@@ -418,21 +418,14 @@
                         </button>
                         <button onclick="deleteCurrentIngredient()" class="btn text-xs bg-red-50 text-red-600 px-2 py-1 rounded-md hover:bg-red-100">Удалить ингредиент</button>
                     </div>
-                    <div class="grid grid-cols-2 gap-1">
-                        <div class="col-span-2">
-                            <label class="text-xs text-gray-500">Название</label>
-                            <input id="idName" type="text" onblur="saveIdHeader()" class="border p-0.5 rounded-md text-xs w-full">
+                    <div class="flex items-center gap-2">
+                        <div>
+                            <span id="idNameDisplay" class="text-lg font-bold text-gray-900"></span>
+                            <span id="idUnitDisplay" class="text-sm text-gray-500 ml-1"></span>
                         </div>
-                        <div class="col-span-2">
-                            <label class="text-xs text-gray-500">Единица измерения</label>
-                            <select id="idUnit" onchange="saveIdHeader()" class="border p-0.5 rounded-md text-xs w-full">
-                                <option value="g">граммы (г)</option>
-                                <option value="kg">килограммы (кг)</option>
-                                <option value="ml">миллилитры (мл)</option>
-                                <option value="l">литры (л)</option>
-                                <option value="pcs">штуки (шт)</option>
-                            </select>
-                        </div>
+                        <button onclick="openEditIngredientHeaderModal()" class="text-gray-400 hover:text-indigo-600 transition-colors" title="Редактировать">
+                            <svg width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                        </button>
                     </div>
                 </div>
 
@@ -1135,6 +1128,27 @@
             </div>
         </div>
 
+        <!-- Модалка редактирования названия/единицы ингредиента -->
+        <div id="editIngredientHeaderModal" class="modal">
+            <div class="modal-content" style="max-width:480px;">
+                <h2 class="text-base font-semibold mb-3 text-gray-800">Редактировать ингредиент</h2>
+                <label class="text-xs text-gray-500">Название</label>
+                <input id="editIngName" type="text" class="border p-0.5 rounded-md mb-2 w-full text-sm">
+                <label class="text-xs text-gray-500">Единица измерения</label>
+                <select id="editIngUnit" class="border p-0.5 rounded-md mb-3 w-full text-sm">
+                    <option value="g">граммы (г)</option>
+                    <option value="kg">килограммы (кг)</option>
+                    <option value="ml">миллилитры (мл)</option>
+                    <option value="l">литры (л)</option>
+                    <option value="pcs">штуки (шт)</option>
+                </select>
+                <div class="flex gap-1">
+                    <button onclick="saveIngredientHeader()" class="btn bg-gray-700 text-white p-1 rounded-md hover:bg-gray-800 text-xs flex-1">Сохранить</button>
+                    <button onclick="closeModal()" class="btn bg-gray-400 text-white p-1 rounded-md hover:bg-gray-500 text-xs flex-1">Отмена</button>
+                </div>
+            </div>
+        </div>
+
         <!-- Модалка редактирования записи склада -->
         <div id="editInventoryModal" class="modal">
             <div class="modal-content" style="max-width:480px;">
@@ -1364,7 +1378,7 @@
 <script src="auth.js?v=3"></script>
 <script src="employees.js?v=12"></script>
     <script src="inventory.js?v=9"></script>
-<script src="ingredients.js?v=23"></script>
+<script src="ingredients.js?v=24"></script>
 <script src="semifinished.js?v=10"></script>
 <script src="products.js?v=10"></script>
 <script src="customers.js?v=21"></script>

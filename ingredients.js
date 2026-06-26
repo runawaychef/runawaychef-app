@@ -134,6 +134,10 @@ function openIngredientDetail(ingId) {
     document.getElementById('idUnit').value = ing.unit;
 
     // Блок 2: форма новой цены — заполняем текущими значениями как подсказка
+    const nameDisplay = document.getElementById('idNameDisplay');
+    const unitDisplay = document.getElementById('idUnitDisplay');
+    if (nameDisplay) nameDisplay.textContent = ing.name;
+    if (unitDisplay) unitDisplay.textContent = UNIT_LABELS[ing.unit] || ing.unit;
     document.getElementById('idNewPriceDate').value = new Date().toISOString().slice(0, 10);
     document.getElementById('idPackagePrice').value = ing.package_price.toFixed(2);
     document.getElementById('idPackageSize').value = ing.package_size;
@@ -218,6 +222,39 @@ async function saveStockAndPrice() {
         logActivity('ingredient', `Обновлён склад/цена: «${ing.name}»${stockQty > 0 ? ` +${stockQty}` : ''}`);
         document.getElementById('idStockQty').value = '';
     } catch (e) { console.error(e); showInfo('Ошибка сохранения.'); }
+    finally { hideLoading(); }
+}
+
+// ── Редактирование названия и единицы ингредиента ───────────────────────────
+
+function openEditIngredientHeaderModal() {
+    const ing = ingredients.find(i => i.id === currentIngredientId);
+    if (!ing) return;
+    document.getElementById('editIngName').value = ing.name;
+    document.getElementById('editIngUnit').value = ing.unit;
+    document.getElementById('editIngredientHeaderModal').style.display = 'flex';
+}
+
+async function saveIngredientHeader() {
+    const ing  = ingredients.find(i => i.id === currentIngredientId);
+    if (!ing) return;
+    const name = document.getElementById('editIngName').value.trim();
+    const unit = document.getElementById('editIngUnit').value;
+    if (!name) { showInfo('Введите название!'); return; }
+    showLoading();
+    try {
+        const { error } = await db.from('ingredients').update({ name, unit }).eq('id', ing.id);
+        if (error) throw error;
+        ing.name = name;
+        ing.unit = unit;
+        const nameDisplay = document.getElementById('idNameDisplay');
+        const unitDisplay = document.getElementById('idUnitDisplay');
+        if (nameDisplay) nameDisplay.textContent = name;
+        if (unitDisplay) unitDisplay.textContent = UNIT_LABELS[unit] || unit;
+        closeModal();
+        displayIngredients();
+        logActivity('ingredient', `Ингредиент переименован: «${name}»`);
+    } catch(e) { console.error(e); showInfo('Ошибка сохранения.'); }
     finally { hideLoading(); }
 }
 
