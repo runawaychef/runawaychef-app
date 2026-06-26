@@ -22,7 +22,7 @@ function displayCustomers() {
             <td class="border p-0.5 text-xs" onclick="openCustomerDetail(${c.id})">${escapeHtml(c.contact)}</td>
             <td class="border p-0.5 text-xs" onclick="openCustomerDetail(${c.id})">${c.discount.toFixed(2)}</td>
             <td class="border p-0.5 text-xs text-center" onclick="openCustomerDetail(${c.id})">${c.vat_exempt ? '✓' : ''}</td>
-            <td class="border p-0.5 text-center">
+            <td class="border p-0.5 text-center whitespace-nowrap">
                 ${svgEdit(`openCustomerDetail(${c.id})`)}
                 ${svgDelete(`openDeleteModal(${i},'customer','клиента «${c.name || '(без имени)'}»')`)}
             </td>`;
