@@ -18,11 +18,11 @@ function displayCustomers() {
         const row = document.createElement('tr');
         row.className = 'order-row border-b' + (hasName ? '' : ' bg-red-50');
         row.innerHTML = `
-            <td class=" p-1 text-xs ${hasName ? '' : 'text-red-600 font-semibold'}" onclick="openCustomerDetail(${c.id})">${nameLabel}</td>
-            <td class=" p-1 text-xs" onclick="openCustomerDetail(${c.id})">${escapeHtml(c.contact)}</td>
-            <td class=" p-1 text-xs" onclick="openCustomerDetail(${c.id})">${c.discount.toFixed(2)}</td>
-            <td class=" p-1 text-xs text-center" onclick="openCustomerDetail(${c.id})">${c.vat_exempt ? '✓' : ''}</td>
-            <td class=" p-1 text-center whitespace-nowrap">
+            <td class=" p-0.5 text-xs ${hasName ? '' : 'text-red-600 font-semibold'}" onclick="openCustomerDetail(${c.id})">${nameLabel}</td>
+            <td class=" p-0.5 text-xs" onclick="openCustomerDetail(${c.id})">${escapeHtml(c.contact)}</td>
+            <td class=" p-0.5 text-xs" onclick="openCustomerDetail(${c.id})">${c.discount.toFixed(2)}</td>
+            <td class=" p-0.5 text-xs text-center" onclick="openCustomerDetail(${c.id})">${c.vat_exempt ? '✓' : ''}</td>
+            <td class=" p-0.5 text-center whitespace-nowrap">
                 ${svgEdit(`openCustomerDetail(${c.id})`)}
                 ${svgDelete(`openDeleteModal(${i},'customer','клиента «${c.name || '(без имени)'}»')`)}
             </td>`;
@@ -373,9 +373,9 @@ function renderCustomerOrders() {
     let html = '<table class="w-full stats-table" style="table-layout:fixed;"><thead><tr class="bg-gray-100"><th class="p-1 text-left" style="width:30%;">Дата</th><th class="p-1 text-right" style="width:35%;">Сумма (€)</th><th class="p-1 text-center" style="width:35%;">Статус</th></tr></thead><tbody>';
     custOrders.forEach(o => {
         html += `<tr class="border-b order-row" onclick="goToOrderFromCustomer(${o.id})">
-            <td class="p-1">${formatDateDMY(o.date)}</td>
-            <td class="p-1 text-right stats-num">${orderGrandTotal(o).toFixed(2)}</td>
-            <td class="p-1 text-center"><span class="flag ${statusFlag[o.status] || ''}"></span> ${escapeHtml(o.status)}</td>
+            <td class="p-0.5">${formatDateDMY(o.date)}</td>
+            <td class="p-0.5 text-right stats-num">${orderGrandTotal(o).toFixed(2)}</td>
+            <td class="p-0.5 text-center"><span class="flag ${statusFlag[o.status] || ''}"></span> ${escapeHtml(o.status)}</td>
         </tr>`;
     });
     html += '</tbody></table>';

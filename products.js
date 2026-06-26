@@ -21,10 +21,10 @@ function displayProducts() {
         const row = document.createElement('tr');
         row.className = 'order-row border-b' + (needsAttention ? ' bg-red-50' : '');
         row.innerHTML = `
-            <td class=" p-1 text-xs" onclick="openProductDetail(${p.id})">${escapeHtml(p.name)}</td>
-            <td class=" p-1 text-xs text-center ${hasUnit ? '' : 'text-red-600 font-semibold'}" onclick="openProductDetail(${p.id})">${unitLabel}</td>
-            <td class=" p-1 text-xs" onclick="openProductDetail(${p.id})">${p.price.toFixed(2)}</td>
-            <td class=" p-1 text-center">
+            <td class=" p-0.5 text-xs" onclick="openProductDetail(${p.id})">${escapeHtml(p.name)}</td>
+            <td class=" p-0.5 text-xs text-center ${hasUnit ? '' : 'text-red-600 font-semibold'}" onclick="openProductDetail(${p.id})">${unitLabel}</td>
+            <td class=" p-0.5 text-xs" onclick="openProductDetail(${p.id})">${p.price.toFixed(2)}</td>
+            <td class=" p-0.5 text-center">
                 ${svgEdit(`openProductDetail(${p.id})`)}
                 ${svgDelete(`openDeleteModal(${i},'product','изделие «${p.name}»')`)}
                 ${svgCopy(`copyProduct(${i})`)}
@@ -378,10 +378,10 @@ function renderProductRecipe(prod) {
             const row = document.createElement('tr');
             row.className = 'border-b';
             row.innerHTML = `
-                <td class="p-1 text-xs">${escapeHtml(displayName)}</td>
-                <td class="p-1 text-xs text-center">${ri.quantity} ${unitLabel}</td>
-                <td class="p-1 text-xs text-center font-medium">${lineCost.toFixed(2)} €</td>
-                <td class="p-1 text-center">
+                <td class="p-0.5 text-xs">${escapeHtml(displayName)}</td>
+                <td class="p-0.5 text-xs text-center">${ri.quantity} ${unitLabel}</td>
+                <td class="p-0.5 text-xs text-center font-medium">${lineCost.toFixed(2)} €</td>
+                <td class="p-0.5 text-center">
                     ${svgEdit(`openEditRecipeItemModal(${i})`)}
                     ${svgDelete(`deleteRecipeItem(${i})`)}
                 </td>`;

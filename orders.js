@@ -78,7 +78,7 @@ function displayOrders() {
         });
         const weekLabel = `${formatDateDMY(monday.toISOString().slice(0,10))} – ${formatDateDMY(sunday.toISOString().slice(0,10))}`;
         const weekRow = document.createElement('tr');
-        weekRow.innerHTML = `<td colspan="6" class="bg-gray-200 text-gray-700 text-xs font-medium p-1">
+        weekRow.innerHTML = `<td colspan="6" class="bg-gray-200 text-gray-700 text-xs font-medium p-0.5">
             Неделя ${weekLabel} — ${weekTotals.count} зак., ${weekTotals.qty} шт., ${weekTotals.sum.toFixed(2)} €
         </td>`;
         tbody.appendChild(weekRow);
@@ -93,7 +93,7 @@ function displayOrders() {
         });
         const monthLabel = `${MONTH_NAMES_RU[m - 1]} ${y}`;
         const monthRow = document.createElement('tr');
-        monthRow.innerHTML = `<td colspan="6" class="bg-gray-700 text-white text-xs font-semibold p-1.5">
+        monthRow.innerHTML = `<td colspan="6" class="bg-gray-700 text-white text-xs font-semibold p-0.5.5">
             Итого за ${monthLabel} — ${monthTotals.count} зак., ${monthTotals.qty} шт., ${monthTotals.sum.toFixed(2)} €
         </td>`;
         tbody.appendChild(monthRow);
@@ -101,7 +101,7 @@ function displayOrders() {
 
     function appendSpacer() {
         const spacerRow = document.createElement('tr');
-        spacerRow.innerHTML = `<td colspan="6" class="p-1.5 border-b border-gray-300"></td>`;
+        spacerRow.innerHTML = `<td colspan="6" class="p-0.5.5 border-b border-gray-300"></td>`;
         tbody.appendChild(spacerRow);
     }
 
@@ -140,12 +140,12 @@ function displayOrders() {
         const row = document.createElement('tr');
         row.className = 'order-row border-b' + (isMerged ? ' bg-red-50' : '');
         row.innerHTML = `
-            <td class=" p-1 text-xs whitespace-nowrap${isMerged ? ' text-red-700 font-semibold' : ''}" onclick="openOrderDetail(${order.id})">${formatDateDMY(order.date)}${isMerged ? ' ⚠' : ''}</td>
-            <td class=" p-1 text-xs" onclick="openOrderDetail(${order.id})">${escapeHtml(order.customer)}</td>
-            <td class=" p-1 text-xs text-center" onclick="openOrderDetail(${order.id})">${itemsCount}</td>
-            <td class=" p-1 text-xs font-medium" onclick="openOrderDetail(${order.id})">${total}</td>
-            <td class=" p-1 text-center" onclick="openOrderDetail(${order.id})"><span class="${flagClass}"></span></td>
-            <td class=" p-1 text-center">
+            <td class=" p-0.5 text-xs whitespace-nowrap${isMerged ? ' text-red-700 font-semibold' : ''}" onclick="openOrderDetail(${order.id})">${formatDateDMY(order.date)}${isMerged ? ' ⚠' : ''}</td>
+            <td class=" p-0.5 text-xs" onclick="openOrderDetail(${order.id})">${escapeHtml(order.customer)}</td>
+            <td class=" p-0.5 text-xs text-center" onclick="openOrderDetail(${order.id})">${itemsCount}</td>
+            <td class=" p-0.5 text-xs font-medium" onclick="openOrderDetail(${order.id})">${total}</td>
+            <td class=" p-0.5 text-center" onclick="openOrderDetail(${order.id})"><span class="${flagClass}"></span></td>
+            <td class=" p-0.5 text-center">
                 ${svgEdit(`openEditOrderModal(${realIdx})`)}
                 ${svgDelete(`openDeleteModal(${realIdx},'order','заказ клиента «${order.customer}»')`)}
                 ${svgCopy(`copyOrder(${realIdx})`)}
@@ -534,9 +534,9 @@ async function openOrdersTrash() {
                 const orderDate = formatDateDMY(o.order_date || o.date);
                 html += `<tr class="border-b cursor-pointer hover:bg-gray-50 active:bg-gray-100"
                     onclick="openTrashOrderActions(${o.id}, '${escapeHtml(custName)}', '${orderDate}')">
-                    <td class="p-1">${orderDate}</td>
-                    <td class="p-1">${escapeHtml(custName)}</td>
-                    <td class="p-1 text-gray-400">${deletedDate}</td>
+                    <td class="p-0.5">${orderDate}</td>
+                    <td class="p-0.5">${escapeHtml(custName)}</td>
+                    <td class="p-0.5 text-gray-400">${deletedDate}</td>
                 </tr>`;
             });
             html += '</tbody></table>';
@@ -682,11 +682,11 @@ function renderDetailItems(order) {
             const row = document.createElement('tr');
             row.className = 'border-b';
             row.innerHTML = `
-                <td class="p-1 text-xs">${escapeHtml(item.product)}</td>
-                <td class="p-1 text-xs text-center">${item.quantity}${unitLabel ? ' ' + unitLabel : ''}</td>
-                <td class="p-1 text-xs text-center">${item.price.toFixed(2)}</td>
-                <td class="p-1 text-xs text-center font-medium">${total}</td>
-                <td class="p-1 text-center">
+                <td class="p-0.5 text-xs">${escapeHtml(item.product)}</td>
+                <td class="p-0.5 text-xs text-center">${item.quantity}${unitLabel ? ' ' + unitLabel : ''}</td>
+                <td class="p-0.5 text-xs text-center">${item.price.toFixed(2)}</td>
+                <td class="p-0.5 text-xs text-center font-medium">${total}</td>
+                <td class="p-0.5 text-center">
                     ${svgEdit(`openEditItemModal(${i})`)}
                     ${svgDelete(`deleteItem(${i})`)}
                 </td>`;
@@ -874,15 +874,15 @@ async function openOrderCostBreakdown() {
         rows.forEach(r => {
             const unitLabel = UNIT_LABELS[r.unit] || r.unit;
             html += `<tr class="border-b">
-                <td class="p-1" style="word-break:break-word;">${escapeHtml(r.name)}</td>
-                <td class="p-1 text-right whitespace-nowrap">${r.qty.toFixed(2)} ${unitLabel}</td>
-                <td class="p-1 text-right whitespace-nowrap">${r.unit_price.toFixed(4)} €</td>
-                <td class="p-1 text-right whitespace-nowrap">${r.total.toFixed(4)} €</td>
+                <td class="p-0.5" style="word-break:break-word;">${escapeHtml(r.name)}</td>
+                <td class="p-0.5 text-right whitespace-nowrap">${r.qty.toFixed(2)} ${unitLabel}</td>
+                <td class="p-0.5 text-right whitespace-nowrap">${r.unit_price.toFixed(4)} €</td>
+                <td class="p-0.5 text-right whitespace-nowrap">${r.total.toFixed(4)} €</td>
             </tr>`;
         });
         html += `</tbody><tfoot><tr class="bg-gray-50 font-semibold">
-            <td class="p-1" colspan="3">Итого себестоимость</td>
-            <td class="p-1 text-right">${grandCost > 0 ? grandCost.toFixed(2) : grandIngCost.toFixed(2)} €</td>
+            <td class="p-0.5" colspan="3">Итого себестоимость</td>
+            <td class="p-0.5 text-right">${grandCost > 0 ? grandCost.toFixed(2) : grandIngCost.toFixed(2)} €</td>
         </tr></tfoot></table>`;
 
         document.getElementById('orderCostBreakdownSubtitle').textContent =

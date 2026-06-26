@@ -83,10 +83,10 @@ function displaySemiFinished() {
         row.className = 'order-row border-b' + rowBg;
         row.style.cursor = 'pointer';
         row.innerHTML = `
-            <td class=" p-1 text-xs" onclick="openSemiFinishedDetail(${sf.id})">${escapeHtml(sf.name)}</td>
-            <td class=" p-1 text-xs text-center" onclick="openSemiFinishedDetail(${sf.id})">${unitCost.toFixed(4)} €/${unitLabel}</td>
-            <td class=" p-1 text-xs text-center" onclick="openSemiFinishedDetail(${sf.id})">${balanceStr}</td>
-            <td class=" p-1 text-xs text-center" onclick="openSemiFinishedDetail(${sf.id})">${daysStr}</td>`;
+            <td class=" p-0.5 text-xs" onclick="openSemiFinishedDetail(${sf.id})">${escapeHtml(sf.name)}</td>
+            <td class=" p-0.5 text-xs text-center" onclick="openSemiFinishedDetail(${sf.id})">${unitCost.toFixed(4)} €/${unitLabel}</td>
+            <td class=" p-0.5 text-xs text-center" onclick="openSemiFinishedDetail(${sf.id})">${balanceStr}</td>
+            <td class=" p-0.5 text-xs text-center" onclick="openSemiFinishedDetail(${sf.id})">${daysStr}</td>`;
         tbody.appendChild(row);
     });
     const warningEl = document.getElementById('semiFinishedRecipeWarning');
@@ -212,10 +212,10 @@ function renderSemiFinishedRecipe(sf) {
             const row = document.createElement('tr');
             row.className = 'border-b';
             row.innerHTML = `
-                <td class="p-1 text-xs">${escapeHtml(ing ? ing.name : '(удалён)')}</td>
-                <td class="p-1 text-xs text-center">${ri.quantity} ${ing ? UNIT_LABELS[ing.unit] : ''}</td>
-                <td class="p-1 text-xs text-center font-medium">${lineCost.toFixed(2)} €</td>
-                <td class="p-1 text-center">
+                <td class="p-0.5 text-xs">${escapeHtml(ing ? ing.name : '(удалён)')}</td>
+                <td class="p-0.5 text-xs text-center">${ri.quantity} ${ing ? UNIT_LABELS[ing.unit] : ''}</td>
+                <td class="p-0.5 text-xs text-center font-medium">${lineCost.toFixed(2)} €</td>
+                <td class="p-0.5 text-center">
                     ${svgEdit(`openEditSfRecipeItemModal(${i})`)}
                     ${svgDelete(`deleteSfRecipeItem(${i})`)}
                 </td>`;
@@ -464,9 +464,9 @@ async function renderSfStockBlock(sf) {
             const sign = isIn ? '+' : '−';
             const color = isIn ? 'text-green-700' : 'text-red-600';
             html += `<tr class="border-b cursor-pointer hover:bg-gray-50" onclick="editSfInventoryRecord(${r.id}, ${Number(r.quantity)}, '${escapeHtml(r.notes || '')}')">
-                <td class="p-1">${date}</td>
-                <td class="p-1 text-right ${color} font-semibold">${sign}${Number(r.quantity).toFixed(2)} ${unitLabel}</td>
-                <td class="p-1 text-gray-500">${escapeHtml(r.notes || '')}</td>
+                <td class="p-0.5">${date}</td>
+                <td class="p-0.5 text-right ${color} font-semibold">${sign}${Number(r.quantity).toFixed(2)} ${unitLabel}</td>
+                <td class="p-0.5 text-gray-500">${escapeHtml(r.notes || '')}</td>
             </tr>`;
         });
         html += '</tbody></table></div>';
@@ -599,9 +599,9 @@ function openSfInventarizationModal() {
         const balance   = getSemiFinishedBalance(sf.id);
         const balStr    = balance !== null ? `${Number(balance).toFixed(2)} ${unitLabel}` : '—';
         html += `<tr class="border-b">
-            <td class="p-1">${escapeHtml(sf.name)}</td>
-            <td class="p-1 text-right text-gray-500">${balStr}</td>
-            <td class="p-1 text-right">
+            <td class="p-0.5">${escapeHtml(sf.name)}</td>
+            <td class="p-0.5 text-right text-gray-500">${balStr}</td>
+            <td class="p-0.5 text-right">
                 <input type="number" inputmode="decimal" step="0.01" min="0"
                     data-sf-id="${sf.id}" data-unit="${unitLabel}"
                     class="sf-inv-qty-input border p-0.5 rounded text-xs w-24 text-right"
