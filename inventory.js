@@ -231,6 +231,13 @@ async function openInventoryModal() {
         if (red.length || yellow.length) {
             html += `<tr><td colspan="3" class="p-1 text-xs font-semibold text-gray-500 bg-gray-50">Остальные</td></tr>`;
         }
+        // Сортируем по возрастанию дней — сначала быстрее заканчивающиеся
+        rest.sort((a, b) => {
+            if (a.daysLeft === null && b.daysLeft === null) return 0;
+            if (a.daysLeft === null) return 1;
+            if (b.daysLeft === null) return -1;
+            return a.daysLeft - b.daysLeft;
+        });
         rest.forEach(item => { html += renderRow(item, '', 'text-gray-500'); });
     }
 
