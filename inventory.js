@@ -209,7 +209,8 @@ async function openInventoryModal() {
         const { ing, balance, daysLeft, unitLabel, shortage } = item;
         const balanceStr = balance !== null ? `${Number(balance).toFixed(1)} ${unitLabel}` : '—';
         const daysStr    = shortage ? 'нехватка' : daysLeft !== null ? `~${daysLeft} дн.` : '—';
-        return `<tr class="border-b ${bgClass}">
+        return `<tr class="border-b ${bgClass} cursor-pointer hover:bg-gray-50 active:bg-gray-100"
+            onclick="closeModal(); showTab('ingredients'); openIngredientDetail(${ing.id});">
             <td class="p-1 text-xs">${escapeHtml(ing.name)}</td>
             <td class="p-1 text-xs text-right">${balanceStr}</td>
             <td class="p-1 text-xs text-right ${daysClass} font-semibold">${daysStr}</td>
