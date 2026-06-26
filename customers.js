@@ -16,13 +16,13 @@ function displayCustomers() {
         if (!hasName) warningCount++;
         const nameLabel = hasName ? escapeHtml(c.name) : '⚠ (имя не указано)';
         const row = document.createElement('tr');
-        row.className = 'order-row' + (hasName ? '' : ' bg-red-50');
+        row.className = 'order-row border-b' + (hasName ? '' : ' bg-red-50');
         row.innerHTML = `
-            <td class="border p-1 text-xs ${hasName ? '' : 'text-red-600 font-semibold'}" onclick="openCustomerDetail(${c.id})">${nameLabel}</td>
-            <td class="border p-1 text-xs" onclick="openCustomerDetail(${c.id})">${escapeHtml(c.contact)}</td>
-            <td class="border p-1 text-xs" onclick="openCustomerDetail(${c.id})">${c.discount.toFixed(2)}</td>
-            <td class="border p-1 text-xs text-center" onclick="openCustomerDetail(${c.id})">${c.vat_exempt ? '✓' : ''}</td>
-            <td class="border p-1 text-center whitespace-nowrap">
+            <td class=" p-1 text-xs ${hasName ? '' : 'text-red-600 font-semibold'}" onclick="openCustomerDetail(${c.id})">${nameLabel}</td>
+            <td class=" p-1 text-xs" onclick="openCustomerDetail(${c.id})">${escapeHtml(c.contact)}</td>
+            <td class=" p-1 text-xs" onclick="openCustomerDetail(${c.id})">${c.discount.toFixed(2)}</td>
+            <td class=" p-1 text-xs text-center" onclick="openCustomerDetail(${c.id})">${c.vat_exempt ? '✓' : ''}</td>
+            <td class=" p-1 text-center whitespace-nowrap">
                 ${svgEdit(`openCustomerDetail(${c.id})`)}
                 ${svgDelete(`openDeleteModal(${i},'customer','клиента «${c.name || '(без имени)'}»')`)}
             </td>`;

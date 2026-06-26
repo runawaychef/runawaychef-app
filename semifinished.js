@@ -80,13 +80,13 @@ function displaySemiFinished() {
             : daysLeft !== null && daysLeft < 7 ? ' bg-yellow-50' : '';
 
         const row = document.createElement('tr');
-        row.className = 'order-row' + rowBg;
+        row.className = 'order-row border-b' + rowBg;
         row.style.cursor = 'pointer';
         row.innerHTML = `
-            <td class="border p-1 text-xs" onclick="openSemiFinishedDetail(${sf.id})">${escapeHtml(sf.name)}</td>
-            <td class="border p-1 text-xs text-center" onclick="openSemiFinishedDetail(${sf.id})">${unitCost.toFixed(4)} €/${unitLabel}</td>
-            <td class="border p-1 text-xs text-center" onclick="openSemiFinishedDetail(${sf.id})">${balanceStr}</td>
-            <td class="border p-1 text-xs text-center" onclick="openSemiFinishedDetail(${sf.id})">${daysStr}</td>`;
+            <td class=" p-1 text-xs" onclick="openSemiFinishedDetail(${sf.id})">${escapeHtml(sf.name)}</td>
+            <td class=" p-1 text-xs text-center" onclick="openSemiFinishedDetail(${sf.id})">${unitCost.toFixed(4)} €/${unitLabel}</td>
+            <td class=" p-1 text-xs text-center" onclick="openSemiFinishedDetail(${sf.id})">${balanceStr}</td>
+            <td class=" p-1 text-xs text-center" onclick="openSemiFinishedDetail(${sf.id})">${daysStr}</td>`;
         tbody.appendChild(row);
     });
     const warningEl = document.getElementById('semiFinishedRecipeWarning');

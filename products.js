@@ -19,12 +19,12 @@ function displayProducts() {
         if (needsAttention) warningCount++;
         const unitLabel = hasUnit ? UNIT_PRODUCT_LABELS[p.unit] : '⚠';
         const row = document.createElement('tr');
-        row.className = 'order-row' + (needsAttention ? ' bg-red-50' : '');
+        row.className = 'order-row border-b' + (needsAttention ? ' bg-red-50' : '');
         row.innerHTML = `
-            <td class="border p-1 text-xs" onclick="openProductDetail(${p.id})">${escapeHtml(p.name)}</td>
-            <td class="border p-1 text-xs text-center ${hasUnit ? '' : 'text-red-600 font-semibold'}" onclick="openProductDetail(${p.id})">${unitLabel}</td>
-            <td class="border p-1 text-xs" onclick="openProductDetail(${p.id})">${p.price.toFixed(2)}</td>
-            <td class="border p-1 text-center">
+            <td class=" p-1 text-xs" onclick="openProductDetail(${p.id})">${escapeHtml(p.name)}</td>
+            <td class=" p-1 text-xs text-center ${hasUnit ? '' : 'text-red-600 font-semibold'}" onclick="openProductDetail(${p.id})">${unitLabel}</td>
+            <td class=" p-1 text-xs" onclick="openProductDetail(${p.id})">${p.price.toFixed(2)}</td>
+            <td class=" p-1 text-center">
                 ${svgEdit(`openProductDetail(${p.id})`)}
                 ${svgDelete(`openDeleteModal(${i},'product','изделие «${p.name}»')`)}
                 ${svgCopy(`copyProduct(${i})`)}
