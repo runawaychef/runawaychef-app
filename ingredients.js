@@ -129,11 +129,8 @@ function openIngredientDetail(ingId) {
     document.getElementById('ingredientDetail').classList.add('active');
     document.getElementById('ingredientDetail').classList.add('fade-in'); setTimeout(() => document.getElementById('ingredientDetail').classList.remove('fade-in'), 300);
 
-    // Блок 1: название и единица
-    document.getElementById('idName').value = ing.name;
-    document.getElementById('idUnit').value = ing.unit;
 
-    // Блок 2: форма новой цены — заполняем текущими значениями как подсказка
+    // Заголовок карточки
     const nameDisplay = document.getElementById('idNameDisplay');
     const unitDisplay = document.getElementById('idUnitDisplay');
     if (nameDisplay) nameDisplay.textContent = ing.name;
