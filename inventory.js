@@ -499,6 +499,8 @@ function switchInventoryTab(tab) {
     document.getElementById('inventoryTabShop').classList.toggle('hidden', tab !== 'shop');
     document.getElementById('invTabStock').classList.toggle('active', tab === 'stock');
     document.getElementById('invTabShop').classList.toggle('active', tab === 'shop');
+    const title = document.getElementById('inventoryModalTitle');
+    if (title) title.textContent = tab === 'stock' ? '🛒 Аналитика склада' : '🛒 Корзина';
     if (tab === 'shop') renderShoppingList();
 }
 
