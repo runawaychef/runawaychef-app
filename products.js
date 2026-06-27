@@ -421,7 +421,6 @@ async function addIngredientToRecipe() {
         if (!prod.ingredients) prod.ingredients = [];
         prod.ingredients.push({ id: data.id, ingredient_id: data.ingredient_id, semi_finished_id: data.semi_finished_id, quantity: Number(data.quantity) });
         renderProductRecipe(prod);
-        await resetProductRecipeConfirmed(prod);
         let itemName = '';
         if (type === 'sf') {
             const sf = semiFinished.find(s => s.id === selectedId);
@@ -498,7 +497,6 @@ async function saveRecipeItemEdit() {
             quantity
         };
         renderProductRecipe(prod);
-        await resetProductRecipeConfirmed(prod);
         closeModal();
         logActivity('product', `Изменён ингредиент в рецепте «${prod.name}»`);
     } catch (e) { console.error(e); showInfo('Ошибка сохранения. Проверьте подключение.'); }
@@ -617,7 +615,6 @@ async function copyRecipeFromProductByName(sourceName) {
         if (!prod.ingredients) prod.ingredients = [];
         data.forEach(d => prod.ingredients.push({ id: d.id, ingredient_id: d.ingredient_id, semi_finished_id: d.semi_finished_id, quantity: Number(d.quantity) }));
         renderProductRecipe(prod);
-        await resetProductRecipeConfirmed(prod);
         logActivity('product', `В рецепт «${prod.name}» скопировано ${toCopy.length} поз. из рецепта «${sourceName}»`);
     } catch (e) { console.error(e); showInfo('Ошибка сохранения. Проверьте подключение.'); }
     finally { hideLoading(); }

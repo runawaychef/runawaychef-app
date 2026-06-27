@@ -251,7 +251,6 @@ async function addIngredientToSfRecipe() {
         if (!sf.ingredients) sf.ingredients = [];
         sf.ingredients.push({ id: data.id, ingredient_id: ingredientId, quantity: Number(data.quantity) });
         renderSemiFinishedRecipe(sf);
-        await resetSfRecipeConfirmed(sf);
         logActivity('semiFinished', `В рецепт «${sf.name}» добавлен ингредиент «${ing.name}» (${quantity})`);
         inputEl.value = '';
         document.getElementById('newSfRecipeQty').value = '';
@@ -298,7 +297,6 @@ async function saveSfRecipeItemEdit() {
         if (error) throw error;
         sf.ingredients[editSfRecipeItemIdx] = { id: ri.id, ingredient_id: ingredientId, quantity };
         renderSemiFinishedRecipe(sf);
-        await resetSfRecipeConfirmed(sf);
         closeModal();
         logActivity('semiFinished', `Изменён ингредиент в рецепте «${sf.name}»`);
     } catch (e) { console.error(e); showInfo('Ошибка сохранения. Проверьте подключение.'); }
@@ -395,7 +393,6 @@ async function copySfRecipeFromByName(sourceName) {
         if (!sf.ingredients) sf.ingredients = [];
         data.forEach(d => sf.ingredients.push({ id: d.id, ingredient_id: d.ingredient_id, quantity: Number(d.quantity) }));
         renderSemiFinishedRecipe(sf);
-        await resetSfRecipeConfirmed(sf);
         logActivity('semiFinished', `В рецепт «${sf.name}» скопировано ${toCopy.length} поз. из рецепта «${sourceName}»`);
     } catch (e) { console.error(e); showInfo('Ошибка сохранения. Проверьте подключение.'); }
     finally { hideLoading(); }
