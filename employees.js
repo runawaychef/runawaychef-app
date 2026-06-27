@@ -133,19 +133,32 @@ async function fixateAllItemCosts() {
 
 // ==================== TELEGRAM УВЕДОМЛЕНИЯ ====================
 
-const TELEGRAM_BOT_TOKEN = '8672305499:AAGt64Stm_UE10nYJ3nI9BZttdOJqKnK_Bc';
 const TELEGRAM_CHAT_IDS = {
     'Sergey': 371171905,
     'Mark':   658689940
 };
 
+let _telegramBotToken = null;
+
+async function getTelegramToken() {
+    if (_telegramBotToken) return _telegramBotToken;
+    try {
+        const { data, error } = await db.from('app_settings').select('value').eq('key', 'telegram_bot_token').single();
+        if (error) throw error;
+        _telegramBotToken = data.value;
+    } catch (e) { console.error('Ошибка загрузки Telegram токена:', e); }
+    return _telegramBotToken;
+}
+
 // Отправляет сообщение всем кроме текущего сотрудника
 async function sendTelegramNotification(text) {
+    const token = await getTelegramToken();
+    if (!token) return;
     const senderName = currentEmployee ? currentEmployee.name : null;
     const recipients = Object.entries(TELEGRAM_CHAT_IDS).filter(([name]) => name !== senderName);
     for (const [, chatId] of recipients) {
         try {
-            await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
+            await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ chat_id: chatId, text, parse_mode: 'HTML' })
@@ -194,12 +207,13 @@ async function sendShoppingListToTelegram(shoppingList) {
 
     const text = `🛒 Список покупок\n\n${lines.join('\n')}\n\n👨‍🍳 ${senderName}`;
 
-    // Отправляем всем — список покупок видят все
+    const token = await getTelegramToken();
+    if (!token) { await showInfo('Не удалось загрузить токен бота.'); return; }
     const recipients = Object.values(TELEGRAM_CHAT_IDS);
     showLoading('Отправляю в Telegram...');
     try {
         for (const chatId of recipients) {
-            await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
+            await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ chat_id: chatId, text })
