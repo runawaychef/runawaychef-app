@@ -239,18 +239,48 @@ async function openInventoryModal() {
         </tr>`;
     }
 
+    // Разбиваем п/ф на группы заранее — критичные и жёлтые поднимем наверх
+    const sfSorted = (semiFinished || []).slice().sort((a, b) => (a.name||'').localeCompare(b.name||''));
+    const SF_UNIT_LABELS = { g: 'г', kg: 'кг', ml: 'мл', l: 'л', pcs: 'шт' };
+    const sfRed = [], sfYellow = [], sfRest = [];
+    sfSorted.forEach(sf => {
+        const balance  = getSemiFinishedBalance(sf.id);
+        const daily    = avgDailySfUsage(sf.id);
+        const daysLeft = (balance !== null && balance > 0 && daily > 0) ? Math.floor(balance / daily) : null;
+        const unitLabel = SF_UNIT_LABELS[sf.unit] || sf.unit;
+        const needed = neededSfForOrders[sf.id] || 0;
+        const shortage = needed > 0 && (balance === null || balance < needed);
+        const item = { ing: { id: sf.id, name: sf.name }, balance, daysLeft, unitLabel, shortage };
+        if (shortage || (balance !== null && balance <= 0) || (daysLeft !== null && daysLeft < 3)) sfRed.push(item);
+        else if (daysLeft !== null && daysLeft < 7) sfYellow.push(item);
+        else sfRest.push(item);
+    });
+
     let html = '<table class="w-full text-xs"><thead><tr class="bg-gray-100 sticky top-0"><th class="p-1 text-left">Ингредиент</th><th class="p-1 text-right">Остаток</th><th class="p-1 text-right">Хватит</th><th class="p-1 text-center">Список</th></tr></thead><tbody>';
 
+    // 🔴 Критично: ингредиенты
     if (red.length) {
         html += `<tr><td colspan="4" class="p-1 text-xs font-semibold text-red-600 bg-red-50">🔴 Критично</td></tr>`;
         red.forEach(item => { html += renderRow(item, 'bg-red-50', 'text-red-600', false); });
     }
+    // 🔴 Критично: полуфабрикаты
+    if (sfRed.length) {
+        html += `<tr><td colspan="4" class="p-1 text-xs font-semibold text-red-600 bg-red-50">🔴 Критично — п/ф</td></tr>`;
+        sfRed.forEach(item => { html += renderRow(item, 'bg-red-50', 'text-red-600', true); });
+    }
+    // 🟡 Заканчивается: ингредиенты
     if (yellow.length) {
         html += `<tr><td colspan="4" class="p-1 text-xs font-semibold text-yellow-700 bg-yellow-50">🟡 Заканчивается</td></tr>`;
         yellow.forEach(item => { html += renderRow(item, 'bg-yellow-50', 'text-yellow-700', false); });
     }
+    // 🟡 Заканчивается: полуфабрикаты
+    if (sfYellow.length) {
+        html += `<tr><td colspan="4" class="p-1 text-xs font-semibold text-yellow-700 bg-yellow-50">🟡 Заканчивается — п/ф</td></tr>`;
+        sfYellow.forEach(item => { html += renderRow(item, 'bg-yellow-50', 'text-yellow-700', true); });
+    }
+    // Остальные ингредиенты
     if (rest.length) {
-        if (red.length || yellow.length) {
+        if (red.length || yellow.length || sfRed.length || sfYellow.length) {
             html += `<tr><td colspan="4" class="p-1 text-xs font-semibold text-gray-500 bg-gray-50">Остальные</td></tr>`;
         }
         rest.sort((a, b) => {
@@ -264,46 +294,17 @@ async function openInventoryModal() {
 
     html += '</tbody></table>';
 
-    // Секция полуфабрикатов
-    const sfSorted = (semiFinished || []).slice().sort((a, b) => (a.name||'').localeCompare(b.name||''));
-    if (sfSorted.length) {
-        const SF_UNIT_LABELS = { g: 'г', kg: 'кг', ml: 'мл', l: 'л', pcs: 'шт' };
-        const sfRed = [], sfYellow = [], sfRest = [];
-
-        // Используем neededSfForOrders, посчитанный выше вместе с ингредиентами
-        sfSorted.forEach(sf => {
-            const balance  = getSemiFinishedBalance(sf.id);
-            const daily    = avgDailySfUsage(sf.id);
-            const daysLeft = (balance !== null && balance > 0 && daily > 0) ? Math.floor(balance / daily) : null;
-            const unitLabel = SF_UNIT_LABELS[sf.unit] || sf.unit;
-            const needed = neededSfForOrders[sf.id] || 0;
-            const shortage = needed > 0 && (balance === null || balance < needed);
-            const item = { ing: { id: sf.id, name: sf.name }, balance, daysLeft, unitLabel, shortage };
-            if (shortage || (balance !== null && balance <= 0) || (daysLeft !== null && daysLeft < 3)) sfRed.push(item);
-            else if (daysLeft !== null && daysLeft < 7) sfYellow.push(item);
-            else sfRest.push(item);
-        });
-
+    // Остальные полуфабрикаты — внизу отдельной таблицей
+    if (sfRest.length) {
         html += `<p class="text-xs font-semibold text-gray-600 mt-3 mb-1">Полуфабрикаты</p>`;
         html += '<table class="w-full text-xs"><thead><tr class="bg-gray-100 sticky top-0"><th class="p-1 text-left">Название</th><th class="p-1 text-right">Остаток</th><th class="p-1 text-right">Хватит</th><th class="p-1 text-center">Список</th></tr></thead><tbody>';
-        if (sfRed.length) {
-            html += `<tr><td colspan="4" class="p-1 text-xs font-semibold text-red-600 bg-red-50">🔴 Критично</td></tr>`;
-            sfRed.forEach(item => { html += renderRow(item, 'bg-red-50', 'text-red-600', true); });
-        }
-        if (sfYellow.length) {
-            html += `<tr><td colspan="4" class="p-1 text-xs font-semibold text-yellow-700 bg-yellow-50">🟡 Заканчивается</td></tr>`;
-            sfYellow.forEach(item => { html += renderRow(item, 'bg-yellow-50', 'text-yellow-700', true); });
-        }
-        if (sfRest.length) {
-            if (sfRed.length || sfYellow.length) html += `<tr><td colspan="4" class="p-1 text-xs font-semibold text-gray-500 bg-gray-50">Остальные</td></tr>`;
-            sfRest.sort((a, b) => {
-                if (a.daysLeft === null && b.daysLeft === null) return 0;
-                if (a.daysLeft === null) return 1;
-                if (b.daysLeft === null) return -1;
-                return a.daysLeft - b.daysLeft;
-            });
-            sfRest.forEach(item => { html += renderRow(item, '', 'text-gray-500', true); });
-        }
+        sfRest.sort((a, b) => {
+            if (a.daysLeft === null && b.daysLeft === null) return 0;
+            if (a.daysLeft === null) return 1;
+            if (b.daysLeft === null) return -1;
+            return a.daysLeft - b.daysLeft;
+        });
+        sfRest.forEach(item => { html += renderRow(item, '', 'text-gray-500', true); });
         html += '</tbody></table>';
     }
 
