@@ -61,16 +61,11 @@
         }
         .fade-in { animation: fadeInUp 0.18s ease both; }
 
-        @keyframes tabSlideInRight {
-            from { opacity: 0; transform: translateX(40px); }
-            to   { opacity: 1; transform: translateX(0); }
+        @keyframes tabFadeIn {
+            from { opacity: 0; }
+            to   { opacity: 1; }
         }
-        @keyframes tabSlideInLeft {
-            from { opacity: 0; transform: translateX(-40px); }
-            to   { opacity: 1; transform: translateX(0); }
-        }
-        .tab-slide-right { animation: tabSlideInRight 0.22s cubic-bezier(0.25, 0.46, 0.45, 0.94) both; }
-        .tab-slide-left  { animation: tabSlideInLeft  0.22s cubic-bezier(0.25, 0.46, 0.45, 0.94) both; }
+        .tab-fade { animation: tabFadeIn 0.2s ease both; }
 
         /* ── Строки списков ── */
         .order-row { cursor: pointer; transition: background 0.12s; }
@@ -1654,25 +1649,14 @@ async function loadAllData() {
 
 // ==================== ТАБЫ ====================
 function showTab(tabId) {
-    const TAB_NAV_ORDER = ['orders', 'customers', 'products', 'ingredients'];
-    // Определяем направление если не задано свайпом
-    if (!_tabSlideDirection) {
-        const fromIdx = TAB_NAV_ORDER.indexOf(currentTabId);
-        const toIdx   = TAB_NAV_ORDER.indexOf(tabId);
-        if (fromIdx !== -1 && toIdx !== -1 && fromIdx !== toIdx) {
-            _tabSlideDirection = toIdx > fromIdx ? 'right' : 'left';
-        }
-    }
     currentTabId = tabId;
     document.querySelectorAll('.tab-content').forEach(t => t.classList.add('hidden'));
     document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
     const _tabEl = document.getElementById(tabId);
     _tabEl.classList.remove('hidden');
-    _tabEl.classList.remove('tab-slide-right', 'tab-slide-left');
+    _tabEl.classList.remove('tab-fade');
     void _tabEl.offsetWidth;
-    if (typeof _tabSlideDirection !== 'undefined' && _tabSlideDirection) {
-        _tabEl.classList.add(_tabSlideDirection === 'right' ? 'tab-slide-right' : 'tab-slide-left');
-    }
+    _tabEl.classList.add('tab-fade');
     const tabBtn = document.querySelector(`button[onclick="showTab('${tabId}')"]`);
     if (tabBtn) tabBtn.classList.add('active');
 
@@ -1857,7 +1841,6 @@ function closeHistoryScreen() {
 // При любом изменении — перезагружаем все данные и показываем тост.
 
 let _realtimeToastTimer = null;
-let _tabSlideDirection = null; // направление анимации при свайпе ('left'/'right'/null)
 
 function showRealtimeToast() {
     const toast = document.getElementById('realtimeToast');
@@ -1967,15 +1950,9 @@ window.addEventListener('pageshow', (e) => {
         if (idx === -1) return;
 
         if (dx > 0 && idx < TAB_ORDER.length - 1) {
-            // Свайп вправо — следующая вкладка въезжает справа
-            _tabSlideDirection = 'right';
             showTab(TAB_ORDER[idx + 1]);
-            _tabSlideDirection = null;
         } else if (dx < 0 && idx > 0) {
-            // Свайп влево — предыдущая вкладка въезжает слева
-            _tabSlideDirection = 'left';
             showTab(TAB_ORDER[idx - 1]);
-            _tabSlideDirection = null;
         }
     }, { passive: true });
 })();
