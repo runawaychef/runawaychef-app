@@ -1939,11 +1939,11 @@ window.addEventListener('pageshow', (e) => {
         const idx = TAB_ORDER.indexOf(currentTabId);
         if (idx === -1) return;
 
-        if (dx < 0 && idx < TAB_ORDER.length - 1) {
-            // Свайп влево — следующая вкладка
+        if (dx > 0 && idx < TAB_ORDER.length - 1) {
+            // Свайп вправо — следующая вкладка
             showTab(TAB_ORDER[idx + 1]);
-        } else if (dx > 0 && idx > 0) {
-            // Свайп вправо — предыдущая вкладка
+        } else if (dx < 0 && idx > 0) {
+            // Свайп влево — предыдущая вкладка
             showTab(TAB_ORDER[idx - 1]);
         }
     }, { passive: true });
