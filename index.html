@@ -1898,6 +1898,57 @@ window.addEventListener('pageshow', (e) => {
     }
 });
 
+// ==================== СВАЙП МЕЖДУ ВКЛАДКАМИ ====================
+// Горизонтальный свайп переключает вкладки: Заказы ↔ Клиенты ↔ Ассортимент ↔ Склад.
+// Свайп игнорируется если открыта карточка записи или модальное окно.
+
+(function initSwipeNavigation() {
+    const TAB_ORDER = ['orders', 'customers', 'products', 'ingredients'];
+    const MIN_SWIPE_X = 60;   // минимальная горизонтальная дистанция свайпа (px)
+    const MAX_SWIPE_Y = 80;   // максимальное вертикальное отклонение (px) — чтобы не путать со скроллом
+
+    let touchStartX = 0;
+    let touchStartY = 0;
+
+    document.addEventListener('touchstart', (e) => {
+        touchStartX = e.touches[0].clientX;
+        touchStartY = e.touches[0].clientY;
+    }, { passive: true });
+
+    document.addEventListener('touchend', (e) => {
+        const dx = e.changedTouches[0].clientX - touchStartX;
+        const dy = e.changedTouches[0].clientY - touchStartY;
+
+        // Игнорируем если движение больше вертикальное, чем горизонтальное
+        if (Math.abs(dx) < MIN_SWIPE_X || Math.abs(dy) > MAX_SWIPE_Y) return;
+
+        // Игнорируем если открыта карточка записи
+        const detailOpen =
+            document.getElementById('orderDetail')?.classList.contains('active') ||
+            document.getElementById('productDetail')?.classList.contains('active') ||
+            document.getElementById('customerDetail')?.classList.contains('active') ||
+            document.getElementById('ingredientDetail')?.classList.contains('active') ||
+            document.getElementById('semiFinishedDetail')?.classList.contains('active');
+        if (detailOpen) return;
+
+        // Игнорируем если открыто модальное окно
+        const modalOpen = document.querySelector('.modal[style*="flex"]');
+        if (modalOpen) return;
+
+        // Только основные 4 вкладки
+        const idx = TAB_ORDER.indexOf(currentTabId);
+        if (idx === -1) return;
+
+        if (dx < 0 && idx < TAB_ORDER.length - 1) {
+            // Свайп влево — следующая вкладка
+            showTab(TAB_ORDER[idx + 1]);
+        } else if (dx > 0 && idx > 0) {
+            // Свайп вправо — предыдущая вкладка
+            showTab(TAB_ORDER[idx - 1]);
+        }
+    }, { passive: true });
+})();
+
 // Регистрация Service Worker для установки как приложение (PWA)
 if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
