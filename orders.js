@@ -70,15 +70,19 @@ function displayOrders() {
     let currentMonthKey = null; // 'YYYY-MM'
     let currentWeekKey  = null; // ISO date понедельника недели
 
+    function localStr(d) {
+        return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+    }
+
     function appendWeekSummary(weekKey) {
-        const monday = new Date(weekKey);
+        const monday = new Date(weekKey + 'T00:00:00');
         const sunday = new Date(monday);
         sunday.setDate(sunday.getDate() + 6);
         const weekTotals = calcGroupTotals(sorted, o => {
-            const om = getMondayOf(new Date(o.date)).toISOString().slice(0,10);
-            return om === weekKey;
+            const om = getMondayOf(new Date(o.date));
+            return localStr(om) === weekKey;
         });
-        const weekLabel = `${formatDateDMY(monday.toISOString().slice(0,10))} – ${formatDateDMY(sunday.toISOString().slice(0,10))}`;
+        const weekLabel = formatDateDMY(localStr(monday)) + ' – ' + formatDateDMY(localStr(sunday));
         const weekRow = document.createElement('tr');
         weekRow.innerHTML = `<td colspan="6" class="bg-gray-200 text-gray-700 text-xs font-medium p-0.5">
             Неделя ${weekLabel} — ${weekTotals.count} зак., ${weekTotals.qty} шт., ${weekTotals.sum.toFixed(2)} €
@@ -110,7 +114,8 @@ function displayOrders() {
     sorted.forEach((order, idx) => {
         const orderDate = new Date(order.date);
         const monday = getMondayOf(orderDate);
-        const weekKey  = monday.toISOString().slice(0, 10);
+        // Важно: НЕ toISOString() — она даёт UTC, что в UTC+3 сдвигает дату на день назад
+        const weekKey = `${monday.getFullYear()}-${String(monday.getMonth()+1).padStart(2,'0')}-${String(monday.getDate()).padStart(2,'0')}`;
         // Месяц группы определяется по месяцу понедельника недели — недели не разбиваются
         const monthKey = `${monday.getFullYear()}-${String(monday.getMonth()+1).padStart(2,'0')}`;
 
@@ -191,13 +196,19 @@ function getFilteredOrdersForList() {
     if (employeeFilter) filtered = filtered.filter(o => String(o.employee_id) === employeeFilter);
     if (dateRange === 'week' || dateRange === 'month') {
         const today = new Date();
-        let startStr;
+        let startStr, endStr;
         if (dateRange === 'week') {
-            startStr = getCurrentWeekStartStr();
+            // Неделя Пн–Вс: от понедельника до воскресенья включительно
+            const mon = getMondayOf(today);
+            const sun = new Date(mon);
+            sun.setDate(sun.getDate() + 6);
+            startStr = mon.getFullYear() + '-' + String(mon.getMonth()+1).padStart(2,'0') + '-' + String(mon.getDate()).padStart(2,'0');
+            endStr   = sun.getFullYear() + '-' + String(sun.getMonth()+1).padStart(2,'0') + '-' + String(sun.getDate()).padStart(2,'0');
+            filtered = filtered.filter(o => o.date >= startStr && o.date <= endStr);
         } else {
             startStr = `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-01`;
+            filtered = filtered.filter(o => o.date >= startStr);
         }
-        filtered = filtered.filter(o => o.date >= startStr);
     } else if (dateRange === 'custom' && dateFrom && dateTo) {
         const from = new Date(dateFrom);
         const to   = new Date(dateTo); to.setDate(to.getDate() + 1);

@@ -53,13 +53,20 @@ function getFilteredOrders() {
         const today = new Date();
         let start;
         if (dateRange === 'week') {
-            start = getCurrentWeekStart();
-        } else if (dateRange === 'year') {
-            start = new Date(today.getFullYear(), 0, 1);
+            // Неделя Пн–Вс
+            const mon = getMondayOf(today);
+            const sun = new Date(mon); sun.setDate(sun.getDate() + 6);
+            const monStr = mon.getFullYear() + '-' + String(mon.getMonth()+1).padStart(2,'0') + '-' + String(mon.getDate()).padStart(2,'0');
+            const sunStr = sun.getFullYear() + '-' + String(sun.getMonth()+1).padStart(2,'0') + '-' + String(sun.getDate()).padStart(2,'0');
+            filtered = filtered.filter(o => o.date >= monStr && o.date <= sunStr);
         } else {
-            start = new Date(today.getFullYear(), today.getMonth(), 1);
+            if (dateRange === 'year') {
+                start = new Date(today.getFullYear(), 0, 1);
+            } else {
+                start = new Date(today.getFullYear(), today.getMonth(), 1);
+            }
+            filtered = filtered.filter(o => new Date(o.date) >= start);
         }
-        filtered = filtered.filter(o => new Date(o.date) >= start);
     } else if (dateRange === 'custom' && dateFrom && dateTo) {
         const from = new Date(dateFrom);
         const to   = new Date(dateTo); to.setDate(to.getDate() + 1);
