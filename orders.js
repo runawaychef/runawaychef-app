@@ -25,11 +25,7 @@ function displayOrders() {
         const countPriniat  = dayOrders.filter(o => o.status === 'принят').length;
         const countVRabote  = dayOrders.filter(o => o.status === 'в работе').length;
         const countVypolnen = dayOrders.filter(o => o.status === 'выполнен').length;
-        let statusParts = [];
-        if (countPriniat)  statusParts.push(`<span style="color:#f97316">${countPriniat} принят${countPriniat > 1 ? 'о' : ''}</span>`);
-        if (countVRabote)  statusParts.push(`<span style="color:#d97706">${countVRabote} в работе</span>`);
-        if (countVypolnen) statusParts.push(`<span style="color:#22c55e">${countVypolnen} выполнен${countVypolnen > 1 ? 'о' : ''}</span>`);
-        const statusLabel = statusParts.join(' · ');
+        const statusLabel = '';
 
         // Разбивка по клиентам с изделиями — кликабельные строки
         let clientLines = '';
@@ -47,7 +43,7 @@ function displayOrders() {
         });
 
         return `<div class="mb-2 last:mb-0">
-            <div class="font-semibold text-indigo-700 mb-0.5">${label}: ${dayOrders.length} зак. · ${totalQty} шт. · ${totalSum.toFixed(2)} € · ${statusLabel}</div>
+            <div class="font-semibold text-indigo-700 mb-0.5">${label}: ${dayOrders.length} зак. · ${totalQty} шт. · ${totalSum.toFixed(2)} €</div>
             ${clientLines}
         </div>`;
     }
