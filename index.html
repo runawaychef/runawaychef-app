@@ -1877,14 +1877,18 @@ function initRealtime() {
 let _realtimePending = false;
 
 async function handleRealtimeEvent() {
-    // Дебаунс: если несколько событий пришли подряд (например, заказ + позиции),
-    // ждём 400ms и перезагружаем один раз.
     if (_realtimePending) return;
     _realtimePending = true;
     setTimeout(async () => {
         _realtimePending = false;
-        await loadAllData();
-        showRealtimeToast();
+        showRealtimeStatus('⏳ загружаю данные...');
+        try {
+            await loadAllData();
+            showRealtimeStatus('✅ данные обновлены');
+            setTimeout(() => showRealtimeToast(), 100);
+        } catch(e) {
+            showRealtimeStatus('❌ ошибка: ' + e.message);
+        }
     }, 400);
 }
 
