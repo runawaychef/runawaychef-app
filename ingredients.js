@@ -261,8 +261,7 @@ async function saveIngredientHeader() {
     finally { hideLoading(); }
 }
 
-// Сохраняет новую цену (старая функция — оставляем для совместимости с историей цен)
-async function saveIdNewPrice() { await saveStockAndPrice(); }
+
 
 // ── Ручное списание ──────────────────────────────────────────────────────────
 
