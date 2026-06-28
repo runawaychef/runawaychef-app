@@ -39,6 +39,7 @@ function displayCustomers() {
 let _draftCustomerIds = new Set();
 
 async function createDraftCustomerAndOpen() {
+    _suppressRealtime = true;
     showLoading();
     try {
         const { data, error } = await db.from('customers').insert({ name: '', contact: '', discount: 0, vat_exempt: false }).select().single();
@@ -305,6 +306,7 @@ function deleteCurrentCustomer() {
 }
 
 async function saveCdHeader() {
+    _suppressRealtime = true;
     const cust = customers.find(c => c.id === currentCustomerId);
     if (!cust) return;
     const name     = document.getElementById('cdName').value.trim();

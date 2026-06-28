@@ -1832,16 +1832,6 @@ function closeHistoryScreen() {
 
 let _realtimeToastTimer = null;
 
-// Временная диагностика — показывает статус Realtime прямо на экране
-function showRealtimeStatus(msg) {
-    const toast = document.getElementById('realtimeToast');
-    if (!toast) return;
-    toast.textContent = msg;
-    toast.classList.add('visible');
-    if (_realtimeToastTimer) clearTimeout(_realtimeToastTimer);
-    _realtimeToastTimer = setTimeout(() => toast.classList.remove('visible'), 8000);
-}
-
 function showRealtimeToast() {
     const toast = document.getElementById('realtimeToast');
     if (!toast) return;
@@ -1853,43 +1843,50 @@ function showRealtimeToast() {
 let _realtimeChannel = null;
 
 function initRealtime() {
-    if (!db || !db.channel) {
-        showRealtimeStatus('❌ db.channel недоступен');
-        return;
-    }
+    if (!db || !db.channel) return;
     // Не создаём второй канал если уже подписаны (смена сотрудника без перезагрузки)
-    if (_realtimeChannel) {
-        showRealtimeStatus('♻️ канал уже существует');
-        return;
-    }
+    if (_realtimeChannel) return;
 
     _realtimeChannel = db.channel('realtime-sync')
     _realtimeChannel
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' },        (payload) => { showRealtimeStatus('📨 orders: ' + payload.eventType); handleRealtimeEvent(); })
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'order_items' },   (payload) => { showRealtimeStatus('📨 order_items: ' + payload.eventType); handleRealtimeEvent(); })
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'customers' },     (payload) => { showRealtimeStatus('📨 customers: ' + payload.eventType); handleRealtimeEvent(); })
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'ingredients' },   (payload) => { showRealtimeStatus('📨 ingredients: ' + payload.eventType); handleRealtimeEvent(); })
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' },        () => handleRealtimeEvent())
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'order_items' },   () => handleRealtimeEvent())
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'customers' },     () => handleRealtimeEvent())
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'ingredients' },   () => handleRealtimeEvent())
         .subscribe((status) => {
-            showRealtimeStatus('RT: ' + status);
+            if (status === 'SUBSCRIBED') console.log('[Realtime] подписка активна');
+            else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') console.warn('[Realtime] ошибка:', status);
         });
 }
 
 let _realtimePending = false;
 
+// Флаг: текущий пользователь сам пишет в БД — не реагируем на собственные события
+let _suppressRealtime = false;
+
+function withSuppressRealtime(fn) {
+    _suppressRealtime = true;
+    const result = fn();
+    // Снимаем флаг через 3 сек — достаточно чтобы Realtime-эхо успело прийти и уйти
+    if (result && typeof result.finally === 'function') {
+        result.finally(() => { setTimeout(() => { _suppressRealtime = false; }, 3000); });
+    } else {
+        setTimeout(() => { _suppressRealtime = false; }, 3000);
+    }
+    return result;
+}
+
 async function handleRealtimeEvent() {
+    // Игнорируем эхо собственных действий
+    if (_suppressRealtime) return;
     if (_realtimePending) return;
     _realtimePending = true;
     setTimeout(async () => {
         _realtimePending = false;
-        showRealtimeStatus('⏳ загружаю данные...');
-        try {
-            await loadAllData();
-            showRealtimeStatus('✅ данные обновлены');
-            setTimeout(() => showRealtimeToast(), 100);
-        } catch(e) {
-            showRealtimeStatus('❌ ошибка: ' + e.message);
-        }
-    }, 400);
+        if (_suppressRealtime) return;
+        await loadAllData();
+        showRealtimeToast();
+    }, 1500);
 }
 
 // ==================== iOS: восстановление после смахивания ====================

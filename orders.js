@@ -294,6 +294,7 @@ document.addEventListener('click', function(e) {
 // дата — сегодня, статус — "принят") и открывает его карточку.
 // Клиента и остальное можно дозаполнить уже внутри карточки.
 async function createDraftOrderAndOpen() {
+    _suppressRealtime = true;
     const today = getLocalDateStr(0);
     const employeeId = currentEmployee ? currentEmployee.id : null;
     showLoading();
@@ -321,6 +322,7 @@ async function createDraftOrderAndOpen() {
 }
 
 async function copyOrder(i) {
+    _suppressRealtime = true;
     const o = orders[i];
     const employeeId = currentEmployee ? currentEmployee.id : null;
     showLoading();
@@ -453,6 +455,7 @@ async function cleanupOrderDraftIfEmpty(orderId) {
 }
 
 async function closeOrderDetail() {
+    _suppressRealtime = true;
     const leavingId = currentOrderId;
     currentOrderId = null;
     document.getElementById('ordersList').classList.remove('hidden');
@@ -477,6 +480,7 @@ async function closeOrderDetailSilent() {
 
 // Снимает пометку "⚠ объединён, требует проверки" после того как заказ проверен
 async function markOrderChecked() {
+    _suppressRealtime = true;
     const order = orders.find(o => o.id === currentOrderId);
     if (!order) return;
     const newNotes = (order.notes || '')
@@ -574,6 +578,7 @@ function openTrashOrderActions(orderId, custName, orderDate) {
 }
 
 async function restoreOrder(orderId) {
+    _suppressRealtime = true;
     showLoading();
     try {
         const { error } = await db.from('orders')
@@ -589,6 +594,7 @@ async function restoreOrder(orderId) {
 }
 
 async function permanentDeleteOrder(orderId) {
+    _suppressRealtime = true;
     showLoading();
     try {
         const { error } = await db.from('orders').delete().eq('id', orderId);
@@ -616,6 +622,7 @@ function goToCustomerFromOrder() {
 }
 
 async function saveDetailHeader() {
+    _suppressRealtime = true;
     const order = orders.find(o => o.id === currentOrderId);
     if (!order) return;
     const customerName = document.getElementById('detailCustomer').value.trim();
@@ -747,6 +754,7 @@ function renderDetailItems(order) {
 }
 
 async function addItemToOrder() {
+    _suppressRealtime = true;
     const order = orders.find(o => o.id === currentOrderId);
     if (!order) return;
     const productName = document.getElementById('newItemProduct').value;
@@ -816,6 +824,7 @@ function autoFillEditItemPrice() {
 }
 
 async function saveItemEdit() {
+    _suppressRealtime = true;
     const order = orders.find(o => o.id === currentOrderId);
     if (!order || editItemIdx === null) return;
     const productName = document.getElementById('editItemProduct').value;
@@ -853,6 +862,7 @@ function deleteItem(itemIdx) {
 
 // ==================== ДЕТАЛИЗАЦИЯ СЕБЕСТОИМОСТИ ЗАКАЗА ====================
 async function openOrderCostBreakdown() {
+    _suppressRealtime = true;
     const order = orders.find(o => o.id === currentOrderId);
     if (!order) return;
     showLoading('Загружаю детализацию...');
@@ -1038,6 +1048,7 @@ function openEditOrderModal(i) {
 }
 
 async function saveOrderEdit() {
+    _suppressRealtime = true;
     const customerName = document.getElementById('editOrderCustomer').value;
     const date     = document.getElementById('editOrderDate').value;
     const status   = document.getElementById('editOrderStatus').value;
