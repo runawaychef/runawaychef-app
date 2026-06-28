@@ -123,6 +123,18 @@
             z-index: 250;
         }
         #loadingOverlay.hidden { display: none; }
+
+        /* Realtime-тост */
+        #realtimeToast {
+            position: fixed; bottom: 72px; left: 50%; transform: translateX(-50%);
+            background: #1f2937; color: #fff;
+            padding: 8px 16px; border-radius: 20px;
+            font-size: 13px; white-space: nowrap;
+            z-index: 400; opacity: 0;
+            transition: opacity 0.3s ease;
+            pointer-events: none;
+        }
+        #realtimeToast.visible { opacity: 1; }
         .spinner {
             border: 3px solid #e5e7eb; border-top-color: #6b7280;
             border-radius: 50%; width: 28px; height: 28px;
@@ -228,6 +240,9 @@
         <p id="loadingOverlayText" class="text-xs text-gray-600 mt-2" style="display:none;"></p>
     </div>
 </div>
+
+<!-- Realtime-тост -->
+<div id="realtimeToast">🔄 Данные обновлены</div>
 
 <!-- Склад: корзина, доступна из любого раздела -->
 <button id="inventoryBtn" onclick="openInventoryModal()" title="Склад">
@@ -1467,7 +1482,7 @@
     <script src="money.js?v=4"></script>
     <script src="supabaseClient.js?v=3"></script>
     <script src="auth.js?v=3"></script>
-    <script src="employees.js?v=16"></script>
+    <script src="employees.js?v=17"></script>
     <script src="inventory.js?v=20"></script>
 <script src="ingredients.js?v=32"></script>
 <script src="semifinished.js?v=17"></script>
@@ -1798,8 +1813,82 @@ function closeHistoryScreen() {
 // ==================== ИНИЦИАЛИЗАЦИЯ ====================
 
 (async function init() {
+    // Сбрасываем все detail-панели при старте — браузер мог сохранить их состояние
+    // (класс 'active') если приложение было закрыто во время просмотра карточки.
+    ['orderDetail','productDetail','customerDetail','ingredientDetail','semiFinishedDetail'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.classList.remove('active');
+    });
+    ['ordersList','productsList','customersList','ingredientsList','semiFinishedList'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.classList.remove('hidden');
+    });
     await initAuth();
 })();
+
+// ==================== REALTIME ====================
+// Подписка на изменения в таблицах orders, order_items, customers, ingredients.
+// При любом изменении — перезагружаем все данные и показываем тост.
+
+let _realtimeToastTimer = null;
+
+function showRealtimeToast() {
+    const toast = document.getElementById('realtimeToast');
+    if (!toast) return;
+    toast.classList.add('visible');
+    if (_realtimeToastTimer) clearTimeout(_realtimeToastTimer);
+    _realtimeToastTimer = setTimeout(() => toast.classList.remove('visible'), 3000);
+}
+
+let _realtimeChannel = null;
+
+function initRealtime() {
+    if (!db || !db.channel) return;
+    // Не создаём второй канал если уже подписаны (смена сотрудника без перезагрузки)
+    if (_realtimeChannel) return;
+
+    _realtimeChannel = db.channel('realtime-sync')
+    _realtimeChannel
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' },        () => handleRealtimeEvent())
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'order_items' },   () => handleRealtimeEvent())
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'customers' },     () => handleRealtimeEvent())
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'ingredients' },   () => handleRealtimeEvent())
+        .subscribe((status) => {
+            if (status === 'SUBSCRIBED') {
+                console.log('[Realtime] подписка активна');
+            } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+                console.warn('[Realtime] ошибка подписки:', status);
+            }
+        });
+}
+
+let _realtimePending = false;
+
+async function handleRealtimeEvent() {
+    // Дебаунс: если несколько событий пришли подряд (например, заказ + позиции),
+    // ждём 400ms и перезагружаем один раз.
+    if (_realtimePending) return;
+    _realtimePending = true;
+    setTimeout(async () => {
+        _realtimePending = false;
+        await loadAllData();
+        showRealtimeToast();
+    }, 400);
+}
+
+// ==================== iOS: восстановление после смахивания ====================
+// На iOS Safari после смахивания страница восстанавливается из bfcache
+// (persisted: true) — DOMContentLoaded и init() не запускаются повторно.
+// Слушаем pageshow чтобы обновить FAB и данные после «разморозки».
+window.addEventListener('pageshow', (e) => {
+    if (e.persisted) {
+        // Страница восстановлена из кэша браузера (iOS bfcache)
+        requestAnimationFrame(() => {
+            refreshFab();
+            setTimeout(refreshFab, 300);
+        });
+    }
+});
 
 // Регистрация Service Worker для установки как приложение (PWA)
 if ('serviceWorker' in navigator) {
