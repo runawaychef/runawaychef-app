@@ -91,7 +91,7 @@ function displayIngredients() {
 let _draftIngredientIds = new Set();
 
 async function createDraftIngredientAndOpen() {
-    _suppressRealtime = true;
+    suppressRealtimeFor3s();
     showLoading();
     try {
         const { data, error } = await db.from('ingredients').insert({
@@ -169,7 +169,7 @@ function renderIngredientUnitPricePreview() {
 // Сохраняет пополнение склада и при необходимости обновляет цену.
 // Вызывается из объединённого блока «Склад» в карточке ингредиента.
 async function saveStockAndPrice() {
-    _suppressRealtime = true;
+    suppressRealtimeFor3s();
     const ing = ingredients.find(i => i.id === currentIngredientId);
     if (!ing) return;
     const packagePrice = parseFloat(document.getElementById('idPackagePrice').value);
@@ -241,7 +241,7 @@ function openEditIngredientHeaderModal() {
 }
 
 async function saveIngredientHeader() {
-    _suppressRealtime = true;
+    suppressRealtimeFor3s();
     const ing  = ingredients.find(i => i.id === currentIngredientId);
     if (!ing) return;
     const name = document.getElementById('editIngName').value.trim();
@@ -290,7 +290,7 @@ document.addEventListener('change', e => {
 });
 
 async function saveWriteOff() {
-    _suppressRealtime = true;
+    suppressRealtimeFor3s();
     const ing = ingredients.find(i => i.id === currentIngredientId);
     if (!ing) return;
     const qty    = parseFloat(document.getElementById('writeOffQty').value);
@@ -317,7 +317,7 @@ async function saveWriteOff() {
     finally { hideLoading(); }
 }
 async function saveIdNewPrice() {
-    _suppressRealtime = true;
+    suppressRealtimeFor3s();
     const ing = ingredients.find(i => i.id === currentIngredientId);
     if (!ing) return;
     const packagePrice = parseFloat(document.getElementById('idPackagePrice').value);
@@ -381,7 +381,7 @@ function renderIngredientUnitPrice(ing) {
 }
 
 async function saveIdHeader() {
-    _suppressRealtime = true;
+    suppressRealtimeFor3s();
     const ing = ingredients.find(i => i.id === currentIngredientId);
     if (!ing) return;
     const name = document.getElementById('idName').value.trim();
@@ -561,7 +561,7 @@ function editInventoryRecord(id, qty, notes) {
 }
 
 async function saveInventoryEdit() {
-    _suppressRealtime = true;
+    suppressRealtimeFor3s();
     const id  = Number(document.getElementById('editInventoryId').value);
     const qty = parseFloat(document.getElementById('editInventoryQty').value);
     const notes = document.getElementById('editInventoryNotes').value.trim();
@@ -707,7 +707,7 @@ function openEditPriceHistoryModal(id, validFrom, price, size) {
 
 // Сохранить запись (создать новую или обновить существующую)
 async function savePriceHistoryRecord() {
-    _suppressRealtime = true;
+    suppressRealtimeFor3s();
     const recordId = document.getElementById('priceHistoryRecordId').value;
     const validFrom = document.getElementById('priceHistoryDate').value;
     const price = parseFloat(document.getElementById('priceHistoryPrice').value);

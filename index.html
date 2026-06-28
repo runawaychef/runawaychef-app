@@ -1861,19 +1861,15 @@ function initRealtime() {
 
 let _realtimePending = false;
 
-// Флаг: текущий пользователь сам пишет в БД — не реагируем на собственные события
+// Флаг: текущий пользователь сам пишет в БД — игнорируем собственное Realtime-эхо.
+// Выставляется в true в начале каждой функции записи, сбрасывается через 3 сек.
 let _suppressRealtime = false;
+let _suppressRealtimeTimer = null;
 
-function withSuppressRealtime(fn) {
+function suppressRealtimeFor3s() {
     _suppressRealtime = true;
-    const result = fn();
-    // Снимаем флаг через 3 сек — достаточно чтобы Realtime-эхо успело прийти и уйти
-    if (result && typeof result.finally === 'function') {
-        result.finally(() => { setTimeout(() => { _suppressRealtime = false; }, 3000); });
-    } else {
-        setTimeout(() => { _suppressRealtime = false; }, 3000);
-    }
-    return result;
+    if (_suppressRealtimeTimer) clearTimeout(_suppressRealtimeTimer);
+    _suppressRealtimeTimer = setTimeout(() => { _suppressRealtime = false; }, 3000);
 }
 
 async function handleRealtimeEvent() {
