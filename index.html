@@ -1714,8 +1714,8 @@ function showTab(tabId) {
         toEl.classList.remove('hidden');
         void toEl.offsetWidth;
 
-        fromEl.classList.add(goRight ? 'slide-out-right' : 'slide-out-left');
-        toEl.classList.add  (goRight ? 'slide-in-left'   : 'slide-in-right');
+        fromEl.classList.add(goRight ? 'slide-out-left'  : 'slide-out-right');
+        toEl.classList.add  (goRight ? 'slide-in-right'  : 'slide-in-left');
 
         const duration = 260;
         setTimeout(() => {
