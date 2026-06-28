@@ -51,6 +51,7 @@ async function selectEmployee(emp) {
     document.getElementById('inventoryBtn').classList.remove('hidden');
     await loadAllData();
     await loadInventory();
+    initRealtime();
     refreshFab();
     setTimeout(refreshFab, 150);
     logActivity('auth', `Вход: ${emp.name}`);
