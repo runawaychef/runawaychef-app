@@ -1865,10 +1865,10 @@ function initRealtime() {
 
     _realtimeChannel = db.channel('realtime-sync')
     _realtimeChannel
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' },        () => handleRealtimeEvent())
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'order_items' },   () => handleRealtimeEvent())
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'customers' },     () => handleRealtimeEvent())
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'ingredients' },   () => handleRealtimeEvent())
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' },        (payload) => { showRealtimeStatus('📨 orders: ' + payload.eventType); handleRealtimeEvent(); })
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'order_items' },   (payload) => { showRealtimeStatus('📨 order_items: ' + payload.eventType); handleRealtimeEvent(); })
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'customers' },     (payload) => { showRealtimeStatus('📨 customers: ' + payload.eventType); handleRealtimeEvent(); })
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'ingredients' },   (payload) => { showRealtimeStatus('📨 ingredients: ' + payload.eventType); handleRealtimeEvent(); })
         .subscribe((status) => {
             showRealtimeStatus('RT: ' + status);
         });
