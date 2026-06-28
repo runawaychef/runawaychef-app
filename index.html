@@ -36,8 +36,9 @@
 
         /* ── Вкладки — нижняя синяя черта вместо серой заливки ── */
         .tab { cursor: pointer; position: relative; background: transparent !important; color: #6b7280 !important; border-radius: 0 !important; padding-bottom: 6px !important; border-bottom: 2px solid transparent; transition: color 0.2s, border-color 0.2s; font-size: 14px; font-weight: 500; }
-        .tab.active { color: #4f46e5 !important; border-bottom: 2px solid #4f46e5 !important; font-weight: 600; }
-        .tab:hover:not(.active) { color: #374151 !important; border-bottom: 2px solid #d1d5db !important; }
+        .tab.active { color: #4f46e5 !important; font-weight: 600; position: relative; }
+        .tab.active::after { content: ""; position: absolute; bottom: -2px; left: 10%; right: 10%; height: 3px; background: #4f46e5; border-radius: 9999px; }
+        .tab:hover:not(.active) { color: #374151 !important; }
 
         /* Единый стиль таблиц — сетка как в Складе */
         table td, table th { border: 1px solid #e5e7eb; padding: 2px 4px !important; line-height: 1.3; }
