@@ -1420,7 +1420,7 @@
 <script src="semifinished.js?v=14"></script>
 <script src="products.js?v=14"></script>
 <script src="customers.js?v=26"></script>
-<script src="orders.js?v=36"></script>
+<script src="orders.js?v=37"></script>
 <script src="stats.js?v=12"></script>
 <script src="history.js?v=3"></script>
 <script src="modals.js?v=9"></script>
@@ -1565,6 +1565,7 @@ async function loadAllData() {
         displaySemiFinished();
         updateOrderEmployeeFilter();
         displayOrders();
+        initRealtimeOrders();
     } catch (e) {
         console.error(e);
         alert('Ошибка загрузки данных. Проверьте подключение к интернету.');

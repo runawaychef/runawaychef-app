@@ -1064,3 +1064,78 @@ async function saveOrderEdit() {
     } catch (e) { console.error(e); showInfo('Ошибка сохранения. Проверьте подключение.'); }
     finally { hideLoading(); }
 }
+
+// ==================== REALTIME ====================
+// Подписка на изменения в таблицах orders и order_items.
+// При любом изменении — перезагружаем только заказы (не все данные),
+// чтобы оба пользователя видели актуальную картину без ручного обновления.
+
+let _realtimeChannel = null;
+
+async function reloadOrdersOnly() {
+    try {
+        const [oRes, oiRes] = await Promise.all([
+            db.from('orders').select('id, customer_id, order_date, status, discount, vat_exempt, employee_id, notes').is('deleted_at', null).range(0, 9999),
+            db.from('order_items').select('id, order_id, product_id, quantity, price, item_cost').range(0, 9999)
+        ]);
+        if (oRes.error || oiRes.error) return;
+
+        const customerById = {};
+        customers.forEach(c => customerById[c.id] = c);
+        const productById = {};
+        products.forEach(p => productById[p.id] = p);
+        const employeeById = {};
+        employees.forEach(e => employeeById[e.id] = e);
+
+        const itemsByOrder = {};
+        (oiRes.data || []).forEach(it => {
+            if (!itemsByOrder[it.order_id]) itemsByOrder[it.order_id] = [];
+            const prod = productById[it.product_id];
+            itemsByOrder[it.order_id].push({
+                id: it.id,
+                product_id: it.product_id,
+                product: prod ? prod.name : '(удалённое изделие)',
+                quantity: Number(it.quantity),
+                price: Number(it.price),
+                item_cost: it.item_cost != null ? Number(it.item_cost) : null
+            });
+        });
+
+        orders = (oRes.data || []).map(o => {
+            const cust = customerById[o.customer_id];
+            const emp  = employeeById[o.employee_id];
+            return {
+                id: o.id,
+                customer_id: o.customer_id,
+                customer: cust ? (cust.name || '(имя клиента не указано)') : '(удалённый клиент)',
+                date: o.order_date,
+                status: o.status || 'принят',
+                discount: Number(o.discount || 0),
+                vat_exempt: !!o.vat_exempt,
+                employee_id: o.employee_id || null,
+                employee: emp ? emp.name : '',
+                notes: o.notes || '',
+                items: itemsByOrder[o.id] || []
+            };
+        });
+
+        displayOrders();
+    } catch (e) {
+        console.error('Realtime reload error:', e);
+    }
+}
+
+function initRealtimeOrders() {
+    if (_realtimeChannel) {
+        db.removeChannel(_realtimeChannel);
+        _realtimeChannel = null;
+    }
+    _realtimeChannel = db.channel('orders-realtime')
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, () => {
+            reloadOrdersOnly();
+        })
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'order_items' }, () => {
+            reloadOrdersOnly();
+        })
+        .subscribe();
+}
