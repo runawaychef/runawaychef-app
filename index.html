@@ -61,11 +61,42 @@
         }
         .fade-in { animation: fadeInUp 0.18s ease both; }
 
-        @keyframes tabFadeIn {
-            from { opacity: 0; }
-            to   { opacity: 1; }
+        /* Контейнер для slide-анимации вкладок */
+        #tabsWrapper {
+            position: relative;
+            overflow: hidden;
         }
-        .tab-fade { animation: tabFadeIn 0.2s ease both; }
+        .tab-content {
+            will-change: transform;
+        }
+        /* Во время анимации обе вкладки абсолютны — чтобы не растягивали страницу */
+        #tabsWrapper.animating {
+            min-height: var(--tabs-height, 200px);
+        }
+        #tabsWrapper.animating .tab-content:not(.hidden) {
+            position: absolute;
+            top: 0; left: 0; right: 0;
+        }
+        @keyframes slideInFromRight {
+            from { transform: translateX(100%); }
+            to   { transform: translateX(0); }
+        }
+        @keyframes slideInFromLeft {
+            from { transform: translateX(-100%); }
+            to   { transform: translateX(0); }
+        }
+        @keyframes slideOutToLeft {
+            from { transform: translateX(0); }
+            to   { transform: translateX(-100%); }
+        }
+        @keyframes slideOutToRight {
+            from { transform: translateX(0); }
+            to   { transform: translateX(100%); }
+        }
+        .slide-in-right  { animation: slideInFromRight 0.25s cubic-bezier(0.4,0,0.2,1) both; }
+        .slide-in-left   { animation: slideInFromLeft  0.25s cubic-bezier(0.4,0,0.2,1) both; }
+        .slide-out-left  { animation: slideOutToLeft   0.25s cubic-bezier(0.4,0,0.2,1) both; }
+        .slide-out-right { animation: slideOutToRight  0.25s cubic-bezier(0.4,0,0.2,1) both; }
 
         /* ── Строки списков ── */
         .order-row { cursor: pointer; transition: background 0.12s; }
@@ -294,6 +325,7 @@
 
     <!-- Контент страницы -->
     <div class="p-2">
+    <div id="tabsWrapper">
     <div id="appContent" class="app-locked">
 
         <!-- ===== ИЗДЕЛИЯ ===== -->
@@ -1481,6 +1513,7 @@
         </div>
 
     </div><!-- appContent -->
+    </div><!-- tabsWrapper -->
     </div><!-- p-2 -->
 </div><!-- container -->
 
@@ -1649,14 +1682,51 @@ async function loadAllData() {
 
 // ==================== ТАБЫ ====================
 function showTab(tabId) {
-    currentTabId = tabId;
-    document.querySelectorAll('.tab-content').forEach(t => t.classList.add('hidden'));
+    const TAB_SLIDE_ORDER = ['orders', 'customers', 'products', 'ingredients'];
+    const fromId  = currentTabId;
+    currentTabId  = tabId;
+
+    const fromIdx = TAB_SLIDE_ORDER.indexOf(fromId);
+    const toIdx   = TAB_SLIDE_ORDER.indexOf(tabId);
+    const animate = fromIdx !== -1 && toIdx !== -1 && fromId !== tabId;
+    const goRight = toIdx > fromIdx; // новая вкладка правее в меню
+
+    const fromEl = fromId ? document.getElementById(fromId) : null;
+    const toEl   = document.getElementById(tabId);
+
+    // Сначала скрываем все вкладки кроме текущей (из которой уходим)
+    document.querySelectorAll('.tab-content').forEach(t => {
+        if (t.id !== fromId) t.classList.add('hidden');
+    });
     document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-    const _tabEl = document.getElementById(tabId);
-    _tabEl.classList.remove('hidden');
-    _tabEl.classList.remove('tab-fade');
-    void _tabEl.offsetWidth;
-    _tabEl.classList.add('tab-fade');
+
+    if (animate && fromEl) {
+        const animClasses = ['slide-in-right','slide-in-left','slide-out-left','slide-out-right'];
+        const wrapper = document.getElementById('tabsWrapper');
+
+        fromEl.classList.remove(...animClasses);
+        toEl.classList.remove(...animClasses);
+
+        // Фиксируем высоту враппера чтобы не прыгала во время анимации
+        wrapper.style.setProperty('--tabs-height', fromEl.offsetHeight + 'px');
+        wrapper.classList.add('animating');
+
+        toEl.classList.remove('hidden');
+        void toEl.offsetWidth;
+
+        fromEl.classList.add(goRight ? 'slide-out-left'  : 'slide-out-right');
+        toEl.classList.add  (goRight ? 'slide-in-right'  : 'slide-in-left');
+
+        const duration = 260;
+        setTimeout(() => {
+            fromEl.classList.add('hidden');
+            fromEl.classList.remove(...animClasses);
+            toEl.classList.remove(...animClasses);
+            wrapper.classList.remove('animating');
+        }, duration);
+    } else {
+        toEl.classList.remove('hidden');
+    }
     const tabBtn = document.querySelector(`button[onclick="showTab('${tabId}')"]`);
     if (tabBtn) tabBtn.classList.add('active');
 
