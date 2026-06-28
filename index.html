@@ -61,6 +61,12 @@
         }
         .fade-in { animation: fadeInUp 0.18s ease both; }
 
+        @keyframes tabEnter {
+            from { opacity: 0; transform: scale(0.97); }
+            to   { opacity: 1; transform: scale(1); }
+        }
+        .tab-enter { animation: tabEnter 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94) both; }
+
         /* ── Строки списков ── */
         .order-row { cursor: pointer; transition: background 0.12s; }
         .order-row:hover { background: #f0f4ff; }
@@ -1646,7 +1652,11 @@ function showTab(tabId) {
     currentTabId = tabId;
     document.querySelectorAll('.tab-content').forEach(t => t.classList.add('hidden'));
     document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-    document.getElementById(tabId).classList.remove('hidden');
+    const _tabEl = document.getElementById(tabId);
+    _tabEl.classList.remove('hidden');
+    _tabEl.classList.remove('tab-enter');
+    void _tabEl.offsetWidth; // reflow чтобы анимация сбросилась перед повторным добавлением
+    _tabEl.classList.add('tab-enter');
     const tabBtn = document.querySelector(`button[onclick="showTab('${tabId}')"]`);
     if (tabBtn) tabBtn.classList.add('active');
 
