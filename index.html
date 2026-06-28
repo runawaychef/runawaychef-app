@@ -1881,7 +1881,6 @@ async function handleRealtimeEvent() {
         _realtimePending = false;
         if (_suppressRealtime) return;
         await loadAllData();
-        showRealtimeToast();
     }, 1500);
 }
 
