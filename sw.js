@@ -1,9 +1,24 @@
-const CACHE_NAME = 'runwaychef-cache-v121';
+const CACHE_NAME = 'runwaychef-cache-v122';
 const ASSETS = [
   './index.html',
   './manifest.json',
   './icon-192.png',
-  './icon-512.png'
+  './icon-512.png',
+  './supabaseClient.js',
+  './auth.js',
+  './dates.js',
+  './money.js',
+  './helpers.js',
+  './modals.js',
+  './employees.js',
+  './orders.js',
+  './customers.js',
+  './products.js',
+  './semifinished.js',
+  './ingredients.js',
+  './inventory.js',
+  './stats.js',
+  './history.js'
 ];
 
 self.addEventListener('install', (event) => {
@@ -22,15 +37,15 @@ self.addEventListener('activate', (event) => {
   self.clients.claim();
 });
 
-// Network-first for navigation/data, cache fallback for offline shell
 self.addEventListener('fetch', (event) => {
   const req = event.request;
 
-  // Не кэшируем запросы к Supabase — данные всегда должны быть свежими
+  // Supabase — никогда не кэшируем, всегда сеть
   if (req.url.includes('supabase.co')) {
     return;
   }
 
+  // Для JS/HTML/CSS/изображений — сначала сеть, при ошибке кэш
   event.respondWith(
     fetch(req)
       .then((res) => {
