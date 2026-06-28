@@ -589,6 +589,7 @@
                         </div>
                     </div>
                     <button onclick="produceSfBatch()" class="btn bg-gray-100 text-gray-700 border border-gray-300 px-2 py-1 rounded-md hover:bg-gray-200 text-xs w-full mb-2">🍳 Произвести партию</button>
+                    <button onclick="openSfWriteOffModal()" class="btn bg-gray-100 text-gray-700 border border-gray-300 px-2 py-1 rounded-md hover:bg-gray-200 text-xs w-full mb-2">— Списать (корректировка)</button>
                     <label class="flex items-center gap-2 text-xs text-gray-700 border-t pt-2 mb-1 cursor-pointer">
                         <input type="checkbox" id="sfdRecipeConfirmed" onchange="toggleSfRecipeConfirmed()">
                         Рецепт заполнен полностью
@@ -614,7 +615,6 @@
                         </div>
                         <div id="sfDaysLeft" class="text-xs text-gray-500"></div>
                     </div>
-                    <button onclick="openSfWriteOffModal()" class="btn bg-red-50 text-red-600 p-1 rounded-md hover:bg-red-100 text-xs w-full">— Списать (корректировка)</button>
                     <div id="sfStockHistory" class="mt-2"></div>
                 </div>
             </div>
