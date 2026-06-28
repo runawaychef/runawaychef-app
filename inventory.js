@@ -8,9 +8,13 @@ const STOCK_LOW_DAYS = 7; // порог «критически мало» — м
 // Дата начала учёта склада — списание только для заказов начиная с этой даты
 let _inventoryStartDate = localStorage.getItem('inventoryStartDate') || '2026-06-26';
 
-function saveInventoryStartDate() {
+async function saveInventoryStartDate() {
     const val = document.getElementById('inventoryStartDate').value;
     if (!val) { showInfo('Выберите дату!'); return; }
+    const ok = await showConfirm(
+        `⚠️ Изменение даты начала учёта склада повлияет на расчёт остатков.\n\nЗаказы до ${formatDateDMY(val)} не будут учитываться при списании ингредиентов.\n\nВы уверены?`
+    );
+    if (!ok) return;
     _inventoryStartDate = val;
     localStorage.setItem('inventoryStartDate', val);
     showInfo(`Учёт склада ведётся с ${formatDateDMY(val)}`);
