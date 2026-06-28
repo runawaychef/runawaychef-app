@@ -62,6 +62,32 @@ function getSemiFinishedBalance(sfId) {
     return parseFloat((c.in - c.out).toFixed(4));
 }
 
+// Проверяет используется ли ингредиент напрямую в изделиях (не через п/ф)
+function isIngredientUsedDirectlyInProducts(ingId) {
+    return (products || []).some(prod =>
+        (prod.ingredients || []).some(ri => ri.ingredient_id === ingId)
+    );
+}
+
+// Возвращает список п/ф в которых участвует ингредиент
+function getSfContainingIngredient(ingId) {
+    return (semiFinished || []).filter(sf =>
+        (sf.ingredients || []).some(ri => ri.ingredient_id === ingId)
+    );
+}
+
+// Возвращает зону тревоги п/ф: 'red', 'yellow', или null
+function getSfAlertZone(sf, neededSfForOrders) {
+    const balance  = getSemiFinishedBalance(sf.id);
+    const daily    = avgDailySfUsage(sf.id);
+    const daysLeft = (balance !== null && balance > 0 && daily > 0) ? Math.floor(balance / daily) : null;
+    const shortage = neededSfForOrders && neededSfForOrders[sf.id] > 0 &&
+        (balance === null || balance < neededSfForOrders[sf.id]);
+    if (shortage || (balance !== null && balance <= 0) || (daysLeft !== null && daysLeft < 3)) return 'red';
+    if (daysLeft !== null && daysLeft < 7) return 'yellow';
+    return null;
+}
+
 // Средний расход ингредиента в день за последние 30 дней из выполненных заказов
 function avgDailyUsage(ingId) {
     const cutoff = new Date();
@@ -109,6 +135,14 @@ function updateInventoryAlertDot() {
         });
     });
     const hasLowTracked = [...trackedIngIds].some(ingId => {
+        // Если ингредиент только в п/ф — смотрим зону п/ф
+        const usedDirectly = isIngredientUsedDirectlyInProducts(ingId);
+        if (!usedDirectly) {
+            const parentSfs = getSfContainingIngredient(ingId);
+            if (parentSfs.length > 0) {
+                return parentSfs.some(sf => getSfAlertZone(sf, {}) !== null);
+            }
+        }
         const balance = getIngredientBalance(ingId);
         if (balance === null || balance <= 0) return false;
         const daily = avgDailyUsage(ingId);
@@ -202,12 +236,31 @@ async function openInventoryModal() {
     const rest   = []; // всё остальное
 
     sorted.forEach(ing => {
-        const balance  = getIngredientBalance(ing.id);
-        const daily    = avgDailyUsage(ing.id);
-        const daysLeft = (balance !== null && balance > 0 && daily > 0) ? Math.floor(balance / daily) : null;
-        const shortage = neededForOrders[ing.id] > 0 && (balance === null || balance < neededForOrders[ing.id]);
+        const balance   = getIngredientBalance(ing.id);
+        const daily     = avgDailyUsage(ing.id);
+        const daysLeft  = (balance !== null && balance > 0 && daily > 0) ? Math.floor(balance / daily) : null;
+        const shortage  = neededForOrders[ing.id] > 0 && (balance === null || balance < neededForOrders[ing.id]);
         const unitLabel = UNIT_LABELS[ing.unit] || ing.unit;
-        const item = { ing, balance, daysLeft, unitLabel, shortage };
+        const item      = { ing, balance, daysLeft, unitLabel, shortage };
+
+        // Если ингредиент не используется напрямую в изделиях — только через п/ф
+        const usedDirectly = isIngredientUsedDirectlyInProducts(ing.id);
+        if (!usedDirectly) {
+            const parentSfs = getSfContainingIngredient(ing.id);
+            if (parentSfs.length > 0) {
+                // Наследуем зону тревоги от п/ф
+                const worstZone = parentSfs.reduce((worst, sf) => {
+                    const zone = getSfAlertZone(sf, neededSfForOrders);
+                    if (zone === 'red') return 'red';
+                    if (zone === 'yellow' && worst !== 'red') return 'yellow';
+                    return worst;
+                }, null);
+                if (worstZone === 'red') red.push(item);
+                else if (worstZone === 'yellow') yellow.push(item);
+                else rest.push(item);
+                return;
+            }
+        }
 
         if (shortage || (balance !== null && balance <= 0) || (daysLeft !== null && daysLeft < 3)) {
             red.push(item);
@@ -605,18 +658,12 @@ function renderShoppingList() {
 // ── Добавить позицию в список ────────────────────────────────────────────────
 
 async function addToShoppingList(ingredientId, semiFinshedId, qty) {
-    // Если такой ингредиент уже есть — суммируем количество, не дублируем
+    // Не добавляем дубли
     const exists = _shoppingList.find(r =>
         (ingredientId && r.ingredient_id === ingredientId) ||
         (semiFinshedId && r.semi_finished_id === semiFinshedId)
     );
-    if (exists) {
-        const newQty = parseFloat(((exists.quantity_to_buy || 0) + (qty || 0)).toFixed(2));
-        await updateShopItemQty(exists.id, newQty);
-        exists.quantity_to_buy = newQty;
-        updateShopListBadge();
-        return;
-    }
+    if (exists) return;
 
     try {
         const { data, error } = await db.from('shopping_list').insert({
@@ -629,24 +676,6 @@ async function addToShoppingList(ingredientId, semiFinshedId, qty) {
         _shoppingList.push(data);
         updateShopListBadge();
     } catch (e) { console.error('Ошибка добавления в список покупок:', e); }
-}
-
-// ── Раскрыть п/ф до ингредиентов и добавить в список покупок ────────────────
-// Один уровень вложения. Если ингредиент уже есть в списке — суммируем.
-async function addSemiFinishedIngredientsToShoppingList(sfId, sfQtyToBuy) {
-    const sf = (semiFinished || []).find(s => s.id === sfId);
-    if (!sf || !sf.ingredients || !sf.ingredients.length) return;
-
-    // sfQtyToBuy — сколько единиц п/ф нужно произвести
-    // Масштабируем рецепт: рецепт рассчитан на batch_size единиц
-    const batchSize = Number(sf.batch_size || 1);
-    const factor = sfQtyToBuy / batchSize;
-
-    for (const ri of sf.ingredients) {
-        if (!ri.ingredient_id) continue; // вложенные п/ф пока пропускаем
-        const qtyNeeded = Number(ri.quantity) * factor;
-        await addToShoppingList(ri.ingredient_id, null, qtyNeeded);
-    }
 }
 
 // ── «+ Добавить критичное» — всё красное из текущей аналитики склада ─────────
@@ -715,10 +744,9 @@ async function addCriticalToShoppingList() {
             const balance = getSemiFinishedBalance(sf.id) || 0;
             const needed  = neededSfOrders[sf.id] || 0;
             const daily   = avgDailySfUsage(sf.id);
-            let toBuy = needed > balance ? (needed - balance) : 0;
-            if (toBuy === 0 && daily > 0) toBuy = daily * 14;
-            // Раскрываем п/ф до ингредиентов вместо добавления п/ф целиком
-            await addSemiFinishedIngredientsToShoppingList(sf.id, toBuy);
+            let toBuy = needed > balance ? Math.ceil((needed - balance) / 100) * 100 : 0;
+            if (toBuy === 0 && daily > 0) toBuy = Math.ceil((daily * 14) / 100) * 100;
+            await addToShoppingList(null, sf.id, toBuy);
         }
         switchInventoryTab('shop');
     } catch (e) { console.error(e); showInfo('Ошибка добавления.'); }
@@ -789,16 +817,11 @@ async function addRowToShoppingList(ingId, sfId) {
         toBuy = daily > 0 ? Math.ceil((daily * 14) / 100) * 100 : 0;
     } else if (sfId) {
         const daily = avgDailySfUsage(sfId);
-        toBuy = daily > 0 ? daily * 14 : 0;
+        toBuy = daily > 0 ? Math.ceil((daily * 14) / 100) * 100 : 0;
     }
     showLoading();
     try {
-        if (sfId) {
-            // П/ф раскрываем до ингредиентов
-            await addSemiFinishedIngredientsToShoppingList(sfId, toBuy);
-        } else {
-            await addToShoppingList(ingId, null, toBuy);
-        }
+        await addToShoppingList(ingId, sfId, toBuy);
         // Перерендерить только таблицу склада чтобы кнопка сменилась на ✓
         await openInventoryModal();
     } finally { hideLoading(); }
