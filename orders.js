@@ -21,19 +21,25 @@ function displayOrders() {
         if (!dayOrders.length) return '';
         const totalSum = dayOrders.reduce((s, o) => s + orderGrandTotal(o), 0);
         const totalQty = dayOrders.reduce((s, o) => s + (o.items || []).reduce((q, it) => q + Number(it.quantity || 0), 0), 0);
-        const pending = dayOrders.filter(o => o.status !== 'выполнен').length;
-        const statusLabel = pending
-            ? `<span class="text-red-600">${pending} не выполн.</span>`
-            : `<span class="text-green-700">все выполнены ✓</span>`;
+        // Подсчёт статусов
+        const countPriniat  = dayOrders.filter(o => o.status === 'принят').length;
+        const countVRabote  = dayOrders.filter(o => o.status === 'в работе').length;
+        const countVypolnen = dayOrders.filter(o => o.status === 'выполнен').length;
+        let statusParts = [];
+        if (countPriniat)  statusParts.push(`<span style="color:#f97316">${countPriniat} принят${countPriniat > 1 ? 'о' : ''}</span>`);
+        if (countVRabote)  statusParts.push(`<span style="color:#d97706">${countVRabote} в работе</span>`);
+        if (countVypolnen) statusParts.push(`<span style="color:#22c55e">${countVypolnen} выполнен${countVypolnen > 1 ? 'о' : ''}</span>`);
+        const statusLabel = statusParts.join(' · ');
 
         // Разбивка по клиентам с изделиями — кликабельные строки
         let clientLines = '';
         dayOrders.forEach(o => {
             const clientQty = (o.items || []).reduce((q, it) => q + Number(it.quantity || 0), 0);
             const clientSum = orderGrandTotal(o);
-            const statusDot = o.status === 'выполнен' ? '🟢' : '🟠';
+            const statusColor = o.status === 'выполнен' ? '#22c55e' : o.status === 'в работе' ? '#d97706' : '#f97316';
+            const statusText  = o.status === 'выполнен' ? 'выполнен' : o.status === 'в работе' ? 'в работе' : 'принят';
             clientLines += `<div class="pl-1 mt-0.5 cursor-pointer hover:bg-indigo-50 rounded px-1 -mx-1 transition-colors" onclick="openOrderDetail(${o.id})">
-                <span class="text-indigo-600 font-medium">${statusDot} ${escapeHtml(o.customer || '(без клиента)')}:</span> ${clientQty} шт. · ${clientSum.toFixed(2)} €
+                <span class="text-indigo-600 font-medium">${escapeHtml(o.customer || '(без клиента)')}:</span> ${clientQty} шт. · ${clientSum.toFixed(2)} € · <span style="color:${statusColor};font-weight:500">${statusText}</span>
             </div>`;
             (o.items || []).forEach(it => {
                 clientLines += `<div class="pl-3 text-gray-500">· ${escapeHtml(it.product)} — ${it.quantity} шт.</div>`;
@@ -1063,79 +1069,4 @@ async function saveOrderEdit() {
         if (changes.length) logActivity('order', `Изменён заказ №${order.id}: ${changes.join(', ')}`, order.id);
     } catch (e) { console.error(e); showInfo('Ошибка сохранения. Проверьте подключение.'); }
     finally { hideLoading(); }
-}
-
-// ==================== REALTIME ====================
-// Подписка на изменения в таблицах orders и order_items.
-// При любом изменении — перезагружаем только заказы (не все данные),
-// чтобы оба пользователя видели актуальную картину без ручного обновления.
-
-let _realtimeChannel = null;
-
-async function reloadOrdersOnly() {
-    try {
-        const [oRes, oiRes] = await Promise.all([
-            db.from('orders').select('id, customer_id, order_date, status, discount, vat_exempt, employee_id, notes').is('deleted_at', null).range(0, 9999),
-            db.from('order_items').select('id, order_id, product_id, quantity, price, item_cost').range(0, 9999)
-        ]);
-        if (oRes.error || oiRes.error) return;
-
-        const customerById = {};
-        customers.forEach(c => customerById[c.id] = c);
-        const productById = {};
-        products.forEach(p => productById[p.id] = p);
-        const employeeById = {};
-        employees.forEach(e => employeeById[e.id] = e);
-
-        const itemsByOrder = {};
-        (oiRes.data || []).forEach(it => {
-            if (!itemsByOrder[it.order_id]) itemsByOrder[it.order_id] = [];
-            const prod = productById[it.product_id];
-            itemsByOrder[it.order_id].push({
-                id: it.id,
-                product_id: it.product_id,
-                product: prod ? prod.name : '(удалённое изделие)',
-                quantity: Number(it.quantity),
-                price: Number(it.price),
-                item_cost: it.item_cost != null ? Number(it.item_cost) : null
-            });
-        });
-
-        orders = (oRes.data || []).map(o => {
-            const cust = customerById[o.customer_id];
-            const emp  = employeeById[o.employee_id];
-            return {
-                id: o.id,
-                customer_id: o.customer_id,
-                customer: cust ? (cust.name || '(имя клиента не указано)') : '(удалённый клиент)',
-                date: o.order_date,
-                status: o.status || 'принят',
-                discount: Number(o.discount || 0),
-                vat_exempt: !!o.vat_exempt,
-                employee_id: o.employee_id || null,
-                employee: emp ? emp.name : '',
-                notes: o.notes || '',
-                items: itemsByOrder[o.id] || []
-            };
-        });
-
-        displayOrders();
-    } catch (e) {
-        console.error('Realtime reload error:', e);
-    }
-}
-
-function initRealtimeOrders() {
-    if (_realtimeChannel) {
-        db.removeChannel(_realtimeChannel);
-        _realtimeChannel = null;
-    }
-    _realtimeChannel = db.channel('orders-realtime')
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, () => {
-            reloadOrdersOnly();
-        })
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'order_items' }, () => {
-            reloadOrdersOnly();
-        })
-        .subscribe();
 }
