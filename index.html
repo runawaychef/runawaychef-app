@@ -203,7 +203,7 @@
         <form id="authForm" class="flex flex-col gap-2 text-left">
             <input id="authEmail" type="email" required placeholder="Email" autocomplete="username" class="border p-1.5 rounded-md text-sm">
             <input id="authPassword" type="password" required placeholder="Пароль" autocomplete="current-password" class="border p-1.5 rounded-md text-sm">
-            <button id="authSubmitBtn" type="submit" class="btn bg-gray-500 text-white p-1.5 rounded-md hover:bg-gray-600 text-sm mt-1">Войти</button>
+            <button id="authSubmitBtn" type="submit" class="btn bg-gray-700 text-white p-1.5 rounded-md hover:bg-gray-800 text-sm mt-1">Войти</button>
         </form>
         <p id="authError" class="text-xs text-red-500 mt-2 hidden">Неверный email или пароль.</p>
     </div>
@@ -469,7 +469,7 @@
                             <span class="text-xs text-gray-500">Цена за ед.: <span id="idUnitPrice" class="font-semibold text-gray-900">0.0000 €</span></span>
                         </div>
                     </div>
-                    <button onclick="saveStockAndPrice()" class="btn bg-gray-500 text-white p-1 rounded-md hover:bg-gray-600 text-xs w-full">Сохранить</button>
+                    <button onclick="saveStockAndPrice()" class="btn bg-gray-700 text-white p-1 rounded-md hover:bg-gray-800 text-xs w-full">Сохранить</button>
                     <button onclick="openWriteOffModal()" class="btn bg-red-50 text-red-600 p-1 rounded-md hover:bg-red-100 text-xs w-full mt-1">— Списать (корректировка)</button>
                     <button onclick="closeIngredientDetail(); openInventarizationModal();" class="btn bg-indigo-50 text-indigo-700 p-1 rounded-md hover:bg-indigo-100 text-xs w-full mt-1">📋 Инвентаризация</button>
 
@@ -704,8 +704,8 @@
             <div class="modal-content" style="max-width:480px;">
                 <div id="customerReportContent" style="background:white;"></div>
                 <div class="flex gap-1 mt-3">
-                    <button id="downloadReportPdfBtn" onclick="downloadCustomerReportPdf()" class="btn bg-gray-500 text-white p-1 rounded-md hover:bg-gray-600 text-xs flex-1">⬇ Скачать PDF</button>
-                    <button onclick="closeModal()" class="btn bg-gray-200 text-gray-700 p-1 rounded-md hover:bg-gray-300 text-xs flex-1">Закрыть</button>
+                    <button id="downloadReportPdfBtn" onclick="downloadCustomerReportPdf()" class="btn bg-gray-700 text-white p-1 rounded-md hover:bg-gray-800 text-xs flex-1">⬇ Скачать PDF</button>
+                    <button onclick="closeModal()" class="btn bg-gray-400 text-white p-1 rounded-md hover:bg-gray-500 text-xs flex-1">Закрыть</button>
                 </div>
             </div>
         </div>
@@ -931,7 +931,7 @@
                 <input id="editProductName" type="text" placeholder="Название изделия" class="border p-0.5 rounded-md mb-1 w-full text-xs">
                 <input id="editProductPrice" type="number" autocomplete="off" inputmode="decimal" step="0.01" placeholder="Продажная цена (€)" class="border p-0.5 rounded-md mb-2 w-full">
                 <button onclick="saveProductEdit()" class="btn bg-gray-500 text-white p-0.5 rounded-md hover:bg-gray-600 mr-1 text-xs">Сохранить</button>
-                <button onclick="closeModal()" class="btn bg-gray-200 text-gray-700 p-0.5 rounded-md hover:bg-gray-300 text-xs">Отмена</button>
+                <button onclick="closeModal()" class="btn bg-gray-400 text-white p-0.5 rounded-md hover:bg-gray-500 text-xs">Отмена</button>
             </div>
         </div>
 
@@ -949,7 +949,7 @@
                 <label class="text-xs text-gray-600">Количество</label>
                 <input id="editRecipeQty" type="number" autocomplete="off" inputmode="decimal" step="0.01" min="0" class="border p-0.5 rounded-md mb-2 w-full">
                 <button onclick="saveRecipeItemEdit()" class="btn bg-gray-500 text-white p-0.5 rounded-md hover:bg-gray-600 mr-1 text-xs">Сохранить</button>
-                <button onclick="closeModal()" class="btn bg-gray-200 text-gray-700 p-0.5 rounded-md hover:bg-gray-300 text-xs">Отмена</button>
+                <button onclick="closeModal()" class="btn bg-gray-400 text-white p-0.5 rounded-md hover:bg-gray-500 text-xs">Отмена</button>
             </div>
         </div>
 
@@ -964,7 +964,7 @@
                 <label class="text-xs text-gray-600">Количество</label>
                 <input id="editSfRecipeQty" type="number" autocomplete="off" inputmode="decimal" step="0.01" min="0" class="border p-0.5 rounded-md mb-2 w-full">
                 <button onclick="saveSfRecipeItemEdit()" class="btn bg-gray-500 text-white p-0.5 rounded-md hover:bg-gray-600 mr-1 text-xs">Сохранить</button>
-                <button onclick="closeModal()" class="btn bg-gray-200 text-gray-700 p-0.5 rounded-md hover:bg-gray-300 text-xs">Отмена</button>
+                <button onclick="closeModal()" class="btn bg-gray-400 text-white p-0.5 rounded-md hover:bg-gray-500 text-xs">Отмена</button>
             </div>
         </div>
 
@@ -983,7 +983,7 @@
                 <label class="text-xs text-gray-600">Цена (€)</label>
                 <input id="editItemPrice" type="number" autocomplete="off" inputmode="decimal" step="0.01" class="border p-0.5 rounded-md mb-2 w-full">
                 <button onclick="saveItemEdit()" class="btn bg-gray-500 text-white p-0.5 rounded-md hover:bg-gray-600 mr-1 text-xs">Сохранить</button>
-                <button onclick="closeModal()" class="btn bg-gray-200 text-gray-700 p-0.5 rounded-md hover:bg-gray-300 text-xs">Отмена</button>
+                <button onclick="closeModal()" class="btn bg-gray-400 text-white p-0.5 rounded-md hover:bg-gray-500 text-xs">Отмена</button>
             </div>
         </div>
 
@@ -1005,7 +1005,7 @@
                     <option value="выполнен">Выполнен</option>
                 </select>
                 <button onclick="saveOrderEdit()" class="btn bg-gray-500 text-white p-0.5 rounded-md hover:bg-gray-600 mr-1 text-xs">Сохранить</button>
-                <button onclick="closeModal()" class="btn bg-gray-200 text-gray-700 p-0.5 rounded-md hover:bg-gray-300 text-xs">Отмена</button>
+                <button onclick="closeModal()" class="btn bg-gray-400 text-white p-0.5 rounded-md hover:bg-gray-500 text-xs">Отмена</button>
             </div>
         </div>
 
@@ -1014,7 +1014,7 @@
             <div class="modal-content">
                 <p id="deleteModalText" class="mb-2 text-xs text-gray-700">Вы уверены, что хотите удалить этот элемент?</p>
                 <button onclick="confirmDelete()" class="btn bg-red-500 text-white p-0.5 rounded-md hover:bg-red-600 mr-1 text-xs">Удалить</button>
-                <button onclick="closeModal()" class="btn bg-gray-200 text-gray-700 p-0.5 rounded-md hover:bg-gray-300 text-xs">Отмена</button>
+                <button onclick="closeModal()" class="btn bg-gray-400 text-white p-0.5 rounded-md hover:bg-gray-500 text-xs">Отмена</button>
             </div>
         </div>
 
@@ -1024,7 +1024,7 @@
                 <p id="confirmMessage" class="text-sm text-gray-800 mb-4" style="white-space: pre-line;"></p>
                 <div class="flex justify-center gap-2">
                     <button id="confirmCancelBtn" class="btn bg-gray-300 text-gray-800 px-4 py-1.5 rounded-md hover:bg-gray-400 text-sm">Отмена</button>
-                    <button id="confirmOkBtn" class="btn bg-gray-500 text-white px-4 py-1.5 rounded-md hover:bg-gray-600 text-sm">OK</button>
+                    <button id="confirmOkBtn" class="btn bg-gray-700 text-white px-4 py-1.5 rounded-md hover:bg-gray-800 text-sm">OK</button>
                 </div>
             </div>
         </div>
@@ -1046,7 +1046,7 @@
                     <label class="text-xs text-gray-500">Учёт склада с даты (списание ингредиентов только для новых заказов)</label>
                     <div class="flex gap-1">
                         <input id="inventoryStartDate" type="date" class="border p-0.5 rounded-md text-xs flex-1">
-                        <button onclick="saveInventoryStartDate()" class="btn bg-gray-500 text-white px-2 py-1 rounded-md hover:bg-gray-600 text-xs">Сохранить</button>
+                        <button onclick="saveInventoryStartDate()" class="btn bg-gray-700 text-white px-2 py-1 rounded-md hover:bg-gray-800 text-xs">Сохранить</button>
                     </div>
                 </div>
 
@@ -1055,7 +1055,7 @@
                     <button onclick="signOutAccount()" class="btn bg-gray-200 text-gray-800 px-2 py-1.5 rounded-md hover:bg-gray-300 text-xs text-left">🔒 Сменить аккаунт (выйти из приложения)</button>
                 </div>
 
-                <button onclick="closeModal()" class="btn bg-gray-200 text-gray-700 p-1 rounded-md hover:bg-gray-300 w-full text-xs">Закрыть</button>
+                <button onclick="closeModal()" class="btn bg-gray-400 text-white p-1 rounded-md hover:bg-gray-500 w-full text-xs">Закрыть</button>
             </div>
         </div>
 
@@ -1067,7 +1067,7 @@
                 <div id="orderCostBreakdownContent" style="max-height:60vh;overflow-y:auto;"></div>
                 <div class="flex gap-1 mt-3">
                     <button onclick="recalcOrderCostBreakdown()" class="btn bg-indigo-50 text-indigo-700 p-1 rounded-md hover:bg-indigo-100 flex-1 text-xs">↻ Пересчитать по актуальному рецепту</button>
-                    <button onclick="closeModal()" class="btn bg-gray-200 text-gray-700 p-1 rounded-md hover:bg-gray-300 text-xs" style="width:80px;">Закрыть</button>
+                    <button onclick="closeModal()" class="btn bg-gray-400 text-white p-1 rounded-md hover:bg-gray-500 text-xs" style="width:80px;">Закрыть</button>
                 </div>
             </div>
         </div>
@@ -1098,7 +1098,51 @@
                         <p class="text-xs text-gray-400 text-center py-4">Список пуст</p>
                     </div>
                 </div>
-                <button onclick="closeModal()" class="btn bg-gray-200 text-gray-700 p-1 rounded-md hover:bg-gray-300 w-full text-xs mt-3">Закрыть</button>
+                <button onclick="closeModal()" class="btn bg-gray-400 text-white p-1 rounded-md hover:bg-gray-500 w-full text-xs mt-3">Закрыть</button>
+            </div>
+        </div>
+
+        <!-- Модалка производства п/ф — шаг 1: количество основного ингредиента -->
+        <div id="sfProduceModal" class="modal">
+            <div class="modal-content" style="max-width:480px;">
+                <h2 class="text-base font-semibold mb-3 text-gray-800">🍳 Произвести партию — шаг 1</h2>
+                <p class="text-xs text-gray-500 mb-3">Введите количество основного ингредиента.</p>
+                <div class="mb-4">
+                    <label class="text-xs text-gray-600 block mb-1">Основной ингредиент: <span id="sfProduceIngName" class="font-semibold text-gray-800"></span></label>
+                    <div class="flex gap-2 items-center">
+                        <input type="number" inputmode="decimal" step="0.01" min="0.01" id="sfProduceIngQty"
+                            class="border rounded p-1 text-xs flex-1 text-right">
+                        <span id="sfProduceIngUnit" class="text-xs text-gray-500 w-8"></span>
+                    </div>
+                </div>
+                <div class="flex gap-2">
+                    <button onclick="sfProduceCalc()" class="btn bg-gray-500 text-white p-1 rounded-md hover:bg-gray-600 text-xs flex-1">Рассчитать →</button>
+                    <button onclick="closeModal()" class="btn bg-gray-200 text-gray-700 p-1 rounded-md hover:bg-gray-300 text-xs flex-1">Отмена</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Модалка производства п/ф — шаг 2: подтверждение выхода -->
+        <div id="sfConfirmModal" class="modal">
+            <div class="modal-content" style="max-width:480px;">
+                <h2 class="text-base font-semibold mb-3 text-gray-800">🍳 Подтвердите производство</h2>
+                <div class="bg-gray-50 rounded p-2 mb-3 text-xs text-gray-700">
+                    <p class="mb-1">Будет списано:</p>
+                    <p class="font-semibold" id="sfConfirmIngLine"></p>
+                </div>
+                <div class="mb-4">
+                    <label class="text-xs text-gray-600 block mb-1">Фактический выход п/ф:</label>
+                    <div class="flex gap-2 items-center">
+                        <input type="number" inputmode="decimal" step="0.01" min="0.01" id="sfConfirmResultQty"
+                            class="border rounded p-1 text-xs flex-1 text-right font-semibold">
+                        <span id="sfConfirmResultUnit" class="text-xs text-gray-500 w-8"></span>
+                    </div>
+                    <p class="text-xs text-gray-400 mt-1">Расчётное значение подставлено автоматически. Измените если фактический выход отличается.</p>
+                </div>
+                <div class="flex gap-2">
+                    <button onclick="confirmSfProduce()" class="btn bg-gray-500 text-white p-1 rounded-md hover:bg-gray-600 text-xs flex-1">Подтвердить</button>
+                    <button onclick="closeModal()" class="btn bg-gray-200 text-gray-700 p-1 rounded-md hover:bg-gray-300 text-xs flex-1">Отмена</button>
+                </div>
             </div>
         </div>
 
@@ -1113,7 +1157,7 @@
                 <input id="sfWriteOffNote" type="text" class="border p-0.5 rounded-md mb-3 w-full text-xs" placeholder="Например: испортилось">
                 <div class="flex gap-1">
                     <button onclick="saveSfWriteOff()" class="btn bg-red-500 text-white p-1 rounded-md hover:bg-red-600 text-xs flex-1">Списать</button>
-                    <button onclick="closeModal()" class="btn bg-gray-200 text-gray-700 p-1 rounded-md hover:bg-gray-300 text-xs flex-1">Отмена</button>
+                    <button onclick="closeModal()" class="btn bg-gray-400 text-white p-1 rounded-md hover:bg-gray-500 text-xs flex-1">Отмена</button>
                 </div>
             </div>
         </div>
@@ -1125,8 +1169,8 @@
                 <p class="text-xs text-gray-500 mb-3">Введите фактическое количество. Пустые поля — пропускаются.</p>
                 <div id="sfInventarizationContent" style="max-height:60vh;overflow-y:auto;touch-action:pan-y;overscroll-behavior:contain;"></div>
                 <div class="flex gap-1 mt-3">
-                    <button onclick="saveSfInventarization()" class="btn bg-gray-500 text-white p-1 rounded-md hover:bg-gray-600 text-xs flex-1">Сохранить</button>
-                    <button onclick="closeModal()" class="btn bg-gray-200 text-gray-700 p-1 rounded-md hover:bg-gray-300 text-xs" style="width:80px;">Отмена</button>
+                    <button onclick="saveSfInventarization()" class="btn bg-gray-700 text-white p-1 rounded-md hover:bg-gray-800 text-xs flex-1">Сохранить</button>
+                    <button onclick="closeModal()" class="btn bg-gray-400 text-white p-1 rounded-md hover:bg-gray-500 text-xs" style="width:80px;">Отмена</button>
                 </div>
             </div>
         </div>
@@ -1137,7 +1181,7 @@
                 <h2 class="text-base font-semibold mb-1 text-gray-800">🗑 Корзина</h2>
                 <p class="text-xs text-gray-500 mb-3">Удалённые заказы хранятся 30 дней. Нажмите на заказ для восстановления или окончательного удаления.</p>
                 <div id="ordersTrashContent" style="max-height:65vh;overflow-y:auto;touch-action:pan-y;overscroll-behavior:contain;"></div>
-                <button onclick="closeModal()" class="btn bg-gray-200 text-gray-700 p-1 rounded-md hover:bg-gray-300 w-full text-xs mt-3">Закрыть</button>
+                <button onclick="closeModal()" class="btn bg-gray-400 text-white p-1 rounded-md hover:bg-gray-500 w-full text-xs mt-3">Закрыть</button>
             </div>
         </div>
 
@@ -1160,8 +1204,8 @@
                 <p class="text-xs text-gray-500 mb-3">Введите фактическое количество. Пустые поля — пропускаются. Разница запишется автоматически.</p>
                 <div id="inventarizationContent" style="max-height:60vh;overflow-y:auto;touch-action:pan-y;overscroll-behavior:contain;"></div>
                 <div class="flex gap-1 mt-3">
-                    <button onclick="saveInventarization()" class="btn bg-gray-500 text-white p-1 rounded-md hover:bg-gray-600 text-xs flex-1">Сохранить инвентаризацию</button>
-                    <button onclick="closeModal()" class="btn bg-gray-200 text-gray-700 p-1 rounded-md hover:bg-gray-300 text-xs" style="width:80px;">Отмена</button>
+                    <button onclick="saveInventarization()" class="btn bg-gray-700 text-white p-1 rounded-md hover:bg-gray-800 text-xs flex-1">Сохранить инвентаризацию</button>
+                    <button onclick="closeModal()" class="btn bg-gray-400 text-white p-1 rounded-md hover:bg-gray-500 text-xs" style="width:80px;">Отмена</button>
                 </div>
             </div>
         </div>
@@ -1181,8 +1225,8 @@
                     <option value="pcs">штуки (шт)</option>
                 </select>
                 <div class="flex gap-1">
-                    <button onclick="saveIngredientHeader()" class="btn bg-gray-500 text-white p-1 rounded-md hover:bg-gray-600 text-xs flex-1">Сохранить</button>
-                    <button onclick="closeModal()" class="btn bg-gray-200 text-gray-700 p-1 rounded-md hover:bg-gray-300 text-xs flex-1">Отмена</button>
+                    <button onclick="saveIngredientHeader()" class="btn bg-gray-700 text-white p-1 rounded-md hover:bg-gray-800 text-xs flex-1">Сохранить</button>
+                    <button onclick="closeModal()" class="btn bg-gray-400 text-white p-1 rounded-md hover:bg-gray-500 text-xs flex-1">Отмена</button>
                 </div>
             </div>
         </div>
@@ -1197,9 +1241,9 @@
                 <label class="text-xs text-gray-500">Заметка</label>
                 <input id="editInventoryNotes" type="text" class="border p-0.5 rounded-md mb-3 w-full">
                 <div class="flex gap-1">
-                    <button onclick="saveInventoryEdit()" class="btn bg-gray-500 text-white p-1 rounded-md hover:bg-gray-600 text-xs flex-1">Сохранить</button>
+                    <button onclick="saveInventoryEdit()" class="btn bg-gray-700 text-white p-1 rounded-md hover:bg-gray-800 text-xs flex-1">Сохранить</button>
                     <button onclick="deleteInventoryRecord(Number(document.getElementById('editInventoryId').value))" class="btn bg-red-500 text-white p-1 rounded-md hover:bg-red-600 text-xs flex-1">Удалить</button>
-                    <button onclick="closeModal()" class="btn bg-gray-200 text-gray-700 p-1 rounded-md hover:bg-gray-300 text-xs flex-1">Отмена</button>
+                    <button onclick="closeModal()" class="btn bg-gray-400 text-white p-1 rounded-md hover:bg-gray-500 text-xs flex-1">Отмена</button>
                 </div>
             </div>
         </div>
@@ -1222,7 +1266,7 @@
                 <input id="writeOffNote" type="text" class="border p-0.5 rounded-md mb-3 w-full text-xs hidden" placeholder="Уточните причину...">
                 <div class="flex gap-1">
                     <button onclick="saveWriteOff()" class="btn bg-red-500 text-white p-1 rounded-md hover:bg-red-600 text-xs flex-1">Списать</button>
-                    <button onclick="closeModal()" class="btn bg-gray-200 text-gray-700 p-1 rounded-md hover:bg-gray-300 text-xs flex-1">Отмена</button>
+                    <button onclick="closeModal()" class="btn bg-gray-400 text-white p-1 rounded-md hover:bg-gray-500 text-xs flex-1">Отмена</button>
                 </div>
             </div>
         </div>
@@ -1237,8 +1281,8 @@
                 <label class="text-xs text-gray-500">Заметка (необязательно)</label>
                 <input id="inventoryAddNotes" type="text" class="border p-0.5 rounded-md mb-3 w-full text-xs" placeholder="Например: купил в Maxima">
                 <div class="flex gap-1">
-                    <button onclick="saveInventoryAdd()" class="btn bg-gray-500 text-white p-1 rounded-md hover:bg-gray-600 text-xs flex-1">Сохранить</button>
-                    <button onclick="closeModal()" class="btn bg-gray-200 text-gray-700 p-1 rounded-md hover:bg-gray-300 text-xs flex-1">Отмена</button>
+                    <button onclick="saveInventoryAdd()" class="btn bg-gray-700 text-white p-1 rounded-md hover:bg-gray-800 text-xs flex-1">Сохранить</button>
+                    <button onclick="closeModal()" class="btn bg-gray-400 text-white p-1 rounded-md hover:bg-gray-500 text-xs flex-1">Отмена</button>
                 </div>
             </div>
         </div>
@@ -1255,8 +1299,8 @@
                 <label class="text-xs text-gray-500">Размер упаковки</label>
                 <input id="priceHistorySize" type="number" autocomplete="off" inputmode="decimal" step="0.01" class="border p-0.5 rounded-md mb-3 w-full">
                 <div class="flex gap-1">
-                    <button onclick="savePriceHistoryRecord()" class="btn bg-gray-500 text-white p-1 rounded-md hover:bg-gray-600 text-xs flex-1">Сохранить</button>
-                    <button onclick="closeModal()" class="btn bg-gray-200 text-gray-700 p-1 rounded-md hover:bg-gray-300 text-xs flex-1">Отмена</button>
+                    <button onclick="savePriceHistoryRecord()" class="btn bg-gray-700 text-white p-1 rounded-md hover:bg-gray-800 text-xs flex-1">Сохранить</button>
+                    <button onclick="closeModal()" class="btn bg-gray-400 text-white p-1 rounded-md hover:bg-gray-500 text-xs flex-1">Отмена</button>
                 </div>
             </div>
         </div>
@@ -1285,8 +1329,8 @@
                     <option value="l">литры (л)</option>
                     <option value="pcs">штуки (шт)</option>
                 </select>
-                <button onclick="confirmQuickAddIngredient()" class="btn bg-gray-500 text-white p-1 rounded-md hover:bg-gray-600 text-xs mr-1">Создать</button>
-                <button onclick="closeModal()" class="btn bg-gray-200 text-gray-700 p-1 rounded-md hover:bg-gray-300 text-xs">Отмена</button>
+                <button onclick="confirmQuickAddIngredient()" class="btn bg-gray-700 text-white p-1 rounded-md hover:bg-gray-800 text-xs mr-1">Создать</button>
+                <button onclick="closeModal()" class="btn bg-gray-400 text-white p-1 rounded-md hover:bg-gray-500 text-xs">Отмена</button>
             </div>
         </div>
 
@@ -1417,7 +1461,7 @@
     <script src="employees.js?v=16"></script>
     <script src="inventory.js?v=18"></script>
 <script src="ingredients.js?v=31"></script>
-<script src="semifinished.js?v=14"></script>
+<script src="semifinished.js?v=15"></script>
 <script src="products.js?v=14"></script>
 <script src="customers.js?v=26"></script>
 <script src="orders.js?v=36"></script>
@@ -1477,7 +1521,7 @@ async function loadAllData() {
             db.from('ingredients').select('id, name, package_price, package_size, unit').order('name').limit(5000),
             db.from('product_ingredients').select('id, product_id, ingredient_id, semi_finished_id, quantity').limit(10000),
             db.from('semi_finished').select('id, name, batch_size, unit, other_costs, recipe_confirmed, track_stock').order('name').limit(5000),
-            db.from('semi_finished_ingredients').select('id, semi_finished_id, ingredient_id, quantity').limit(10000)
+            db.from('semi_finished_ingredients').select('id, semi_finished_id, ingredient_id, quantity, is_primary').limit(10000)
         ]);
         if (pRes.error) throw pRes.error;
         if (cRes.error) throw cRes.error;
@@ -1494,7 +1538,7 @@ async function loadAllData() {
         const sfRecipeBySf = {};
         (sfiRes.data || []).forEach(ri => {
             if (!sfRecipeBySf[ri.semi_finished_id]) sfRecipeBySf[ri.semi_finished_id] = [];
-            sfRecipeBySf[ri.semi_finished_id].push({ id: ri.id, ingredient_id: ri.ingredient_id, quantity: Number(ri.quantity) });
+            sfRecipeBySf[ri.semi_finished_id].push({ id: ri.id, ingredient_id: ri.ingredient_id, quantity: Number(ri.quantity), is_primary: !!ri.is_primary });
         });
         semiFinished = (sfRes.data || []).map(sf => ({
             id: sf.id, name: sf.name, batch_size: Number(sf.batch_size || 1), unit: sf.unit, other_costs: Number(sf.other_costs || 0),

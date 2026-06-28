@@ -209,10 +209,12 @@ function renderSemiFinishedRecipe(sf) {
             const ing = ingredients.find(x => x.id === ri.ingredient_id);
             const unitPrice = ing ? ingredientUnitPrice(ing) : 0;
             const lineCost = unitPrice * ri.quantity;
+            const isPrimary = !!ri.is_primary;
+            const starBtn = `<button onclick="setSfPrimaryIngredient(${i})" title="Сделать основным" class="text-base leading-none ${isPrimary ? 'text-yellow-400' : 'text-gray-300 hover:text-yellow-300'}">★</button>`;
             const row = document.createElement('tr');
             row.className = 'border-b';
             row.innerHTML = `
-                <td class="p-0.5 text-xs">${escapeHtml(ing ? ing.name : '(удалён)')}</td>
+                <td class="p-0.5 text-xs">${starBtn} ${escapeHtml(ing ? ing.name : '(удалён)')}</td>
                 <td class="p-0.5 text-xs text-center">${ri.quantity} ${ing ? UNIT_LABELS[ing.unit] : ''}</td>
                 <td class="p-0.5 text-xs text-center font-medium">${lineCost.toFixed(2)} €</td>
                 <td class="p-0.5 text-center">
@@ -492,7 +494,29 @@ function avgDailySfUsage(sfId) {
     return totalUsed / 30;
 }
 
-// Произвести партию — списать ингредиенты и добавить п/ф на склад
+// Отметить основной ингредиент в рецепте п/ф
+async function setSfPrimaryIngredient(idx) {
+    const sf = semiFinished.find(s => s.id === currentSemiFinishedId);
+    if (!sf) return;
+    showLoading();
+    try {
+        // Снимаем is_primary со всех
+        for (const ri of sf.ingredients) {
+            if (ri.is_primary) {
+                await db.from('semi_finished_ingredients').update({ is_primary: false }).eq('id', ri.id);
+                ri.is_primary = false;
+            }
+        }
+        // Ставим на выбранный
+        const ri = sf.ingredients[idx];
+        await db.from('semi_finished_ingredients').update({ is_primary: true }).eq('id', ri.id);
+        ri.is_primary = true;
+        renderSemiFinishedRecipe(sf);
+    } catch(e) { console.error(e); showInfo('Ошибка сохранения.'); }
+    finally { hideLoading(); }
+}
+
+// Произвести партию — шаг 1: ввод количества основного ингредиента
 async function produceSfBatch() {
     const sf = semiFinished.find(s => s.id === currentSemiFinishedId);
     if (!sf) return;
@@ -502,43 +526,118 @@ async function produceSfBatch() {
     const UNIT_LABELS = { g: 'г', kg: 'кг', ml: 'мл', l: 'л', pcs: 'шт' };
     const unitLabel = UNIT_LABELS[sf.unit] || sf.unit;
 
-    const ok = await showConfirm(
-        `Произвести 1 партию «${sf.name}» (${sf.batch_size} ${unitLabel})?\n\nБудут списаны ингредиенты по рецепту.`
-    );
-    if (!ok) return;
+    const primaryRi = sf.ingredients.find(ri => ri.is_primary);
+    if (!primaryRi) {
+        showInfo('Укажите основной ингредиент рецепта (нажмите ★ у нужного ингредиента).'); return;
+    }
+    const primaryIng = ingredients.find(i => i.id === primaryRi.ingredient_id);
+    const primaryUnitLabel = primaryIng ? (UNIT_LABELS[primaryIng.unit] || primaryIng.unit) : '';
 
+    // Шаг 1: ввод количества основного ингредиента
+    document.getElementById('sfProduceIngName').textContent = primaryIng ? primaryIng.name : '';
+    document.getElementById('sfProduceIngUnit').textContent = primaryUnitLabel;
+    document.getElementById('sfProduceIngQty').value = primaryRi.quantity;
+    document.getElementById('sfProduceModal').style.display = 'flex';
+}
+
+// Шаг 2: рассчитать выход и открыть окно подтверждения
+async function sfProduceCalc() {
+    const sf = semiFinished.find(s => s.id === currentSemiFinishedId);
+    if (!sf) return;
+    const UNIT_LABELS = { g: 'г', kg: 'кг', ml: 'мл', l: 'л', pcs: 'шт' };
+    const unitLabel = UNIT_LABELS[sf.unit] || sf.unit;
+
+    const primaryRi = sf.ingredients.find(ri => ri.is_primary);
+    if (!primaryRi) return;
+
+    const inputQty = parseFloat(document.getElementById('sfProduceIngQty').value);
+    if (isNaN(inputQty) || inputQty <= 0) { showInfo('Введите корректное количество!'); return; }
+
+    const factor = inputQty / Number(primaryRi.quantity);
+    const sfResultCalc = parseFloat((Number(sf.batch_size) * factor).toFixed(4));
+
+    // Проверяем наличие всех ингредиентов
+    const UNIT_L = UNIT_LABELS;
+    const shortages = [];
+    sf.ingredients.forEach(ri => {
+        if (!ri.ingredient_id) return;
+        const needed = parseFloat((Number(ri.quantity) * factor).toFixed(4));
+        const balance = getIngredientBalance(ri.ingredient_id) || 0;
+        if (balance < needed) {
+            const ing = ingredients.find(i => i.id === ri.ingredient_id);
+            const ingUnit = ing ? (UNIT_L[ing.unit] || ing.unit) : '';
+            shortages.push(`«${ing ? ing.name : '?'}»: нужно ${needed.toFixed(1)} ${ingUnit}, есть ${balance.toFixed(1)} ${ingUnit}`);
+        }
+    });
+
+    if (shortages.length) {
+        closeModal();
+        await showInfo('Не хватает ингредиентов:\n' + shortages.join('\n'));
+        return;
+    }
+
+    // Переходим к шагу подтверждения
+    const primaryIng = ingredients.find(i => i.id === primaryRi.ingredient_id);
+    const primaryUnitLabel = primaryIng ? (UNIT_LABELS[primaryIng.unit] || primaryIng.unit) : '';
+
+    document.getElementById('sfConfirmIngLine').textContent =
+        `${primaryIng ? primaryIng.name : ''}: ${inputQty} ${primaryUnitLabel}`;
+    document.getElementById('sfConfirmResultQty').value = sfResultCalc;
+    document.getElementById('sfConfirmResultUnit').textContent = unitLabel;
+
+    // Сохраняем factor для финального шага
+    document.getElementById('sfConfirmModal').dataset.factor = factor;
+    document.getElementById('sfConfirmModal').dataset.sfId = sf.id;
+
+    closeModal();
+    document.getElementById('sfConfirmModal').style.display = 'flex';
+}
+
+// Шаг 3: финальное подтверждение и запись
+async function confirmSfProduce() {
+    const modal = document.getElementById('sfConfirmModal');
+    const sfId = Number(modal.dataset.sfId);
+    const factor = Number(modal.dataset.factor);
+    const sf = semiFinished.find(s => s.id === sfId);
+    if (!sf) return;
+
+    const UNIT_LABELS = { g: 'г', kg: 'кг', ml: 'мл', l: 'л', pcs: 'шт' };
+    const unitLabel = UNIT_LABELS[sf.unit] || sf.unit;
+
+    const actualResult = parseFloat(document.getElementById('sfConfirmResultQty').value);
+    if (isNaN(actualResult) || actualResult <= 0) { showInfo('Введите корректный выход!'); return; }
+
+    closeModal();
     showLoading('Записываю производство...');
     try {
         const today = getLocalDateStr(0);
         const rows = [];
 
-        // Списываем ингредиенты
         sf.ingredients.forEach(ri => {
             if (ri.ingredient_id) {
                 rows.push({
                     ingredient_id: ri.ingredient_id,
                     semi_finished_id: null,
                     type: 'расход',
-                    quantity: parseFloat(Number(ri.quantity).toFixed(4)),
+                    quantity: parseFloat((Number(ri.quantity) * factor).toFixed(4)),
                     notes: `Производство п/ф «${sf.name}»`
                 });
             }
         });
 
-        // Добавляем п/ф на склад
         rows.push({
             ingredient_id: null,
             semi_finished_id: sf.id,
             type: 'приход',
-            quantity: parseFloat(Number(sf.batch_size).toFixed(4)),
+            quantity: actualResult,
             notes: `Произведена партия ${today}`
         });
 
         await db.from('inventory').insert(rows);
         await loadInventory();
         await renderSfStockBlock(sf);
-        logActivity('inventory', `Произведена партия п/ф «${sf.name}» ${sf.batch_size} ${unitLabel}`);
-        await showInfo(`Партия произведена! +${sf.batch_size} ${unitLabel} на складе.`);
+        logActivity('inventory', `Произведена партия п/ф «${sf.name}» ${actualResult} ${unitLabel}`);
+        await showInfo(`Партия произведена! +${actualResult} ${unitLabel} на складе.`);
     } catch(e) { console.error(e); showInfo('Ошибка сохранения.'); }
     finally { hideLoading(); }
 }
