@@ -147,6 +147,7 @@ function openSemiFinishedDetail(sfId) {
     fillNewSfRecipeIngredientSelect();
     setupCopySfRecipeControl(sf);
     renderSfStockBlock(sf);
+    renderSfCostChart(sf);
     refreshFab();
 }
 
@@ -741,4 +742,130 @@ async function saveSfInventarization() {
         await showInfo(`Сохранено: ${rows.length} позиций.`);
     } catch(e) { console.error(e); showInfo('Ошибка.'); }
     finally { hideLoading(); }
+}
+
+// ==================== ГРАФИК СЕБЕСТОИМОСТИ П/Ф ====================
+let _sfCostChartInstance = null;
+
+async function renderSfCostChart(sf) {
+    const canvas  = document.getElementById('sfCostChart');
+    const emptyEl = document.getElementById('sfCostChartEmpty');
+    if (!canvas || !emptyEl) return;
+
+    const ingIds = (sf.ingredients || []).map(ri => ri.ingredient_id).filter(Boolean);
+    if (!ingIds.length) {
+        canvas.style.display = 'none';
+        emptyEl.classList.remove('hidden');
+        return;
+    }
+
+    // Загружаем производства п/ф (приходы на склад)
+    const { data: productions } = await db.from('inventory')
+        .select('quantity, created_at')
+        .eq('semi_finished_id', sf.id)
+        .eq('type', 'приход')
+        .order('created_at', { ascending: true });
+
+    if (!productions || productions.length < 2) {
+        canvas.style.display = 'none';
+        emptyEl.classList.remove('hidden');
+        return;
+    }
+
+    // Загружаем историю цен ингредиентов состава
+    const { data: ph } = await db.from('ingredient_price_history')
+        .select('ingredient_id, valid_from, package_price, package_size')
+        .in('ingredient_id', ingIds)
+        .order('valid_from', { ascending: true });
+
+    if (!ph || !ph.length) {
+        canvas.style.display = 'none';
+        emptyEl.classList.remove('hidden');
+        return;
+    }
+
+    // Группируем историю цен по ингредиенту
+    const histByIng = {};
+    ph.forEach(r => {
+        if (!histByIng[r.ingredient_id]) histByIng[r.ingredient_id] = [];
+        histByIng[r.ingredient_id].push(r);
+    });
+
+    // Цена ингредиента на конкретную дату
+    function getUnitPriceOnDate(ingId, dateStr) {
+        const hist = histByIng[ingId] || [];
+        const valid = hist.filter(r => r.valid_from <= dateStr);
+        if (!valid.length) return null;
+        const last = valid[valid.length - 1];
+        return last.package_price / last.package_size;
+    }
+
+    // Для каждой партии считаем себестоимость на дату её производства
+    const labels = [];
+    const costs  = [];
+
+    for (const prod of productions) {
+        const dateStr = prod.created_at.slice(0, 10); // YYYY-MM-DD
+        const factor  = Number(prod.quantity) / Number(sf.batch_size || 1);
+        let cost = Number(sf.other_costs || 0) * factor;
+        let hasAllPrices = true;
+
+        for (const ri of sf.ingredients || []) {
+            if (!ri.ingredient_id) continue;
+            const unitPrice = getUnitPriceOnDate(ri.ingredient_id, dateStr);
+            if (unitPrice === null) { hasAllPrices = false; break; }
+            cost += unitPrice * Number(ri.quantity) * factor;
+        }
+
+        if (!hasAllPrices) continue;
+        labels.push(formatDateDMY(dateStr));
+        costs.push(parseFloat(cost.toFixed(4)));
+    }
+
+    if (costs.length < 2) {
+        canvas.style.display = 'none';
+        emptyEl.classList.remove('hidden');
+        return;
+    }
+
+    if (_sfCostChartInstance) { _sfCostChartInstance.destroy(); _sfCostChartInstance = null; }
+
+    canvas.style.display = 'block';
+    emptyEl.classList.add('hidden');
+
+    const ctx = canvas.getContext('2d');
+    _sfCostChartInstance = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels,
+            datasets: [{
+                label: 'Себестоимость партии (€)',
+                data: costs,
+                borderColor: '#4f46e5',
+                backgroundColor: 'rgba(79,70,229,0.08)',
+                pointBackgroundColor: '#4f46e5',
+                pointRadius: 5,
+                fill: true,
+                tension: 0.3
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    callbacks: {
+                        label: ctx => `${ctx.parsed.y.toFixed(4)} €`
+                    }
+                }
+            },
+            scales: {
+                x: { ticks: { font: { size: 10 } } },
+                y: {
+                    ticks: { font: { size: 10 }, callback: v => v.toFixed(2) + ' €' },
+                    beginAtZero: false
+                }
+            }
+        }
+    });
 }
