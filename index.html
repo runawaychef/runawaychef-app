@@ -1832,6 +1832,16 @@ function closeHistoryScreen() {
 
 let _realtimeToastTimer = null;
 
+// Временная диагностика — показывает статус Realtime прямо на экране
+function showRealtimeStatus(msg) {
+    const toast = document.getElementById('realtimeToast');
+    if (!toast) return;
+    toast.textContent = msg;
+    toast.classList.add('visible');
+    if (_realtimeToastTimer) clearTimeout(_realtimeToastTimer);
+    _realtimeToastTimer = setTimeout(() => toast.classList.remove('visible'), 8000);
+}
+
 function showRealtimeToast() {
     const toast = document.getElementById('realtimeToast');
     if (!toast) return;
@@ -1843,9 +1853,15 @@ function showRealtimeToast() {
 let _realtimeChannel = null;
 
 function initRealtime() {
-    if (!db || !db.channel) return;
+    if (!db || !db.channel) {
+        showRealtimeStatus('❌ db.channel недоступен');
+        return;
+    }
     // Не создаём второй канал если уже подписаны (смена сотрудника без перезагрузки)
-    if (_realtimeChannel) return;
+    if (_realtimeChannel) {
+        showRealtimeStatus('♻️ канал уже существует');
+        return;
+    }
 
     _realtimeChannel = db.channel('realtime-sync')
     _realtimeChannel
@@ -1854,11 +1870,7 @@ function initRealtime() {
         .on('postgres_changes', { event: '*', schema: 'public', table: 'customers' },     () => handleRealtimeEvent())
         .on('postgres_changes', { event: '*', schema: 'public', table: 'ingredients' },   () => handleRealtimeEvent())
         .subscribe((status) => {
-            if (status === 'SUBSCRIBED') {
-                console.log('[Realtime] подписка активна');
-            } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
-                console.warn('[Realtime] ошибка подписки:', status);
-            }
+            showRealtimeStatus('RT: ' + status);
         });
 }
 
