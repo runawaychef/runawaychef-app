@@ -147,10 +147,10 @@ function displayOrders() {
         const row = document.createElement('tr');
         row.className = 'order-row border-b' + (isMerged ? ' bg-red-50' : '');
         row.innerHTML = `
-            <td class=" p-0.5 text-xs whitespace-nowrap${isMerged ? ' text-red-700 font-semibold' : ''}" onclick="openOrderDetail(${order.id})">${formatDateDMY(order.date)}${isMerged ? ' ⚠' : ''}</td>
-            <td class=" p-0.5 text-xs" onclick="openOrderDetail(${order.id})">${escapeHtml(order.customer)}</td>
-            <td class=" p-0.5 text-xs text-center" onclick="openOrderDetail(${order.id})">${itemsCount}</td>
-            <td class=" p-0.5 text-xs font-medium" onclick="openOrderDetail(${order.id})">${total}</td>
+            <td class=" p-0.5 text-13 whitespace-nowrap${isMerged ? ' text-red-700 font-semibold' : ''}" onclick="openOrderDetail(${order.id})">${formatDateDMY(order.date)}${isMerged ? ' ⚠' : ''}</td>
+            <td class=" p-0.5 text-13" onclick="openOrderDetail(${order.id})">${escapeHtml(order.customer)}</td>
+            <td class=" p-0.5 text-13 text-center" onclick="openOrderDetail(${order.id})">${itemsCount}</td>
+            <td class=" p-0.5 text-13 font-medium" onclick="openOrderDetail(${order.id})">${total}</td>
             <td class=" p-0.5 text-center" onclick="openOrderDetail(${order.id})"><span class="${flagClass}"></span></td>
             <td class=" p-0.5 text-center">
                 ${svgEdit(`openEditOrderModal(${realIdx})`)}
