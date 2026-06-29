@@ -632,13 +632,7 @@
                         </div>
                         <div id="sfDaysLeft" class="text-xs text-gray-500"></div>
                     </div>
-                    <!-- Динамика себестоимости -->
-                    <div class="border-t pt-2 mt-2 mb-1">
-                        <p class="text-xs font-semibold text-gray-700 mb-1">Динамика себестоимости партии</p>
-                        <canvas id="sfCostChart" height="160" style="display:none;"></canvas>
-                        <p id="sfCostChartEmpty" class="text-xs text-gray-400 hidden">Недостаточно данных — нужно 2+ партии.</p>
-                    </div>
-                    <div id="sfStockHistory" class="mt-2"></div>
+
                 </div>
 
                 <div class="bg-white p-2 rounded-md shadow-md">
@@ -687,7 +681,13 @@
                     </div>
                 </div>
 
-
+                <!-- Динамика себестоимости и история производства — внизу карточки -->
+                <div class="bg-white p-2 rounded-md shadow-md mb-3">
+                    <p class="text-xs font-semibold text-gray-700 mb-1">Динамика себестоимости партии</p>
+                    <canvas id="sfCostChart" height="160" style="display:none;"></canvas>
+                    <p id="sfCostChartEmpty" class="text-xs text-gray-400 hidden">Недостаточно данных — нужно 2+ партии.</p>
+                    <div id="sfStockHistory" class="mt-2"></div>
+                </div>
 
             </div>
         </div>
