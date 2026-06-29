@@ -90,21 +90,71 @@ function displayIngredients() {
 // Кнопка "+": сразу создаёт черновик ингредиента и открывает его карточку
 let _draftIngredientIds = new Set();
 
+// Флаг: карточка открыта для нового ингредиента (ещё не сохранён в БД)
+let _isNewIngredient = false;
+
 async function createDraftIngredientAndOpen() {
+    // Открываем пустую карточку локально — без записи в БД
+    _isNewIngredient = true;
+    const tempIng = { id: null, name: '', package_price: 0, package_size: 1, unit: 'g' };
+
+    document.getElementById('ingredientsList').classList.add('hidden');
+    document.getElementById('ingredientDetail').classList.add('active');
+
+    const nameInput = document.getElementById('idNameInput');
+    const unitInput = document.getElementById('idUnitInput');
+    if (nameInput) nameInput.value = '';
+    if (unitInput) unitInput.value = 'g';
+
+    // Сбрасываем поля склада
+    document.getElementById('idNewPriceDate').value = new Date().toISOString().slice(0, 10);
+    document.getElementById('idPackagePrice').value = '0.00';
+    document.getElementById('idPackageSize').value = '1';
+    document.getElementById('idStockQty').value = '';
+
+    // Показываем кнопку Сохранить, скрываем кнопку удаления
+    const saveBtn = document.getElementById('idSaveNewBtn');
+    if (saveBtn) saveBtn.classList.remove('hidden');
+    const delBtn = document.querySelector('#ingredientDetail button[onclick="deleteCurrentIngredient()"]');
+    if (delBtn) delBtn.classList.add('hidden');
+
+    // Скрываем блок склада и историю — нечего показывать до сохранения
+    const stockBlock = document.getElementById('ingStockBlock');
+    if (stockBlock) stockBlock.classList.add('hidden');
+
+    currentIngredientId = null;
+    refreshFab();
+}
+
+async function saveNewIngredient() {
+    const name = (document.getElementById('idNameInput')?.value || '').trim();
+    const unit = document.getElementById('idUnitInput')?.value || 'g';
+    if (!name) { showInfo('Введите название ингредиента!'); return; }
+
     suppressRealtimeFor3s();
     showLoading();
     try {
         const { data, error } = await db.from('ingredients').insert({
-            name: '', package_price: 0, package_size: 1, unit: 'g'
+            name, package_price: 0, package_size: 1, unit
         }).select().single();
         if (error) throw error;
-        const newIng = { id: data.id, name: '', package_price: 0, package_size: 1, unit: 'g' };
+
+        const newIng = { id: data.id, name, package_price: 0, package_size: 1, unit, priceHistory: [] };
         ingredients.push(newIng);
-        _draftIngredientIds.add(newIng.id);
+        _isNewIngredient = false;
+
+        // Скрываем кнопку Сохранить, показываем удаление
+        const saveBtn = document.getElementById('idSaveNewBtn');
+        if (saveBtn) saveBtn.classList.add('hidden');
+        const delBtn = document.querySelector('#ingredientDetail button[onclick="deleteCurrentIngredient()"]');
+        if (delBtn) delBtn.classList.remove('hidden');
+        const stockBlock = document.getElementById('ingStockBlock');
+        if (stockBlock) stockBlock.classList.remove('hidden');
+
         displayIngredients();
         openIngredientDetail(newIng.id);
-        logActivity('ingredient', `Создан черновик ингредиента №${newIng.id}`);
-    } catch (e) { console.error(e); showInfo('Ошибка создания ингредиента. Проверьте подключение.'); }
+        logActivity('ingredient', `Создан ингредиент: «${name}»`);
+    } catch (e) { console.error(e); showInfo('Ошибка сохранения. Проверьте подключение.'); }
     finally { hideLoading(); }
 }
 
@@ -137,7 +187,6 @@ async function openIngredientDetail(ingId) {
     if (nameInput) { nameInput.value = ing.name; }
     if (unitInput) { unitInput.value = ing.unit || 'g'; }
     // Фокус на поле названия если это новый черновик
-    if (nameInput && !ing.name) setTimeout(() => nameInput.focus(), 100);
     document.getElementById('idNewPriceDate').value = new Date().toISOString().slice(0, 10);
     document.getElementById('idPackagePrice').value = ing.package_price.toFixed(2);
     document.getElementById('idPackageSize').value = ing.package_size;
@@ -243,6 +292,7 @@ function openEditIngredientHeaderModal() {
 }
 
 async function saveIngredientHeader() {
+    if (_isNewIngredient) return; // новый ингредиент — сохраняем только через кнопку
     suppressRealtimeFor3s();
     const ing = ingredients.find(i => i.id === currentIngredientId);
     if (!ing) return;
@@ -366,8 +416,16 @@ async function saveIdNewPrice() {
 async function closeIngredientDetail() {
     const leavingId = currentIngredientId;
     currentIngredientId = null;
+    _isNewIngredient = false;
     document.getElementById('ingredientsList').classList.remove('hidden');
     document.getElementById('ingredientDetail').classList.remove('active');
+    // Показываем кнопку удаления на случай если была скрыта
+    const delBtn = document.querySelector('#ingredientDetail button[onclick="deleteCurrentIngredient()"]');
+    if (delBtn) delBtn.classList.remove('hidden');
+    const saveBtn = document.getElementById('idSaveNewBtn');
+    if (saveBtn) saveBtn.classList.add('hidden');
+    const stockBlock = document.getElementById('ingStockBlock');
+    if (stockBlock) stockBlock.classList.remove('hidden');
     if (leavingId !== null) await cleanupIngredientDraftIfEmpty(leavingId);
     displayIngredients();
     refreshFab();

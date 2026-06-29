@@ -40,18 +40,65 @@ function displayProducts() {
 // Кнопка "+": сразу создаёт черновик изделия и открывает его карточку
 let _draftProductIds = new Set();
 
+let _isNewProduct = false;
+
 async function createDraftProductAndOpen() {
+    // Открываем пустую карточку локально — без записи в БД
+    _isNewProduct = true;
+    currentProductId = null;
+
+    document.getElementById('productsList').classList.add('hidden');
+    document.getElementById('productDetail').classList.add('active');
+
+    document.getElementById('pdName').value = '';
+    document.getElementById('pdUnit').value = 'pcs';
+    document.getElementById('pdPrice').value = '0.00';
+    document.getElementById('pdBatchSize').value = '1';
+    document.getElementById('pdOtherCosts').value = '0.00';
+    document.getElementById('pdRecipeConfirmed').checked = false;
+    document.getElementById('pdTrackStock').checked = false;
+
+    // Показываем кнопку Сохранить, скрываем удаление и рецепт
+    const saveBtn = document.getElementById('pdSaveNewBtn');
+    if (saveBtn) saveBtn.classList.remove('hidden');
+    const delBtn = document.querySelector('#productDetail button[onclick="deleteCurrentProduct()"]');
+    if (delBtn) delBtn.classList.add('hidden');
+    const recipeBlock = document.getElementById('pdRecipeBlock');
+    if (recipeBlock) recipeBlock.classList.add('hidden');
+
+    updatePdUnitUI('pcs');
+    refreshFab();
+}
+
+async function saveNewProduct() {
+    const name  = (document.getElementById('pdName')?.value || '').trim();
+    const unit  = document.getElementById('pdUnit')?.value || 'pcs';
+    const price = parseFloat(document.getElementById('pdPrice')?.value) || 0;
+    if (!name) { showInfo('Введите название изделия!'); return; }
+
     showLoading();
     try {
-        const { data, error } = await db.from('products').insert({ name: '', price: 0, unit: 'pcs' }).select().single();
+        const { data, error } = await db.from('products').insert({
+            name, price, unit, batch_size: 1, other_costs: 0
+        }).select().single();
         if (error) throw error;
-        const newProd = { id: data.id, name: '', price: 0, batch_size: 1, other_costs: 0, unit: 'pcs', recipe_confirmed: false, ingredients: [] };
+
+        const newProd = { id: data.id, name, price, batch_size: 1, other_costs: 0, unit, recipe_confirmed: false, track_stock: false, ingredients: [] };
         products.push(newProd);
-        _draftProductIds.add(newProd.id);
+        _isNewProduct = false;
+
+        // Восстанавливаем UI
+        const saveBtn = document.getElementById('pdSaveNewBtn');
+        if (saveBtn) saveBtn.classList.add('hidden');
+        const delBtn = document.querySelector('#productDetail button[onclick="deleteCurrentProduct()"]');
+        if (delBtn) delBtn.classList.remove('hidden');
+        const recipeBlock = document.getElementById('pdRecipeBlock');
+        if (recipeBlock) recipeBlock.classList.remove('hidden');
+
         displayProducts();
         openProductDetail(newProd.id);
-        logActivity('product', `Создан черновик изделия №${newProd.id}`);
-    } catch (e) { console.error(e); showInfo('Ошибка создания изделия. Проверьте подключение.'); }
+        logActivity('product', `Создано изделие: «${name}»`);
+    } catch (e) { console.error(e); showInfo('Ошибка сохранения. Проверьте подключение.'); }
     finally { hideLoading(); }
 }
 
@@ -282,8 +329,16 @@ function updatePdUnitUI(unit) {
 async function closeProductDetail() {
     const leavingId = currentProductId;
     currentProductId = null;
+    _isNewProduct = false;
     document.getElementById('productsList').classList.remove('hidden');
     document.getElementById('productDetail').classList.remove('active');
+    // Восстанавливаем UI на случай если был новый
+    const saveBtn = document.getElementById('pdSaveNewBtn');
+    if (saveBtn) saveBtn.classList.add('hidden');
+    const delBtn = document.querySelector('#productDetail button[onclick="deleteCurrentProduct()"]');
+    if (delBtn) delBtn.classList.remove('hidden');
+    const recipeBlock = document.getElementById('pdRecipeBlock');
+    if (recipeBlock) recipeBlock.classList.remove('hidden');
     if (leavingId !== null) await cleanupProductDraftIfEmpty(leavingId);
     displayProducts();
     refreshFab();
@@ -298,6 +353,7 @@ function deleteCurrentProduct() {
 }
 
 async function savePdHeader() {
+    if (_isNewProduct) return;
     const prod = products.find(p => p.id === currentProductId);
     if (!prod) return;
     const name = document.getElementById('pdName').value.trim();
