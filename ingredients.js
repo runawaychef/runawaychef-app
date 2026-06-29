@@ -461,7 +461,7 @@ async function renderIngredientStockBlock(ing) {
     if (!histEl) return;
     try {
         const { data } = await db.from('inventory')
-            .select('id, type, quantity, created_at, notes')
+            .select('id, type, quantity, created_at, notes, order_id')
             .eq('ingredient_id', ing.id)
             .in('type', ['приход', 'расход', 'сторно'])
             .order('created_at', { ascending: false })
@@ -525,7 +525,9 @@ async function renderIngredientStockBlock(ing) {
         let rows = '';
         data.forEach(r => {
             const cat = getCategory(r);
-            const dateStr = r.created_at.slice(0, 10);
+            // Для расходов/сторно по заказу берём дату самого заказа, а не created_at
+            const orderDate = r.order_id ? (orders || []).find(o => o.id === r.order_id)?.date : null;
+            const dateStr = orderDate || r.created_at.slice(0, 10);
             const date = formatDateDMY(dateStr);
             const qty = Number(r.quantity);
             const unitCost = unitCostAtDate(dateStr);
