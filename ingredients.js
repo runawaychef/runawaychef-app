@@ -463,7 +463,7 @@ async function renderIngredientStockBlock(ing) {
         const { data } = await db.from('inventory')
             .select('id, type, quantity, created_at, notes')
             .eq('ingredient_id', ing.id)
-            .in('type', ['приход', 'расход'])
+            .in('type', ['приход', 'расход', 'сторно'])
             .order('created_at', { ascending: false })
             .limit(200);
         if (!data || !data.length) {
@@ -474,6 +474,7 @@ async function renderIngredientStockBlock(ing) {
         // Определяем категорию каждой записи
         function getCategory(r) {
             if (r.type === 'приход') return 'in';
+            if (r.type === 'сторно') return 'storno';
             const n = r.notes || '';
             if (n.startsWith('Заказ #') || n.startsWith('Сторно заказа')) return 'order';
             return 'personal';
@@ -495,8 +496,14 @@ async function renderIngredientStockBlock(ing) {
             const qty = Number(r.quantity);
             const dateStr = r.created_at.slice(0, 10);
             const cost = qty * unitCostAtDate(dateStr);
-            totals[cat].qty  += qty;
-            totals[cat].cost += cost;
+            if (cat === 'storno') {
+                // Сторно уменьшает итог по заказам
+                totals.order.qty  -= qty;
+                totals.order.cost -= cost;
+            } else {
+                totals[cat].qty  += qty;
+                totals[cat].cost += cost;
+            }
         });
 
         // Итоговая строка
@@ -524,10 +531,12 @@ async function renderIngredientStockBlock(ing) {
             const unitCost = unitCostAtDate(dateStr);
             const cost = (qty * unitCost).toFixed(2);
             const isIn = r.type === 'приход';
-            const sign = isIn ? '+' : '−';
-            const color = isIn ? 'text-green-700' : (cat === 'order' ? 'text-blue-700' : 'text-red-600');
+            const isStorno = r.type === 'сторно';
+            const sign = isIn || isStorno ? '+' : '−';
+            const color = isIn ? 'text-green-700' : isStorno ? 'text-green-600' : (cat === 'order' ? 'text-blue-700' : 'text-red-600');
             const notes = escapeHtml(r.notes || '').replace('Корректировка: ', '').replace('Закупка ', '');
-            rows += `<tr class="border-b cursor-pointer hover:bg-gray-50" data-cat="${cat}" onclick="editInventoryRecord(${r.id}, ${qty}, '${escapeHtml(r.notes || '')}')">
+            const rowCat = isStorno ? 'order' : cat; // сторно фильтруется вместе с заказами
+            rows += `<tr class="border-b hover:bg-gray-50" data-cat="${rowCat}">
                 <td class="p-1 whitespace-nowrap">${date}</td>
                 <td class="p-1 text-right ${color} font-semibold whitespace-nowrap">${sign}${qty.toFixed(2)} ${unitLabel}</td>
                 <td class="p-1 text-right text-gray-500 whitespace-nowrap">${cost} €</td>
