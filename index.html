@@ -76,6 +76,7 @@
         #tabsWrapper.animating .tab-content:not(.hidden) {
             position: absolute;
             top: 0; left: 0; right: 0;
+            pointer-events: none;
         }
         @keyframes slideInFromRight {
             from { transform: translateX(100%); }
@@ -1692,6 +1693,15 @@ async function loadAllData() {
 
 // ==================== ТАБЫ ====================
 function showTab(tabId) {
+    // Принудительно завершаем предыдущую анимацию если она ещё идёт
+    const wrapper = document.getElementById('tabsWrapper');
+    if (wrapper) {
+        wrapper.classList.remove('animating');
+        wrapper.querySelectorAll('.tab-content').forEach(el => {
+            el.classList.remove('slide-in-right','slide-in-left','slide-out-left','slide-out-right');
+        });
+    }
+
     const TAB_SLIDE_ORDER = ['orders', 'customers', 'products', 'ingredients'];
     const fromId  = currentTabId;
     currentTabId  = tabId;
