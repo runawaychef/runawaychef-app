@@ -255,12 +255,7 @@ async function openInventoryModal() {
         if (!usedDirectly) {
             const parentSfs = getSfContainingIngredient(ing.id);
             if (parentSfs.length > 0) {
-                // Определяем собственную зону ингредиента по его остатку
-                let ownZone = null;
-                if (balance === null || balance <= 0 || (daysLeft !== null && daysLeft < 3)) ownZone = 'red';
-                else if (daysLeft !== null && daysLeft < 7) ownZone = 'yellow';
-
-                // Определяем худшую зону родительских п/ф
+                // Шаг 1: определяем худшую зону родительских п/ф
                 const sfZone = parentSfs.reduce((worst, sf) => {
                     const zone = getSfAlertZone(sf, neededSfForOrders);
                     if (zone === 'red') return 'red';
@@ -268,12 +263,28 @@ async function openInventoryModal() {
                     return worst;
                 }, null);
 
-                // Поднимаем ингредиент только если он сам критичен/заканчивается
-                // ИЛИ если п/ф краснеет И ингредиент тоже в критичной зоне
-                // Если ингредиент в норме — он всегда в «Остальных», независимо от п/ф
-                if (ownZone === 'red') red.push(item);
-                else if (ownZone === 'yellow') yellow.push(item);
-                else rest.push(item);
+                // П/ф в норме → ингредиент всегда в «Остальных»
+                if (!sfZone) { rest.push(item); return; }
+
+                // Шаг 2: п/ф в жёлтой или красной зоне → проверяем запас ингредиента
+                // Хватает ли его на ≥1 партию п/ф (batch_size)?
+                const ingBalance = balance || 0;
+                const enoughForOneBatch = parentSfs.some(sf => {
+                    // Сколько этого ингредиента нужно на одну партию п/ф
+                    const sfRecipe = (sf.ingredients || []).filter(r => r.ingredient_id === ing.id);
+                    const needed = sfRecipe.reduce((sum, r) => sum + Number(r.quantity), 0);
+                    return needed > 0 && ingBalance >= needed;
+                });
+
+                if (enoughForOneBatch) {
+                    // Остатка хватает на ≥1 партию → не поднимаем
+                    rest.push(item);
+                } else {
+                    // Остатка меньше чем на одну партию → поднимаем по стандартной логике
+                    if (ingBalance <= 0 || (daysLeft !== null && daysLeft < 3)) red.push(item);
+                    else if (daysLeft !== null && daysLeft < 7) yellow.push(item);
+                    else rest.push(item);
+                }
                 return;
             }
         }
