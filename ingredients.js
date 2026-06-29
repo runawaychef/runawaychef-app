@@ -94,9 +94,15 @@ let _draftIngredientIds = new Set();
 let _isNewIngredient = false;
 
 async function createDraftIngredientAndOpen() {
+    // Если карточка уже открыта — закрываем без сохранения черновика
+    if (currentIngredientId !== null) {
+        const leavingId = currentIngredientId;
+        currentIngredientId = null;
+        await cleanupIngredientDraftIfEmpty(leavingId);
+    }
+
     // Открываем пустую карточку локально — без записи в БД
     _isNewIngredient = true;
-    const tempIng = { id: null, name: '', package_price: 0, package_size: 1, unit: 'g' };
 
     document.getElementById('ingredientsList').classList.add('hidden');
     document.getElementById('ingredientDetail').classList.add('active');
@@ -118,9 +124,13 @@ async function createDraftIngredientAndOpen() {
     const delBtn = document.querySelector('#ingredientDetail button[onclick="deleteCurrentIngredient()"]');
     if (delBtn) delBtn.classList.add('hidden');
 
-    // Скрываем блок склада и историю — нечего показывать до сохранения
+    // Скрываем блок склада — нечего показывать до сохранения
     const stockBlock = document.getElementById('ingStockBlock');
     if (stockBlock) stockBlock.classList.add('hidden');
+
+    // Очищаем историю движений
+    const histEl = document.getElementById('ingStockHistory');
+    if (histEl) histEl.innerHTML = '';
 
     currentIngredientId = null;
     refreshFab();
