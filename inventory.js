@@ -247,21 +247,21 @@ async function openInventoryModal() {
         const unitLabel = UNIT_LABELS[ing.unit] || ing.unit;
         const item      = { ing, balance, daysLeft, unitLabel, shortage };
 
-        // Если ингредиент не используется напрямую в изделиях — только через п/ф
+        // Если ингредиент используется только через п/ф — оцениваем по его
+        // собственному запасу, но НЕ наследуем зону от п/ф.
+        // П/ф уже показан в своей группе — дублировать не нужно.
         const usedDirectly = isIngredientUsedDirectlyInProducts(ing.id);
         if (!usedDirectly) {
             const parentSfs = getSfContainingIngredient(ing.id);
             if (parentSfs.length > 0) {
-                // Наследуем зону тревоги от п/ф
-                const worstZone = parentSfs.reduce((worst, sf) => {
-                    const zone = getSfAlertZone(sf, neededSfForOrders);
-                    if (zone === 'red') return 'red';
-                    if (zone === 'yellow' && worst !== 'red') return 'yellow';
-                    return worst;
-                }, null);
-                if (worstZone === 'red') red.push(item);
-                else if (worstZone === 'yellow') yellow.push(item);
-                else rest.push(item);
+                // Оцениваем только собственный остаток ингредиента
+                if (balance !== null && balance <= 0 || (daysLeft !== null && daysLeft < 3)) {
+                    red.push(item);
+                } else if (daysLeft !== null && daysLeft < 7) {
+                    yellow.push(item);
+                } else {
+                    rest.push(item);
+                }
                 return;
             }
         }
