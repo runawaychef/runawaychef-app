@@ -310,8 +310,19 @@ async function createDraftOrderAndOpen() {
     const employeeId = currentEmployee ? currentEmployee.id : null;
     showLoading();
     try {
+        // Генерируем номер заказа: ДДММГГ-NNN (порядковый среди всех заказов на эту дату)
+        const todayOrders = orders.filter(o => o.date === today);
+        const daySeq = todayOrders.length + 1;
+        const d = new Date(today + 'T00:00:00');
+        const orderNumber =
+            String(d.getDate()).padStart(2,'0') +
+            String(d.getMonth()+1).padStart(2,'0') +
+            String(d.getFullYear()).slice(2) +
+            '-' + String(daySeq).padStart(3,'0');
+
         const { data, error } = await db.from('orders').insert({
-            customer_id: null, order_date: today, status: 'принят', discount: 0, vat_exempt: false, employee_id: employeeId
+            customer_id: null, order_date: today, status: 'принят', discount: 0, vat_exempt: false,
+            employee_id: employeeId, order_number: orderNumber
         }).select().single();
         if (error) throw error;
         const emp = employees.find(e => e.id === data.employee_id);
@@ -320,7 +331,7 @@ async function createDraftOrderAndOpen() {
             date: data.order_date, status: data.status, discount: 0,
             vat_exempt: false,
             employee_id: data.employee_id || null, employee: emp ? emp.name : '',
-            notes: '',
+            notes: '', order_number: data.order_number || orderNumber,
             items: []
         };
         orders.push(newOrder);
@@ -398,7 +409,8 @@ function openOrderDetail(orderId) {
     document.getElementById('orderDetail').classList.add('active');
     document.getElementById('orderDetail').classList.add('fade-in'); setTimeout(() => document.getElementById('orderDetail').classList.remove('fade-in'), 300);
 
-    document.getElementById('detailOrderId').textContent = `Заказ #${orderId}`;
+    const _oNum = order.order_number || `#${orderId}`;
+    document.getElementById('detailOrderId').textContent = `Заказ ${_oNum}`;
 
     // Заполнить шапку
     fillDetailCustomerSelect(order.customer);
@@ -571,7 +583,8 @@ function openTrashOrderActions(orderId, custName, orderDate) {
     const deleteBtn  = document.getElementById('trashDeleteBtn');
     if (!modal) return;
 
-    title.textContent = `Заказ №${orderId} · ${custName} · ${orderDate}`;
+    const _delNum = order.order_number || `#${orderId}`;
+    title.textContent = `Заказ ${_delNum} · ${custName} · ${orderDate}`;
 
     // Переназначаем обработчики каждый раз (избегаем накопления listener-ов)
     restoreBtn.onclick = async () => {
@@ -924,7 +937,7 @@ async function openOrderCostBreakdown() {
         </tr></tfoot></table>`;
 
         document.getElementById('orderCostBreakdownSubtitle').textContent =
-            `Заказ №${order.id} · ${formatDateDMY(order.date)} · ${escapeHtml(order.customer || '(без клиента)')}`;
+            `Заказ ${order.order_number || '#'+order.id} · ${formatDateDMY(order.date)} · ${escapeHtml(order.customer || '(без клиента)')}`;
         const content = document.getElementById('orderCostBreakdownContent');
         content.innerHTML = html;
         content.style.cssText = 'max-height:60vh; overflow-y:auto; touch-action:pan-y; overscroll-behavior:contain;';
