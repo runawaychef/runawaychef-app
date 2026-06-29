@@ -131,11 +131,13 @@ async function openIngredientDetail(ingId) {
     document.getElementById('ingredientDetail').classList.add('fade-in'); setTimeout(() => document.getElementById('ingredientDetail').classList.remove('fade-in'), 300);
 
 
-    // Заголовок карточки
-    const nameDisplay = document.getElementById('idNameDisplay');
-    const unitDisplay = document.getElementById('idUnitDisplay');
-    if (nameDisplay) nameDisplay.textContent = ing.name;
-    if (unitDisplay) unitDisplay.textContent = UNIT_LABELS[ing.unit] || ing.unit;
+    // Заголовок карточки — inline поля
+    const nameInput = document.getElementById('idNameInput');
+    const unitInput = document.getElementById('idUnitInput');
+    if (nameInput) { nameInput.value = ing.name; }
+    if (unitInput) { unitInput.value = ing.unit || 'g'; }
+    // Фокус на поле названия если это новый черновик
+    if (nameInput && !ing.name) setTimeout(() => nameInput.focus(), 100);
     document.getElementById('idNewPriceDate').value = new Date().toISOString().slice(0, 10);
     document.getElementById('idPackagePrice').value = ing.package_price.toFixed(2);
     document.getElementById('idPackageSize').value = ing.package_size;
@@ -242,26 +244,22 @@ function openEditIngredientHeaderModal() {
 
 async function saveIngredientHeader() {
     suppressRealtimeFor3s();
-    const ing  = ingredients.find(i => i.id === currentIngredientId);
+    const ing = ingredients.find(i => i.id === currentIngredientId);
     if (!ing) return;
-    const name = document.getElementById('editIngName').value.trim();
-    const unit = document.getElementById('editIngUnit').value;
-    if (!name) { showInfo('Введите название!'); return; }
-    showLoading();
+    const nameInput = document.getElementById('idNameInput');
+    const unitInput = document.getElementById('idUnitInput');
+    const name = nameInput ? nameInput.value.trim() : ing.name;
+    const unit = unitInput ? unitInput.value : ing.unit;
+    if (!name) return; // Пустое название — не сохраняем (пользователь ещё печатает)
+    if (name === ing.name && unit === ing.unit) return; // Ничего не изменилось
     try {
         const { error } = await db.from('ingredients').update({ name, unit }).eq('id', ing.id);
         if (error) throw error;
         ing.name = name;
         ing.unit = unit;
-        const nameDisplay = document.getElementById('idNameDisplay');
-        const unitDisplay = document.getElementById('idUnitDisplay');
-        if (nameDisplay) nameDisplay.textContent = name;
-        if (unitDisplay) unitDisplay.textContent = UNIT_LABELS[unit] || unit;
-        closeModal();
         displayIngredients();
-        logActivity('ingredient', `Ингредиент переименован: «${name}»`);
+        logActivity('ingredient', `Ингредиент обновлён: «${name}»`);
     } catch(e) { console.error(e); showInfo('Ошибка сохранения.'); }
-    finally { hideLoading(); }
 }
 
 
