@@ -1764,7 +1764,7 @@ function showTab(tabId) {
     if (tabId === 'products')  { closeProductDetailSilent(); displayProducts(); }
     if (tabId === 'customers') { closeCustomerDetailSilent(); displayCustomers(); }
     if (tabId === 'ingredients') { closeIngredientDetailSilent(); displayIngredients(); }
-    if (tabId === 'semiFinished') { closeSemiFinishedDetailSilent(); displaySemiFinished(); }
+    if (tabId === 'semiFinished') { closeSemiFinishedDetailSilent(); displaySemiFinished(); showInfo('✅ showTab semiFinished вызван'); }
     if (tabId === 'history')   { updateHistoryEmployeeFilter(); loadHistory(); }
     if (tabId === 'stats')     { updateStatsCustomerFilter(); toggleDateRange(); applyFilter(); updateInfoCounts(); initDailyRevenueChart(); }
     refreshFab();
