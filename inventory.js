@@ -255,16 +255,24 @@ async function openInventoryModal() {
         if (!usedDirectly) {
             const parentSfs = getSfContainingIngredient(ing.id);
             if (parentSfs.length > 0) {
-                // Наследуем худшую зону из всех родительских п/ф
-                const worstZone = parentSfs.reduce((worst, sf) => {
+                // Определяем собственную зону ингредиента по его остатку
+                let ownZone = null;
+                if (balance === null || balance <= 0 || (daysLeft !== null && daysLeft < 3)) ownZone = 'red';
+                else if (daysLeft !== null && daysLeft < 7) ownZone = 'yellow';
+
+                // Определяем худшую зону родительских п/ф
+                const sfZone = parentSfs.reduce((worst, sf) => {
                     const zone = getSfAlertZone(sf, neededSfForOrders);
                     if (zone === 'red') return 'red';
                     if (zone === 'yellow' && worst !== 'red') return 'yellow';
                     return worst;
                 }, null);
-                // Если все п/ф в норме — ингредиент в «Остальные» даже если он на нуле
-                if (worstZone === 'red') red.push(item);
-                else if (worstZone === 'yellow') yellow.push(item);
+
+                // Поднимаем ингредиент только если он сам критичен/заканчивается
+                // ИЛИ если п/ф краснеет И ингредиент тоже в критичной зоне
+                // Если ингредиент в норме — он всегда в «Остальных», независимо от п/ф
+                if (ownZone === 'red') red.push(item);
+                else if (ownZone === 'yellow') yellow.push(item);
                 else rest.push(item);
                 return;
             }
