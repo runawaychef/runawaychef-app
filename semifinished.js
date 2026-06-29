@@ -421,11 +421,15 @@ async function renderSfStockBlock(sf) {
 
     if (balEl) {
         if (balance !== null && balance > 0) {
+            const days = daily > 0 ? Math.floor(balance / daily) : null;
             balEl.textContent = Number(balance).toFixed(2);
-            balEl.className = balance < (daily * 7) ? 'text-lg font-bold text-red-600' : 'text-lg font-bold text-gray-800';
+            // Цвет: красный < 3 дней, жёлтый < 14 дней, зелёный — норма
+            if (days !== null && days < 3)      balEl.className = 'text-lg font-bold text-red-600';
+            else if (days !== null && days < 7) balEl.className = 'text-lg font-bold text-yellow-600';
+            else                                balEl.className = 'text-lg font-bold text-green-700';
         } else {
             balEl.textContent = '0';
-            balEl.className = 'text-lg font-bold text-gray-400';
+            balEl.className = 'text-lg font-bold text-red-600';
         }
     }
     if (unitEl) unitEl.textContent = unitLabel;
@@ -433,7 +437,9 @@ async function renderSfStockBlock(sf) {
         if (balance !== null && balance > 0 && daily > 0) {
             const days = Math.floor(balance / daily);
             daysEl.textContent = `~${days} дн. запаса`;
-            daysEl.className = days < 7 ? 'text-xs text-red-600 font-semibold' : 'text-xs text-green-700';
+            if (days < 3)      daysEl.className = 'text-xs text-red-600 font-semibold';
+            else if (days < 7) daysEl.className = 'text-xs text-yellow-600 font-semibold';
+            else               daysEl.className = 'text-xs text-green-700';
         } else {
             daysEl.textContent = daily > 0 ? 'нет запаса' : 'недостаточно истории';
             daysEl.className = 'text-xs text-gray-400';
