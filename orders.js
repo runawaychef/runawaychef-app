@@ -153,7 +153,6 @@ function displayOrders() {
             <td class=" p-0.5 text-xs font-medium" onclick="openOrderDetail(${order.id})">${total}</td>
             <td class=" p-0.5 text-center" onclick="openOrderDetail(${order.id})"><span class="${flagClass}"></span></td>
             <td class=" p-0.5 text-center">
-                ${svgEdit(`openEditOrderModal(${realIdx})`)}
                 ${svgDelete(`openDeleteModal(${realIdx},'order','заказ клиента «${order.customer}»')`)}
                 ${svgCopy(`copyOrder(${realIdx})`)}
             </td>`;
