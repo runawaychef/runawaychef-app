@@ -1764,7 +1764,13 @@ function showTab(tabId) {
     if (tabId === 'products')  { closeProductDetailSilent(); displayProducts(); }
     if (tabId === 'customers') { closeCustomerDetailSilent(); displayCustomers(); }
     if (tabId === 'ingredients') { closeIngredientDetailSilent(); displayIngredients(); }
-    if (tabId === 'semiFinished') { closeSemiFinishedDetailSilent(); displaySemiFinished(); showInfo('✅ showTab semiFinished вызван'); }
+    if (tabId === 'semiFinished') {
+        closeSemiFinishedDetailSilent();
+        displaySemiFinished();
+        const sfEl = document.getElementById('semiFinished');
+        const isHidden = sfEl ? sfEl.classList.contains('hidden') : 'no element';
+        showInfo('SF hidden: ' + isHidden);
+    }
     if (tabId === 'history')   { updateHistoryEmployeeFilter(); loadHistory(); }
     if (tabId === 'stats')     { updateStatsCustomerFilter(); toggleDateRange(); applyFilter(); updateInfoCounts(); initDailyRevenueChart(); }
     refreshFab();
